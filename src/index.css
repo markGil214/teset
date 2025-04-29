@@ -1,0 +1,19 @@
+/* Add these rules to ensure pointer events work correctly */
+.pointer-events-fix {
+  pointer-events: auto !important;
+}
+
+/* Ensure forms and inputs are always clickable */
+input,
+select,
+button,
+a {
+  position: relative;
+  z-index: 20; /* Higher than background elements */
+}
+
+/* For debugging - uncomment to see z-index layers
+.z-0 { background-color: rgba(255, 0, 0, 0.1); }
+.z-10 { background-color: rgba(0, 255, 0, 0.1); }
+.z-20 { background-color: rgba(0, 0, 255, 0.1); }
+*/
