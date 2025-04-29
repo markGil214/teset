@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import LoadingPage from "./assets/components/LoadingPage";
 import GetStartedPage from "./assets/pages/GetStartedPage";
 import RegisterPage from "./assets/pages/RegisterPage";

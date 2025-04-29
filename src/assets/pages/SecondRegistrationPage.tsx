@@ -7,11 +7,6 @@ function getCookie(name: string) {
   return match ? decodeURIComponent(match[2]) : "";
 }
 
-const avatarImages: Record<string, string> = {
-  avatar1: "/child-avatar1.png", // Place your images in public/
-  avatar2: "/child-avatar2.png",
-};
-
 interface SecondRegistrationPageProps {
   onRegisterCompleted: () => void;
 }
