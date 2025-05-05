@@ -135,9 +135,8 @@ function App() {
       case "body-builder":
         // Placeholder for future game implementation
         return <div>Body System Builder Game (Coming Soon)</div>;
-      case "anatomy-quiz":
-        // Placeholder for future game implementation
-        return <div>Anatomy Quiz Game (Coming Soon)</div>;
+     case "anatomy-quiz":
+  return <AnatomyQuiz onBackToGames={() => setCurrentPage("games")} />;
       case "home":
       default:
         return (
