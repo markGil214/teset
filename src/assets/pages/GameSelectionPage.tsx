@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import "../components/gameSelection.css"; // Import your CSS file for styling
 interface GameSelectionPageProps {
   onBackToHome: () => void;
   onSelectGame: (game: string) => void;
@@ -53,13 +54,13 @@ const GameSelectionPage: React.FC<GameSelectionPageProps> = ({
     },
   ];
 
+  // Update the return statement in your GameSelectionPage component
+
   return (
     <div className="game-selection-container">
       <div className="game-selection-header">
         <h1>Choose a Game</h1>
-        {username && (
-          <p>Hello, {username}! What would you like to play today?</p>
-        )}
+        <p>Hello, {username}! What would you like to play today?</p>
       </div>
 
       <div className="games-grid">
@@ -71,18 +72,20 @@ const GameSelectionPage: React.FC<GameSelectionPageProps> = ({
             onClick={() => onSelectGame(game.id)}
             onMouseEnter={() => setHoveredGame(game.id)}
             onMouseLeave={() => setHoveredGame(null)}
-            onTouchStart={() => setHoveredGame(game.id)} // Add touch support
+            onTouchStart={() => setHoveredGame(game.id)}
           >
             <div className="game-icon">{game.icon}</div>
-            <h2 className="game-title">{game.title}</h2>
-            <p className="game-description">{game.description}</p>
+            <div className="game-title">{game.title}</div>
+            <div className="game-description">{game.description}</div>
           </div>
         ))}
       </div>
 
-      <button className="back-button" onClick={onBackToHome}>
-        Back to Dashboard
-      </button>
+      <div className="back-button-container">
+        <button className="back-button" onClick={onBackToHome}>
+          Back to Dashboard
+        </button>
+      </div>
     </div>
   );
 };
