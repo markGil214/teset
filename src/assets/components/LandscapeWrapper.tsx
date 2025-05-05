@@ -39,12 +39,6 @@ const LandscapeWrapper: React.FC<LandscapeWrapperProps> = ({
         </div>
       ) : (
         <>
-          <button
-            onClick={onExit}
-            className="absolute top-4 left-4 z-50 bg-red-500 text-white px-4 py-2 rounded-full"
-          >
-            Exit
-          </button>
           <div className="landscape-content">{children}</div>
         </>
       )}
