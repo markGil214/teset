@@ -10,6 +10,7 @@ import OrganMatcherGame from "./assets/pages/OrganMatcherGame";
 import LandscapeWrapper from "./assets/components/LandscapeWrapper";
 import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
 
+
 function App() {
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
