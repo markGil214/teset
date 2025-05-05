@@ -8,6 +8,7 @@ import GameSelectionPage from "./assets/pages/GameSelectionPage";
 import Animation from "./assets/components/animation";
 import OrganMatcherGame from "./assets/pages/OrganMatcherGame";
 import LandscapeWrapper from "./assets/components/LandscapeWrapper";
+import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -124,19 +125,22 @@ function App() {
             username={username}
           />
         );
-     // Find this code in your App.tsx (around line 130):
-case "organ-matcher":
-  return (
-    <LandscapeWrapper>
-      <OrganMatcherGame onBackToGames={() => setCurrentPage("games")} />
-    </LandscapeWrapper>
-  );
+      case "organ-matcher":
+        // Placeholder for future game implementation
+        return (
+          <LandscapeWrapper>
+            <OrganMatcherGame onBackToGames={() => setCurrentPage("games")} />
+          </LandscapeWrapper>
+        );
       case "body-builder":
         // Placeholder for future game implementation
         return <div>Body System Builder Game (Coming Soon)</div>;
       case "anatomy-quiz":
-        // Placeholder for future game implementation
-        return <div>Anatomy Quiz Game (Coming Soon)</div>;
+        return (
+          <LandscapeWrapper>
+            <AnatomyQuiz onBackToGames={() => setCurrentPage("games")} />
+          </LandscapeWrapper>
+        );
       case "home":
       default:
         return (
