@@ -20,11 +20,9 @@ const SecondRegistrationPage: React.FC<SecondRegistrationPageProps> = ({
   };
 
   const [username, setUsername] = useState("");
-  const [avatar, setAvatar] = useState("avatar1");
 
   useEffect(() => {
     setUsername(getCookie("reg_username"));
-    setAvatar(getCookie("reg_avatar") || "avatar1");
   }, []);
 
   return (

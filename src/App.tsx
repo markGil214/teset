@@ -7,6 +7,7 @@ import DashboardPage from "./assets/pages/HomePage";
 import GameSelectionPage from "./assets/pages/GameSelectionPage";
 import Animation from "./assets/components/animation";
 import OrganMatcherGame from "./assets/pages/OrganMatcherGame";
+import LandscapeWrapper from "./assets/components/LandscapeWrapper";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -126,7 +127,9 @@ function App() {
       case "organ-matcher":
         // Placeholder for future game implementation
         return (
-          <OrganMatcherGame onBackToGames={() => setCurrentPage("games")} />
+          <LandscapeWrapper onExit={() => setCurrentPage("games")}>
+            <OrganMatcherGame onBackToGames={() => setCurrentPage("games")} />
+          </LandscapeWrapper>
         );
       case "body-builder":
         // Placeholder for future game implementation
