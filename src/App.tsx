@@ -136,14 +136,15 @@ function App() {
         // Placeholder for future game implementation
         return <div>Body System Builder Game (Coming Soon)</div>;
       case "anatomy-quiz":
-        return <AnatomyQuiz onBackToGames={() => setCurrentPage("games")} />;
+        // Placeholder for future game implementation
+        return <div>Anatomy Quiz Game (Coming Soon)</div>;
       case "home":
       default:
         return (
           <DashboardPage
-            //onExit={() => {
-            // Optional: Clear cookies if you want to support logout
-            //  }}
+            onExit={() => {
+              // Optional: Clear cookies if you want to support logout
+            }}
             onGamesClick={navigateToGames} // Add this prop to your DashboardPage component
           />
         );
