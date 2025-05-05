@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect, useState } from "react";
-import "./animation.css"; // Import your CSS file for styling
+import "./animation.css";
 
 interface LandscapeWrapperProps {
   children: ReactNode;
@@ -24,6 +24,18 @@ const LandscapeWrapper: React.FC<LandscapeWrapperProps> = ({ children }) => {
     };
   }, []);
 
+  // Add overflow: hidden to body when in landscape mode
+  useEffect(() => {
+    if (isLandscape) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isLandscape]);
+
   return (
     <div className="landscape-game-container">
       {!isLandscape ? (
@@ -34,7 +46,6 @@ const LandscapeWrapper: React.FC<LandscapeWrapperProps> = ({ children }) => {
           </p>
         </div>
       ) : (
-        // Removed the Exit button, only keeping the content wrapper
         <div className="landscape-content">{children}</div>
       )}
     </div>
