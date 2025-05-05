@@ -446,11 +446,13 @@ body {
 /* Game Selection Page Styles */
 .game-selection-container {
   padding: 1rem 0.75rem;
-  max-width: 750px; /* Reduced from 900px */
+  max-width: 750px;
   margin: 0 auto;
   min-height: 90vh;
   background-color: #230f43;
   color: white;
+  overflow-y: auto; /* Allow vertical scrolling */
+  -webkit-overflow-scrolling: touch; /* Better scrolling on iOS */
 }
 
 /* Header Styles */
@@ -517,11 +519,21 @@ body {
   opacity: 0.8;
 }
 
-/* Back Button - SMALLER */
+/* Position back button at the bottom for better visibility */
+.back-button-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  padding-bottom: 1.5rem;
+  position: sticky; /* Make button sticky */
+  bottom: 0;
+}
+
+/* Style for the back button */
 .back-button {
   display: block;
-  margin: 0 auto;
-  padding: 0.4rem 0.8rem; /* Smaller padding */
+  padding: 0.5rem 1.2rem;
   background-color: #0fdd00;
   color: white;
   border: none;
@@ -536,7 +548,6 @@ body {
 .back-button:hover {
   background-color: #0cbb00;
 }
-
 /* iPhone SE Specific Responsive Styles */
 @media (max-width: 375px) {
   .game-selection-container {
@@ -865,4 +876,3 @@ body {
     max-height: 100vh;
   }
 }
-
