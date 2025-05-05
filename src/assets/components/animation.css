@@ -823,14 +823,14 @@ body {
   .difficulty-buttons {
     flex-direction: column;
   }
-} /* Add these styles for landscape container scrolling */
+} 
 .landscape-game-container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #230f43;
+  background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
