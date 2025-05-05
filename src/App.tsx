@@ -10,7 +10,6 @@ import OrganMatcherGame from "./assets/pages/OrganMatcherGame";
 import LandscapeWrapper from "./assets/components/LandscapeWrapper";
 import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
 
-
 function App() {
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
@@ -137,9 +136,7 @@ function App() {
         // Placeholder for future game implementation
         return <div>Body System Builder Game (Coming Soon)</div>;
       case "anatomy-quiz":
-        return (
-            <AnatomyQuiz onBackToGames={() => setCurrentPage("games")} />
-        );
+        return <AnatomyQuiz onBackToGames={() => setCurrentPage("games")} />;
       case "home":
       default:
         return (
