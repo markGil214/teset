@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Animation from "./animation";
 
 const LoadingPage = () => {
   const [progress, setProgress] = useState(0);
@@ -20,7 +19,6 @@ const LoadingPage = () => {
 
   return (
     <div className="loading-screen">
-      <Animation />
       <h1 className="heading-title">OrganQuest</h1>
       <p className="sub-heading">The Human Anatomy Explorer</p>
       <div className="loader">{progress}%</div> {/* Show the progress number */}
