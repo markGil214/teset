@@ -1,5 +1,4 @@
 // src/GetStartedPage.tsx
-import Animation from "../components/animation";
 
 const GetStartedPage = ({ onStart }: { onStart: () => void }) => {
   return (
