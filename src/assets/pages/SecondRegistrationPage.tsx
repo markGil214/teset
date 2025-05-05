@@ -34,7 +34,7 @@ const SecondRegistrationPage: React.FC<SecondRegistrationPageProps> = ({
         style={{ display: "flex", justifyContent: "center", margin: "1.5em 0" }}
       >
         <img
-          src="/public/pngtree-educational-human-body-anatomy-illustration-for-kids-png-image_15908244.png"
+          src="/pngtree-educational-human-body-anatomy-illustration-for-kids-png-image_15908244.png"
           alt="Child Avatar"
           style={{ width: 250, height: "auto", zIndex: 20 }}
         />
