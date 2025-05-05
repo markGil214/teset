@@ -124,13 +124,13 @@ function App() {
             username={username}
           />
         );
-      case "organ-matcher":
-        // Placeholder for future game implementation
-        return (
-          <LandscapeWrapper onExit={() => setCurrentPage("games")}>
-            <OrganMatcherGame onBackToGames={() => setCurrentPage("games")} />
-          </LandscapeWrapper>
-        );
+     // Find this code in your App.tsx (around line 130):
+case "organ-matcher":
+  return (
+    <LandscapeWrapper>
+      <OrganMatcherGame onBackToGames={() => setCurrentPage("games")} />
+    </LandscapeWrapper>
+  );
       case "body-builder":
         // Placeholder for future game implementation
         return <div>Body System Builder Game (Coming Soon)</div>;
