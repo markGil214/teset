@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import "../components/gameSelection.css"; // Import your CSS file for styling
 interface GameSelectionPageProps {
   onBackToHome: () => void;
   onSelectGame: (game: string) => void;
