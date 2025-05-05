@@ -3,13 +3,9 @@ import "./animation.css"; // Import your CSS file for styling
 
 interface LandscapeWrapperProps {
   children: ReactNode;
-  onExit?: () => void;
 }
 
-const LandscapeWrapper: React.FC<LandscapeWrapperProps> = ({
-  children,
-  onExit,
-}) => {
+const LandscapeWrapper: React.FC<LandscapeWrapperProps> = ({ children }) => {
   const [isLandscape, setIsLandscape] = useState(
     window.innerWidth > window.innerHeight
   );
@@ -38,9 +34,8 @@ const LandscapeWrapper: React.FC<LandscapeWrapperProps> = ({
           </p>
         </div>
       ) : (
-        <>
-          <div className="landscape-content">{children}</div>
-        </>
+        // Removed the Exit button, only keeping the content wrapper
+        <div className="landscape-content">{children}</div>
       )}
     </div>
   );
