@@ -137,9 +137,7 @@ function App() {
         return <div>Body System Builder Game (Coming Soon)</div>;
       case "anatomy-quiz":
         return (
-          <LandscapeWrapper>
             <AnatomyQuiz onBackToGames={() => setCurrentPage("games")} />
-          </LandscapeWrapper>
         );
       case "home":
       default:
