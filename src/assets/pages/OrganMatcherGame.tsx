@@ -30,53 +30,52 @@ const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
   const [score, setScore] = useState<number>(0);
 
   // Organ data with images and matching functions
+  // Organ data with images and matching functions - single word function descriptions
   const organData = [
     {
       matchId: 1,
       organ: { content: "Brain", image: "/brain.png" },
-      function: {
-        content: "Controls all body functions and processes information",
-      },
+      function: { content: "Controls" },
     },
     {
       matchId: 2,
       organ: { content: "Heart", image: "/heart.png" },
-      function: { content: "Pumps blood throughout the body" },
+      function: { content: "Pumps" },
     },
     {
       matchId: 3,
       organ: { content: "Lungs", image: "/lungs.png" },
-      function: { content: "Takes in oxygen and releases carbon dioxide" },
+      function: { content: "Breathes" },
     },
     {
       matchId: 4,
       organ: { content: "Stomach", image: "/stomach.png" },
-      function: { content: "Breaks down food for digestion" },
+      function: { content: "Digests" },
     },
     {
       matchId: 5,
       organ: { content: "Liver", image: "/liver.png" },
-      function: { content: "Filters blood and produces proteins" },
+      function: { content: "Detoxifies" },
     },
     {
       matchId: 6,
       organ: { content: "Kidneys", image: "/kidneys.png" },
-      function: { content: "Filter waste from blood to make urine" },
+      function: { content: "Filters" },
     },
     {
       matchId: 7,
       organ: { content: "Intestines", image: "/intestines.png" },
-      function: { content: "Absorbs nutrients from food" },
+      function: { content: "Absorbs" },
     },
     {
       matchId: 8,
       organ: { content: "Pancreas", image: "/pancreas.png" },
-      function: { content: "Produces insulin to regulate blood sugar" },
+      function: { content: "Regulates" },
     },
     {
       matchId: 9,
       organ: { content: "Skin", image: "/skin.png" },
-      function: { content: "Protects the body and regulates temperature" },
+      function: { content: "Protects" },
     },
   ];
 
