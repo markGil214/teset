@@ -1657,7 +1657,7 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #241245; /* Match your app theme */
+  background-color: #ffffff; /* Match your app theme */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1686,7 +1686,6 @@ body {
   color: white; /* Make text visible */
 }
 
-/* Now update the organ matcher game container for landscape mode */
 .landscape-content .organ-matcher-container {
   width: 100%;
   height: 100%;
