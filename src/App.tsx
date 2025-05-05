@@ -141,9 +141,9 @@ function App() {
       default:
         return (
           <DashboardPage
-            onExit={() => {
-              // Optional: Clear cookies if you want to support logout
-            }}
+            //onExit={() => {
+            // Optional: Clear cookies if you want to support logout
+            //  }}
             onGamesClick={navigateToGames} // Add this prop to your DashboardPage component
           />
         );
