@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "../components/animation.css"; // You'll create this styling file
-
+import "../components/gameSelection.css"; // Import your CSS file for styling
 interface GameSelectionPageProps {
   onBackToHome: () => void;
   onSelectGame: (game: string) => void;
@@ -73,6 +72,7 @@ const GameSelectionPage: React.FC<GameSelectionPageProps> = ({
             onClick={() => onSelectGame(game.id)}
             onMouseEnter={() => setHoveredGame(game.id)}
             onMouseLeave={() => setHoveredGame(null)}
+            onTouchStart={() => setHoveredGame(game.id)} // Add touch support
           >
             <div className="game-icon">{game.icon}</div>
             <h2 className="game-title">{game.title}</h2>
