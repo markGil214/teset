@@ -5,7 +5,9 @@ interface LandscapeWrapperProps {
   children: ReactNode;
 }
 
-const LandscapeWrapper: React.FC<LandscapeWrapperProps> = ({ children }) => {
+const LandscapeWrapper: React.FC<LandscapeWrapperProps> = ({
+  children,
+}) => {
   const [isLandscape, setIsLandscape] = useState(
     window.innerWidth > window.innerHeight
   );
@@ -34,7 +36,6 @@ const LandscapeWrapper: React.FC<LandscapeWrapperProps> = ({ children }) => {
           </p>
         </div>
       ) : (
-        // Removed the Exit button, only keeping the content wrapper
         <div className="landscape-content">{children}</div>
       )}
     </div>
