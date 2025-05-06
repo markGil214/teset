@@ -20,7 +20,6 @@ function App() {
   const [currentPage, setCurrentPage] = useState("home"); // Track current page: "home", "games", "organMatcher", etc.
   const [username, setUsername] = useState("");
 
-
   // Helper function to check if a cookie exists
   const getCookie = (name: string) => {
     const match = document.cookie.match(
@@ -30,7 +29,13 @@ function App() {
   };
   const shouldShowAnimation = () => {
     // Only show animation during loading and registration screens
-    return loading || !started || !registered || !secondRegistrationComplete || homepageLoading;
+    return (
+      loading ||
+      !started ||
+      !registered ||
+      !secondRegistrationComplete ||
+      homepageLoading
+    );
   };
 
   useEffect(() => {
@@ -55,32 +60,17 @@ function App() {
   }, []);
 
   // Show loading when transitioning to homepage
-useEffect(() => {
-
-
+  useEffect(() => {
     if (secondRegistrationComplete && !homepageLoading) {
-
-
       setHomepageLoading(true);
 
-
       const timer = setTimeout(() => {
-
-
         setHomepageLoading(false);
-
-
       }, 3000); // Show loading for 3 seconds before homepage
 
-
       return () => clearTimeout(timer);
-
-
     }
-
-
   }, [secondRegistrationComplete]);
-
 
   // Store app state in cookies when they change
   const handleStart = () => {
@@ -157,8 +147,8 @@ useEffect(() => {
       case "body-builder":
         // Placeholder for future game implementation
         return <div>Body System Builder Game (Coming Soon)</div>;
-     case "anatomy-quiz":
-  return <AnatomyQuiz onBackToGames={() => setCurrentPage("games")} />;
+      case "anatomy-quiz":
+        return <AnatomyQuiz onBackToGames={() => setCurrentPage("games")} />;
       case "home":
       default:
         return (
@@ -172,8 +162,8 @@ useEffect(() => {
     }
   };
 
- return (
-   <div className="relative">
+  return (
+    <div className="relative">
       {shouldShowAnimation() && (
         <div className="fixed inset-0 z-0 pointer-events-none">
           <Animation />
@@ -181,7 +171,7 @@ useEffect(() => {
       )}
       <div className="z-20 pointer-events-auto">{renderContent()}</div>
     </div>
-);
+  );
 }
 
 export default App;
