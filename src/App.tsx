@@ -19,6 +19,8 @@ function App() {
   const [homepageLoading, setHomepageLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState("home"); // Track current page: "home", "games", "organMatcher", etc.
   const [username, setUsername] = useState("");
+  const [showAnimation, setShowAnimation] = useState(true);
+
 
   // Helper function to check if a cookie exists
   const getCookie = (name: string) => {
@@ -50,15 +52,12 @@ function App() {
   }, []);
 
   // Show loading when transitioning to homepage
-  useEffect(() => {
-    if (secondRegistrationComplete && !homepageLoading) {
-      setHomepageLoading(true);
-      const timer = setTimeout(() => {
-        setHomepageLoading(false);
-      }, 3000); // Show loading for 3 seconds before homepage
-      return () => clearTimeout(timer);
-    }
-  }, [secondRegistrationComplete]);
+ useEffect(() => {
+  if (secondRegistrationComplete) {
+    setShowAnimation(false);
+  }
+}, [secondRegistrationComplete]);
+
 
   // Store app state in cookies when they change
   const handleStart = () => {
@@ -150,14 +149,16 @@ function App() {
     }
   };
 
-  return (
-    <div className="relative">
+ return (
+  <div className="relative">
+    {showAnimation && (
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Animation />
       </div>
-      <div className="z-20 pointer-events-auto">{renderContent()}</div>
-    </div>
-  );
+    )}
+    <div className="z-20 pointer-events-auto">{renderContent()}</div>
+  </div>
+);
 }
 
 export default App;
