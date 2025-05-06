@@ -96,7 +96,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
           >
             <option value="">Select</option>
             <option value="English">English</option>
-            <option value="Spanish">Spanish</option>
+            <option value="Filipino">Spanish</option>
           </select>
 
           <button type="submit" className="register-btn">
