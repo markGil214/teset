@@ -19,7 +19,6 @@ function App() {
   const [homepageLoading, setHomepageLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState("home"); // Track current page: "home", "games", "organMatcher", etc.
   const [username, setUsername] = useState("");
-  const [showAnimation, setShowAnimation] = useState(true);
 
 
   // Helper function to check if a cookie exists
