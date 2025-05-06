@@ -52,11 +52,31 @@ function App() {
   }, []);
 
   // Show loading when transitioning to homepage
- useEffect(() => {
-  if (secondRegistrationComplete) {
-    setShowAnimation(false);
-  }
-}, [secondRegistrationComplete]);
+useEffect(() => {
+
+
+    if (secondRegistrationComplete && !homepageLoading) {
+
+
+      setHomepageLoading(true);
+
+
+      const timer = setTimeout(() => {
+
+
+        setHomepageLoading(false);
+
+
+      }, 3000); // Show loading for 3 seconds before homepage
+
+
+      return () => clearTimeout(timer);
+
+
+    }
+
+
+  }, [secondRegistrationComplete]);
 
 
   // Store app state in cookies when they change
