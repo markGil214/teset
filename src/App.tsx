@@ -29,6 +29,10 @@ function App() {
     );
     return match ? match[2] : "";
   };
+  const shouldShowAnimation = () => {
+    // Only show animation during loading and registration screens
+    return loading || !started || !registered || !secondRegistrationComplete || homepageLoading;
+  };
 
   useEffect(() => {
     // Check for registration cookies on app load
@@ -170,13 +174,14 @@ useEffect(() => {
   };
 
  return (
-  <div className="relative">
-    {showAnimation && (
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <Animation />
-      </div>
-    )}
-  </div>
+   <div className="relative">
+      {shouldShowAnimation() && (
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <Animation />
+        </div>
+      )}
+      <div className="z-20 pointer-events-auto">{renderContent()}</div>
+    </div>
 );
 }
 
