@@ -156,7 +156,6 @@ function App() {
         <Animation />
       </div>
     )}
-    <div className="z-20 pointer-events-auto">{renderContent()}</div>
   </div>
 );
 }
