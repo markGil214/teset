@@ -31,7 +31,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
     <div className="register-bg">
       <div className="register-title">Welcome!</div>
       <div className="register-card" style={{ position: "relative" }}>
-        <div className="register-avatar">
+        <div
+          className="register-avatar"
+          style={{ minHeight: "5em", minWidth: "5em", position: "relative" }}
+        >
           {avatar && (
             <>
               {!imgLoaded && (
@@ -44,6 +47,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    zIndex: 1,
                   }}
                 >
                   <span style={{ color: "#bbb" }}>Loading...</span>
@@ -55,6 +62,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
                 width={80}
                 height={80}
                 loading="lazy"
+                decoding="async"
                 style={{
                   width: "5em",
                   height: "5em",
@@ -66,6 +74,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
                   position: "absolute",
                   top: 0,
                   left: 0,
+                  zIndex: 2,
                 }}
                 onLoad={() => setImgLoaded(true)}
               />
@@ -101,6 +110,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
                 width={50}
                 height={50}
                 loading="lazy"
+                decoding="async"
                 style={{
                   width: 50,
                   height: 50,
@@ -112,6 +122,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
                   cursor: "pointer",
                   transition: "border 0.2s",
                   objectFit: "cover",
+                  boxShadow:
+                    avatar === option.value ? "0 0 8px #007bff44" : "none",
                 }}
                 onClick={() => {
                   setAvatar(option.value);
