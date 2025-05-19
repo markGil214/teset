@@ -5,16 +5,18 @@ interface RegisterPageProps {
   onRegisterComplete: () => void;
 }
 
+const avatarOptions = [
+  { value: "avatar1", src: "/avatar1.webp", alt: "Avatar 1" },
+  { value: "avatar2", src: "/avatar2.webp", alt: "Avatar 2" },
+  { value: "avatar3", src: "/avatar3.webp", alt: "Avatar 3" },
+];
+
 const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
   const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
   const [avatar, setAvatar] = useState("");
   const [language, setLanguage] = useState("");
-  const avatarOptions = [
-    { value: "avatar1", src: "/images.png", alt: "Avatar 1" },
-    { value: "avatar2", src: "/images (1).png", alt: "Avatar 2" }, // Replace with your actual image
-    { value: "avatar3", src: "/images (2).png", alt: "Avatar 3" }, // Replace with your actual image
-  ];
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +24,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
     document.cookie = `reg_age=${age}; path=/; max-age=86400`;
     document.cookie = `reg_avatar=${avatar}; path=/; max-age=86400`;
     document.cookie = `reg_language=${language}; path=/; max-age=86400`;
-    onRegisterComplete(); // Call the prop instead of window.location.href
+    onRegisterComplete();
   };
 
   return (
@@ -31,19 +33,43 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
       <div className="register-card" style={{ position: "relative" }}>
         <div className="register-avatar">
           {avatar && (
-            <img
-              src={avatarOptions.find((a) => a.value === avatar)?.src}
-              alt="Selected Avatar"
-              style={{
-                width: "5em",
-                height: "5em",
-                borderRadius: "100%",
-                objectFit: "cover",
-                border: "none",
-                transition: "opacity 0.3s",
-                opacity: avatar ? 1 : 0,
-              }}
-            />
+            <>
+              {!imgLoaded && (
+                <div
+                  style={{
+                    width: "5em",
+                    height: "5em",
+                    borderRadius: "100%",
+                    background: "#eee",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <span style={{ color: "#bbb" }}>Loading...</span>
+                </div>
+              )}
+              <img
+                src={avatarOptions.find((a) => a.value === avatar)?.src}
+                alt="Selected Avatar"
+                width={80}
+                height={80}
+                loading="lazy"
+                style={{
+                  width: "5em",
+                  height: "5em",
+                  borderRadius: "100%",
+                  objectFit: "cover",
+                  border: "none",
+                  transition: "opacity 0.3s",
+                  opacity: imgLoaded ? 1 : 0,
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                }}
+                onLoad={() => setImgLoaded(true)}
+              />
+            </>
           )}
         </div>
         <form className="register-form" onSubmit={handleSubmit}>
@@ -72,6 +98,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
                 key={option.value}
                 src={option.src}
                 alt={option.alt}
+                width={50}
+                height={50}
+                loading="lazy"
                 style={{
                   width: 50,
                   height: 50,
@@ -82,8 +111,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterComplete }) => {
                       : "2px solid transparent",
                   cursor: "pointer",
                   transition: "border 0.2s",
+                  objectFit: "cover",
                 }}
-                onClick={() => setAvatar(option.value)}
+                onClick={() => {
+                  setAvatar(option.value);
+                  setImgLoaded(false);
+                }}
               />
             ))}
           </div>
