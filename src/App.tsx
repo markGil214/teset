@@ -11,7 +11,7 @@ import LoadingPage from "./assets/components/LoadingPage";
 import GetStartedPage from "./assets/pages/GetStartedPage";
 import RegisterPage from "./assets/pages/RegisterPage";
 import SecondRegistrationPage from "./assets/pages/SecondRegistrationPage";
-import DashboardPage from "./assets/pages/HomePage";
+import HomePage from "./assets/pages/HomePage";
 import GameSelectionPage from "./assets/pages/GameSelectionPage";
 import Animation from "./assets/components/animation";
 import OrganMatcherGame from "./assets/pages/OrganMatcherGame";
@@ -219,10 +219,7 @@ function AppContent() {
             path="/home"
             element={
               secondRegistrationComplete ? (
-                <DashboardPage
-                  onExit={() => {}}
-                  onGamesClick={navigateToGames}
-                />
+                <HomePage onExit={() => {}} onGamesClick={navigateToGames} />
               ) : (
                 <Navigate to="/" />
               )
