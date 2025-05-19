@@ -1006,7 +1006,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-   z-index: 50;
+  z-index: 50;
 }
 
 .quiz-content {
@@ -1113,4 +1113,20 @@ body {
     max-width: 150px;
     max-height: 150px;
   }
+}
+/* Add these styles to your existing CSS file */
+
+.heart-model {
+  margin: 0 auto;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.question-model {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+  height: 300px;
 }

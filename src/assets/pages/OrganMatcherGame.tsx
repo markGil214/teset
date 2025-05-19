@@ -1,23 +1,73 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../components/animation.css";
 
 interface OrganMatcherGameProps {
   onBackToGames: () => void;
 }
 
+// Updated Card interface to support translations
 interface Card {
   id: number;
   type: "organ" | "function";
-  content: string;
+  content: {
+    en: string;
+    fil: string;
+  };
   matchId: number;
   isFlipped: boolean;
   isMatched: boolean;
   image?: string;
 }
 
+// Translation object for UI elements
+const translations = {
+  en: {
+    title: "Organ Matcher",
+    subtitle: "Match each organ with its correct function!",
+    selectDifficulty: "Select Difficulty",
+    easy: "Easy (4 pairs)",
+    medium: "Medium (6 pairs)",
+    hard: "Hard (9 pairs)",
+    startGame: "Start Game",
+    moves: "Moves",
+    matched: "Matched",
+    score: "Score",
+    congratulations: "Congratulations!",
+    matchedAll: "You've matched all the organs with their functions!",
+    finalScore: "Final Score",
+    totalMoves: "Total Moves",
+    playAgain: "Play Again",
+    changeDifficulty: "Change Difficulty",
+    backToGames: "Back to Games",
+  },
+  fil: {
+    title: "Organ Matcher",
+    subtitle: "Itugma ang bawat organ sa tamang tungkulin nito!",
+    selectDifficulty: "Pumili ng Antas",
+    easy: "Madali (4 na pares)",
+    medium: "Katamtaman (6 na pares)",
+    hard: "Mahirap (9 na pares)",
+    startGame: "Simulan ang Laro",
+    moves: "Mga Galaw",
+    matched: "Nagtugma",
+    score: "Iskor",
+    congratulations: "Binabati kita!",
+    matchedAll:
+      "Naitugma mo na ang lahat ng mga organ sa kanilang mga tungkulin!",
+    finalScore: "Huling Iskor",
+    totalMoves: "Kabuuang Galaw",
+    playAgain: "Maglaro Muli",
+    changeDifficulty: "Baguhin ang Antas",
+    backToGames: "Balik sa mga Laro",
+  },
+};
+
 const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
   onBackToGames,
 }) => {
+  // Add language state
+  const [language, setLanguage] = useState<"en" | "fil">("en");
+
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [matchedPairs, setMatchedPairs] = useState<number>(0);
@@ -29,53 +79,162 @@ const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
   );
   const [score, setScore] = useState<number>(0);
 
-  // Organ data with images and matching functions
-  // Organ data with images and matching functions - single word function descriptions
+  // Load language preference on component mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("userLanguage");
+    if (savedLanguage === "fil") {
+      setLanguage("fil");
+    }
+  }, []);
+
+  // Get translations based on current language
+  const t = translations[language];
+
+  // Bilingual organ data with images and matching functions
   const organData = [
     {
       matchId: 1,
-      organ: { content: "Brain", image: "/brain.png" },
-      function: { content: "Controls" },
+      organ: {
+        content: {
+          en: "Brain",
+          fil: "Utak",
+        },
+        image: "/brain.png",
+      },
+      function: {
+        content: {
+          en: "Controls",
+          fil: "Kumokontrol",
+        },
+      },
     },
     {
       matchId: 2,
-      organ: { content: "Heart", image: "/heart.png" },
-      function: { content: "Pumps" },
+      organ: {
+        content: {
+          en: "Heart",
+          fil: "Puso",
+        },
+        image: "/heart.png",
+      },
+      function: {
+        content: {
+          en: "Pumps",
+          fil: "Nagbobomba",
+        },
+      },
     },
     {
       matchId: 3,
-      organ: { content: "Lungs", image: "/lungs.png" },
-      function: { content: "Breathes" },
+      organ: {
+        content: {
+          en: "Lungs",
+          fil: "Baga",
+        },
+        image: "/lungs.png",
+      },
+      function: {
+        content: {
+          en: "Breathes",
+          fil: "Humihinga",
+        },
+      },
     },
     {
       matchId: 4,
-      organ: { content: "Stomach", image: "/stomach.png" },
-      function: { content: "Digests" },
+      organ: {
+        content: {
+          en: "Stomach",
+          fil: "Tiyan",
+        },
+        image: "/stomach.png",
+      },
+      function: {
+        content: {
+          en: "Digests",
+          fil: "Tumutunaaw",
+        },
+      },
     },
     {
       matchId: 5,
-      organ: { content: "Liver", image: "/liver.png" },
-      function: { content: "Detoxifies" },
+      organ: {
+        content: {
+          en: "Liver",
+          fil: "Atay",
+        },
+        image: "/liver.png",
+      },
+      function: {
+        content: {
+          en: "Detoxifies",
+          fil: "Naglilinis",
+        },
+      },
     },
     {
       matchId: 6,
-      organ: { content: "Kidneys", image: "/kidneys.png" },
-      function: { content: "Filters" },
+      organ: {
+        content: {
+          en: "Kidneys",
+          fil: "Bato",
+        },
+        image: "/kidneys.png",
+      },
+      function: {
+        content: {
+          en: "Filters",
+          fil: "Nagsasala",
+        },
+      },
     },
     {
       matchId: 7,
-      organ: { content: "Intestines", image: "/intestines.png" },
-      function: { content: "Absorbs" },
+      organ: {
+        content: {
+          en: "Intestines",
+          fil: "Bituka",
+        },
+        image: "/intestines.png",
+      },
+      function: {
+        content: {
+          en: "Absorbs",
+          fil: "Sumasipsip",
+        },
+      },
     },
     {
       matchId: 8,
-      organ: { content: "Pancreas", image: "/pancreas.png" },
-      function: { content: "Regulates" },
+      organ: {
+        content: {
+          en: "Pancreas",
+          fil: "Lapay",
+        },
+        image: "/pancreas.png",
+      },
+      function: {
+        content: {
+          en: "Regulates",
+          fil: "Nagreregulate",
+        },
+      },
     },
     {
       matchId: 9,
-      organ: { content: "Skin", image: "/skin.png" },
-      function: { content: "Protects" },
+      organ: {
+        content: {
+          en: "Skin",
+          fil: "Balat",
+        },
+        image: "/skin.png",
+      },
+      function: {
+        content: {
+          en: "Protects",
+          fil: "Nagpoprotekta",
+        },
+      },
     },
   ];
 
@@ -207,73 +366,273 @@ const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
   };
 
   return (
-    <div className="organ-matcher-container">
-      <div className="game-header">
-        <h1>Organ Matcher</h1>
-        <p>Match each organ with its correct function!</p>
+    <div
+      className="organ-matcher-container"
+      style={{
+        height: "100vh",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#241245",
+        position: "relative",
+        minHeight: "100%",
+        maxHeight: "100vh",
+        padding: "0.5rem",
+        color: "white",
+      }}
+    >
+      <div
+        className="game-header"
+        style={{
+          flexShrink: 0,
+          padding: "0.5rem",
+          textAlign: "center",
+          color: "#f3d849",
+          height: "auto",
+          maxHeight: "15vh",
+        }}
+      >
+        <h1
+          style={{
+            margin: "0",
+            fontSize: "clamp(1.2rem, 4vw, 1.8rem)",
+          }}
+        >
+          {t.title}
+        </h1>
+        <p
+          style={{
+            margin: "0.25rem 0 0 0",
+            fontSize: "clamp(0.8rem, 2vw, 1rem)",
+          }}
+        >
+          {t.subtitle}
+        </p>
       </div>
 
       {!gameStarted ? (
-        <div className="difficulty-selection">
-          <h2>Select Difficulty</h2>
-          <div className="difficulty-buttons">
+        <div
+          className="difficulty-selection"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            flex: 1,
+            maxHeight: "85vh",
+            padding: "0.5rem",
+          }}
+        >
+          <h2
+            style={{
+              margin: "0.5rem 0",
+              fontSize: "clamp(1.1rem, 3.5vw, 1.5rem)",
+              color: "#f3d849",
+            }}
+          >
+            {t.selectDifficulty}
+          </h2>
+
+          <div
+            className="difficulty-buttons"
+            style={{
+              margin: "0.5rem 0",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: "0.5rem",
+            }}
+          >
             <button
               className={`difficulty-btn ${
                 difficulty === "easy" ? "selected" : ""
               }`}
               onClick={() => setDifficulty("easy")}
+              style={{
+                minWidth: "80px",
+                padding: "0.5rem 1rem",
+                backgroundColor: difficulty === "easy" ? "#4285F4" : "#4a5dbd",
+                border: "none",
+                borderRadius: "4px",
+                color: "white",
+                cursor: "pointer",
+              }}
             >
-              Easy (4 pairs)
+              {t.easy}
             </button>
             <button
               className={`difficulty-btn ${
                 difficulty === "medium" ? "selected" : ""
               }`}
               onClick={() => setDifficulty("medium")}
+              style={{
+                minWidth: "80px",
+                padding: "0.5rem 1rem",
+                backgroundColor:
+                  difficulty === "medium" ? "#4285F4" : "#4a5dbd",
+                border: "none",
+                borderRadius: "4px",
+                color: "white",
+                cursor: "pointer",
+              }}
             >
-              Medium (6 pairs)
+              {t.medium}
             </button>
             <button
               className={`difficulty-btn ${
                 difficulty === "hard" ? "selected" : ""
               }`}
               onClick={() => setDifficulty("hard")}
+              style={{
+                minWidth: "80px",
+                padding: "0.5rem 1rem",
+                backgroundColor: difficulty === "hard" ? "#4285F4" : "#4a5dbd",
+                border: "none",
+                borderRadius: "4px",
+                color: "white",
+                cursor: "pointer",
+              }}
             >
-              Hard (9 pairs)
+              {t.hard}
             </button>
           </div>
+
           <button
             className="start-game-btn"
             onClick={() => initializeGame(difficulty)}
+            style={{
+              marginTop: "1rem",
+              padding: "0.5rem 1.5rem",
+              backgroundColor: "#e78c11",
+              border: "none",
+              borderRadius: "4px",
+              color: "white",
+              fontSize: "1rem",
+              cursor: "pointer",
+            }}
           >
-            Start Game
+            {t.startGame}
           </button>
         </div>
       ) : (
         <>
-          <div className="game-stats">
-            <div className="stat-item">Moves: {moves}</div>
+          <div
+            className="game-stats"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "0.5rem",
+              backgroundColor: "rgba(0,0,0,0.3)",
+              borderRadius: "8px",
+              marginBottom: "0.5rem",
+              fontSize: "clamp(0.7rem, 2.5vw, 0.9rem)",
+            }}
+          >
             <div className="stat-item">
-              Matched: {matchedPairs}/{cards.length / 2}
+              {t.moves}: {moves}
             </div>
-            <div className="stat-item">Score: {score}</div>
+            <div className="stat-item">
+              {t.matched}: {matchedPairs}/{cards.length / 2}
+            </div>
+            <div className="stat-item">
+              {t.score}: {score}
+            </div>
           </div>
 
           {gameComplete ? (
-            <div className="game-complete">
-              <h2>Congratulations!</h2>
-              <p>You've matched all the organs with their functions!</p>
-              <p>Final Score: {score}</p>
-              <p>Total Moves: {moves}</p>
-              <div className="game-complete-buttons">
-                <button onClick={() => initializeGame(difficulty)}>
-                  Play Again
+            <div
+              className="game-complete"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                flex: 1,
+                maxHeight: "85vh",
+                padding: "0.5rem",
+              }}
+            >
+              <h2
+                style={{
+                  margin: "0.5rem 0",
+                  fontSize: "clamp(1.1rem, 3.5vw, 1.5rem)",
+                  color: "#f3d849",
+                }}
+              >
+                {t.congratulations}
+              </h2>
+              <p style={{ margin: "0.5rem 0", textAlign: "center" }}>
+                {t.matchedAll}
+              </p>
+              <p style={{ margin: "0.5rem 0" }}>
+                {t.finalScore}: {score}
+              </p>
+              <p style={{ margin: "0.5rem 0" }}>
+                {t.totalMoves}: {moves}
+              </p>
+              <div
+                className="game-complete-buttons"
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                  marginTop: "1rem",
+                }}
+              >
+                <button
+                  onClick={() => initializeGame(difficulty)}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    backgroundColor: "#e78c11",
+                    border: "none",
+                    borderRadius: "4px",
+                    color: "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  {t.playAgain}
                 </button>
-                <button onClick={onBackToGames}>Back to Games</button>
+                <button
+                  onClick={onBackToGames}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    backgroundColor: "#e78c11",
+                    border: "none",
+                    borderRadius: "4px",
+                    color: "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  {t.backToGames}
+                </button>
               </div>
             </div>
           ) : (
-            <div className="game-board">
+            // Updated game-board layout to ensure cards are fully visible
+
+            <div
+              className="game-board"
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${
+                  difficulty === "hard" ? 4 : 3
+                }, 1fr)`,
+                // Adjust row spacing and placement
+                gridAutoRows: "1fr",
+                gap: difficulty === "hard" ? "0.3rem" : "0.5rem",
+                flex: 1,
+                overflow: "visible", // Allow content to be visible
+                padding: "0.25rem",
+                // More flexible height calculation
+                maxHeight: difficulty === "hard" ? "65vh" : "70vh", // Give more space for hard difficulty
+                alignContent: "center",
+                justifyContent: "center",
+                margin: "0 auto",
+                // Add grid row gap adjustment for different difficulties
+                gridRowGap: difficulty === "hard" ? "0.3rem" : "0.4rem",
+              }}
+            >
               {cards.map((card) => (
                 <div
                   key={card.id}
@@ -281,18 +640,142 @@ const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
                     card.isFlipped || card.isMatched ? "flipped" : ""
                   } ${card.isMatched ? "matched" : ""} ${card.type}`}
                   onClick={() => handleCardClick(card.id)}
+                  style={{
+                    backgroundColor: "#4a5dbd",
+                    borderRadius: "8px", // Slightly smaller radius
+                    aspectRatio: "1 / 1", // Keep cards square
+                    perspective: "1000px",
+                    cursor: "pointer",
+                    position: "relative",
+                    transform: card.isMatched ? "scale(0.95)" : "scale(1)",
+                    opacity: card.isMatched ? 0.8 : 1,
+                    transition: "all 0.3s ease",
+                    // Simpler, more adaptive sizing based on difficulty
+                    height:
+                      difficulty === "hard"
+                        ? "min(13vh, 90px)" // Smaller for hard difficulty
+                        : difficulty === "medium"
+                        ? "min(16vh, 110px)" // Medium size
+                        : "min(18vh, 130px)", // Largest for easy
+                    width: "100%",
+                    // Add max-width to ensure cards don't get too wide on large screens
+                    maxWidth: "130px",
+                    margin: "0 auto", // Center cards in their grid cells
+                  }}
                 >
-                  <div className="card-inner">
-                    <div className="card-front">
-                      <div className="card-question-mark">?</div>
+                  {/* Card inner content */}
+                  <div
+                    className="card-inner"
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      height: "100%",
+                      textAlign: "center",
+                      transition: "transform 0.6s",
+                      transformStyle: "preserve-3d",
+                      transform:
+                        card.isFlipped || card.isMatched
+                          ? "rotateY(180deg)"
+                          : "rotateY(0deg)",
+                    }}
+                  >
+                    {/* Card front */}
+                    <div
+                      className="card-front"
+                      style={{
+                        position: "absolute",
+                        width: "100%",
+                        height: "100%",
+                        backfaceVisibility: "hidden",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        borderRadius: "8px",
+                        backgroundColor: "#4a5dbd",
+                        color: "white",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.2)", // Lighter shadow
+                      }}
+                    >
+                      <div
+                        className="card-question-mark"
+                        style={{
+                          // Smaller question mark for better fit
+                          fontSize:
+                            difficulty === "hard"
+                              ? "clamp(1.2rem, 3vw, 2rem)"
+                              : "clamp(1.5rem, 4vw, 2.5rem)",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ?
+                      </div>
                     </div>
-                    <div className="card-back">
+
+                    {/* Card back */}
+                    <div
+                      className="card-back"
+                      style={{
+                        position: "absolute",
+                        width: "100%",
+                        height: "100%",
+                        backfaceVisibility: "hidden",
+                        transform: "rotateY(180deg)",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        // Minimal padding to maximize space
+                        padding: difficulty === "hard" ? "0.15rem" : "0.25rem",
+                        borderRadius: "8px",
+                        backgroundColor:
+                          card.type === "organ" ? "#2ecc71" : "#e74c3c",
+                        color: "white",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.2)", // Lighter shadow
+                      }}
+                    >
                       {card.type === "organ" && card.image && (
-                        <div className="card-image">
-                          <img src={card.image} alt={card.content} />
+                        <div
+                          className="card-image"
+                          style={{
+                            // Adjusted image size for better fit
+                            width: difficulty === "hard" ? "50%" : "60%",
+                            height: difficulty === "hard" ? "50%" : "60%",
+                            marginBottom: "0.15rem", // Minimal margin
+                          }}
+                        >
+                          <img
+                            src={card.image}
+                            alt={card.content[language]}
+                            style={{
+                              maxWidth: "100%",
+                              maxHeight: "100%",
+                              objectFit: "contain",
+                            }}
+                          />
                         </div>
                       )}
-                      <div className="card-content">{card.content}</div>
+                      <div
+                        className="card-content"
+                        style={{
+                          // Even smaller font for better fit
+                          fontSize:
+                            difficulty === "hard"
+                              ? "clamp(0.55rem, 1.5vw, 0.7rem)"
+                              : "clamp(0.65rem, 1.8vw, 0.8rem)",
+                          fontWeight: "bold",
+                          textAlign: "center",
+                          maxHeight: "2.2em",
+                          overflow: "hidden",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          lineHeight: "1.1em", // Tighter line height
+                          margin: 0,
+                          padding: 0,
+                        }}
+                      >
+                        {card.content[language]}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -300,16 +783,45 @@ const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
             </div>
           )}
 
-          <div className="game-controls">
+          <div
+            className="game-controls"
+            style={{
+              marginTop: "auto",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "0.5rem",
+              padding: "0.5rem 0",
+            }}
+          >
             <button
               onClick={() => {
                 setGameStarted(false);
                 setCards([]);
               }}
+              style={{
+                padding: "0.5rem",
+                backgroundColor: "#e78c11",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                fontSize: "clamp(0.8rem, 2.5vw, 0.9rem)",
+              }}
             >
-              Change Difficulty
+              {t.changeDifficulty}
             </button>
-            <button onClick={onBackToGames}>Back to Games</button>
+            <button
+              onClick={onBackToGames}
+              style={{
+                padding: "0.5rem",
+                backgroundColor: "#e78c11",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                fontSize: "clamp(0.8rem, 2.5vw, 0.9rem)",
+              }}
+            >
+              {t.backToGames}
+            </button>
           </div>
         </>
       )}

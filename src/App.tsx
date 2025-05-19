@@ -1,4 +1,12 @@
 import { useEffect, useState } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import LoadingPage from "./assets/components/LoadingPage";
 import GetStartedPage from "./assets/pages/GetStartedPage";
 import RegisterPage from "./assets/pages/RegisterPage";
@@ -10,15 +18,27 @@ import OrganMatcherGame from "./assets/pages/OrganMatcherGame";
 import LandscapeWrapper from "./assets/components/LandscapeWrapper";
 import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
 
+// Main App wrapper that provides the Router context
 function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
+}
+
+// AppContent component that contains all the logic
+function AppContent() {
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
   const [registered, setRegistered] = useState(false);
   const [secondRegistrationComplete, setSecondRegistrationComplete] =
     useState(false);
   const [homepageLoading, setHomepageLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState("home"); // Track current page: "home", "games", "organMatcher", etc.
   const [username, setUsername] = useState("");
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Helper function to check if a cookie exists
   const getCookie = (name: string) => {
@@ -27,6 +47,7 @@ function App() {
     );
     return match ? match[2] : "";
   };
+
   const shouldShowAnimation = () => {
     // Only show animation during loading and registration screens
     return (
@@ -52,9 +73,19 @@ function App() {
       setRegistered(true);
       setSecondRegistrationComplete(true);
       setLoading(false); // Skip initial loading screen
+
+      // If user is already registered and on the root path, redirect to home
+      if (location.pathname === "/") {
+        navigate("/home");
+      }
     } else {
       // Only show loading screen for new users
-      const timer = setTimeout(() => setLoading(false), 5000);
+      const timer = setTimeout(() => {
+        setLoading(false);
+        if (location.pathname === "/") {
+          navigate("/get-started");
+        }
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, []);
@@ -66,6 +97,7 @@ function App() {
 
       const timer = setTimeout(() => {
         setHomepageLoading(false);
+        navigate("/home");
       }, 3000); // Show loading for 3 seconds before homepage
 
       return () => clearTimeout(timer);
@@ -76,91 +108,63 @@ function App() {
   const handleStart = () => {
     setStarted(true);
     document.cookie = "app_started=true; path=/; max-age=86400";
+    navigate("/register");
   };
 
   const handleRegisterComplete = () => {
     setRegistered(true);
     document.cookie = "app_registered=true; path=/; max-age=86400";
+    navigate("/register-second");
   };
 
   const handleSecondRegistrationComplete = () => {
     setSecondRegistrationComplete(true);
     document.cookie = "app_completed=true; path=/; max-age=86400";
+    // The homepage will be loaded via the useEffect
   };
 
-  // Handle navigation between home and games
   const navigateToGames = () => {
-    setCurrentPage("games");
+    navigate("/games");
   };
 
   const navigateToHome = () => {
-    setCurrentPage("home");
+    navigate("/home");
   };
 
   const handleSelectGame = (gameId: string) => {
-    setCurrentPage(gameId); // Set the page to the selected game
+    navigate(`/games/${gameId}`);
   };
 
-  // Render the correct content based on registration state and current page
-  const renderContent = () => {
-    if (loading) {
-      return <LoadingPage />;
-    }
+  // Render the correct content based on loading state
+  if (loading) {
+    return (
+      <div className="relative">
+        {shouldShowAnimation() && (
+          <div className="fixed inset-0 z-0 pointer-events-none">
+            <Animation />
+          </div>
+        )}
+        <div className="z-20 pointer-events-auto">
+          <LoadingPage />
+        </div>
+      </div>
+    );
+  }
 
-    if (!started) {
-      return <GetStartedPage onStart={handleStart} />;
-    }
-
-    if (!registered) {
-      return <RegisterPage onRegisterComplete={handleRegisterComplete} />;
-    }
-
-    if (!secondRegistrationComplete) {
-      return (
-        <SecondRegistrationPage
-          onRegisterCompleted={handleSecondRegistrationComplete}
-        />
-      );
-    }
-
-    if (homepageLoading) {
-      return <LoadingPage />; // Show loading before homepage
-    }
-
-    // User is fully registered, show the appropriate page
-    switch (currentPage) {
-      case "games":
-        return (
-          <GameSelectionPage
-            onBackToHome={navigateToHome}
-            onSelectGame={handleSelectGame}
-            username={username}
-          />
-        );
-      case "organ-matcher":
-        // Placeholder for future game implementation
-        return (
-          <LandscapeWrapper>
-            <OrganMatcherGame onBackToGames={() => setCurrentPage("games")} />
-          </LandscapeWrapper>
-        );
-      case "body-builder":
-        // Placeholder for future game implementation
-        return <div>Body System Builder Game (Coming Soon)</div>;
-      case "anatomy-quiz":
-        return <AnatomyQuiz onBackToGames={() => setCurrentPage("games")} />;
-      case "home":
-      default:
-        return (
-          <DashboardPage
-            onExit={() => {
-              // Optional: Clear cookies if you want to support logout
-            }}
-            onGamesClick={navigateToGames} // Add this prop to your DashboardPage component
-          />
-        );
-    }
-  };
+  if (homepageLoading) {
+    return (
+      <div className="relative">
+        {shouldShowAnimation() && (
+          <div className="fixed inset-0 z-0 pointer-events-none">
+            <Animation />
+          </div>
+        )}
+        <div className="z-20 pointer-events-auto">
+          <LoadingPage />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">
@@ -169,7 +173,110 @@ function App() {
           <Animation />
         </div>
       )}
-      <div className="z-20 pointer-events-auto">{renderContent()}</div>
+      <div className="z-20 pointer-events-auto">
+        <Routes>
+          <Route
+            path="/"
+            element={<Navigate to={started ? "/home" : "/get-started"} />}
+          />
+          <Route
+            path="/get-started"
+            element={
+              !started ? (
+                <GetStartedPage onStart={handleStart} />
+              ) : (
+                <Navigate to="/register" />
+              )
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              started && !registered ? (
+                <RegisterPage onRegisterComplete={handleRegisterComplete} />
+              ) : registered ? (
+                <Navigate to="/register-second" />
+              ) : (
+                <Navigate to="/get-started" />
+              )
+            }
+          />
+          <Route
+            path="/register-second"
+            element={
+              registered && !secondRegistrationComplete ? (
+                <SecondRegistrationPage
+                  onRegisterCompleted={handleSecondRegistrationComplete}
+                />
+              ) : secondRegistrationComplete ? (
+                <Navigate to="/home" />
+              ) : (
+                <Navigate to="/register" />
+              )
+            }
+          />
+          <Route
+            path="/home"
+            element={
+              secondRegistrationComplete ? (
+                <DashboardPage
+                  onExit={() => {}}
+                  onGamesClick={navigateToGames}
+                />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/games"
+            element={
+              secondRegistrationComplete ? (
+                <GameSelectionPage
+                  onBackToHome={navigateToHome}
+                  onSelectGame={handleSelectGame}
+                  username={username}
+                />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/games/organ-matcher"
+            element={
+              secondRegistrationComplete ? (
+                <LandscapeWrapper>
+                  <OrganMatcherGame onBackToGames={() => navigate("/games")} />
+                </LandscapeWrapper>
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/games/anatomy-quiz"
+            element={
+              secondRegistrationComplete ? (
+                <AnatomyQuiz onBackToGames={() => navigate("/games")} />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/games/body-builder"
+            element={
+              secondRegistrationComplete ? (
+                <div>Body System Builder Game (Coming Soon)</div>
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </div>
     </div>
   );
 }
