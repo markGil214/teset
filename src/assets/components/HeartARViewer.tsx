@@ -7,9 +7,19 @@ import "networked-aframe";
 const injectARScript = () => {
   const script = document.createElement("script");
   script.src =
-    "https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js";
+    "https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js";
   script.async = true;
   document.head.appendChild(script);
+  
+  // Log when script is loaded to help with debugging
+  script.onload = () => {
+    console.log("AR.js script loaded successfully");
+  };
+  
+  script.onerror = (error) => {
+    console.error("Error loading AR.js script:", error);
+  };
+  
   return script;
 };
 
@@ -23,6 +33,21 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
   useEffect(() => {
     // Add AR.js script
     const script = injectARScript();
+
+    // Request camera permissions explicitly
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: "environment" } })
+        .then(function (stream) {
+          console.log("Camera permission granted");
+          // We don't need to do anything with the stream here as AR.js will handle it
+          stream.getTracks().forEach(track => track.stop()); // Stop the tracks as AR.js will request them again
+        })
+        .catch(function (error) {
+          console.error("Camera permission error:", error);
+          alert("Camera permission is required for AR features");
+        });
+    }
 
     // Clean up script when component unmounts
     return () => {
@@ -82,8 +107,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
         Get Marker
       </button>
 
-      {/* Instructions */}
-      <div
+      {/* Instructions */}      <div
         style={{
           position: "fixed",
           bottom: "20px",
@@ -99,17 +123,21 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
         }}
       >
         <p>Scan the Hiro marker to see the 3D heart model</p>
+        <p style={{ fontSize: "10px", marginTop: "5px" }}>
+          Using: {navigator.userAgent}<br/>
+          3D Path: /realistic_human_heart/scene.gltf
+        </p>
       </div>
 
-      {/* A-Frame Scene using dangerouslySetInnerHTML to avoid TypeScript errors */}
-      <div
+      {/* A-Frame Scene using dangerouslySetInnerHTML to avoid TypeScript errors */}      <div
         dangerouslySetInnerHTML={{
           __html: `
           <a-scene
             embedded
-            arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-            renderer="logarithmicDepthBuffer: true;"
+            arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
+            renderer="logarithmicDepthBuffer: true; precision: medium;"
             vr-mode-ui="enabled: false"
+            device-orientation-permission-ui="enabled: false"
           >
             <a-assets>
               <a-asset-item
@@ -118,7 +146,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
               ></a-asset-item>
             </a-assets>
 
-            <a-marker preset="hiro">
+            <a-marker preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
               <a-entity
                 position="0 0.5 0"
                 rotation="0 0 0"
