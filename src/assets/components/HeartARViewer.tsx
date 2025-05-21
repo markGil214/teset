@@ -114,7 +114,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
             <a-assets>
               <a-asset-item
                 id="heart-model"
-                src="/realistic_human_heart.glb"
+                src="/realistic_human_heart/scene.gltf"
               ></a-asset-item>
             </a-assets>
 
