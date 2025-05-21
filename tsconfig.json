@@ -3,7 +3,7 @@
   "compilerOptions": {
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "jsx": "react-jsx"
+    "jsx": "react"
   },
   "references": [
     { "path": "./tsconfig.app.json" },

@@ -17,6 +17,7 @@ import Animation from "./assets/components/animation";
 import OrganMatcherGame from "./assets/pages/OrganMatcherGame";
 import LandscapeWrapper from "./assets/components/LandscapeWrapper";
 import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
+import HeartARViewer from "./assets/components/HeartARViewer";
 
 // Main App wrapper that provides the Router context
 function App() {
@@ -219,7 +220,11 @@ function AppContent() {
             path="/home"
             element={
               secondRegistrationComplete ? (
-                <HomePage onExit={() => {}} onGamesClick={navigateToGames} />
+                <HomePage
+                  onExit={() => {}}
+                  onGamesClick={navigateToGames}
+                  onARClick={() => navigate("/ar-heart")} // Add this
+                />
               ) : (
                 <Navigate to="/" />
               )
@@ -266,6 +271,16 @@ function AppContent() {
             element={
               secondRegistrationComplete ? (
                 <div>Body System Builder Game (Coming Soon)</div>
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/ar-heart"
+            element={
+              secondRegistrationComplete ? (
+                <HeartARViewer onBack={() => navigate("/home")} />
               ) : (
                 <Navigate to="/" />
               )

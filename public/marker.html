@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Heart AR Marker</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #241245;
+        font-family: Arial, sans-serif;
+        color: white;
+      }
+      .marker-container {
+        width: 100%;
+        max-width: 500px;
+        text-align: center;
+      }
+      img {
+        width: 100%;
+        border: 2px solid white;
+        background: white;
+      }
+      .instructions {
+        margin-top: 20px;
+        text-align: center;
+        padding: 20px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+      }
+      h1 {
+        color: #f3d849;
+      }
+      .print-button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #e78c11;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="marker-container">
+      <h1>Heart AR Marker</h1>
+      <img src="./hiro.png" alt="Hiro AR Marker" />
+      <button class="print-button" onclick="window.print()">
+        Print Marker
+      </button>
+    </div>
+
+    <div class="instructions">
+      <h2>How to use:</h2>
+      <p>1. Print this marker or display it on another screen</p>
+      <p>2. Go back to the AR scanner in the app</p>
+      <p>3. Point your camera at this marker</p>
+      <p>4. The 3D heart model will appear above the marker</p>
+    </div>
+  </body>
+</html>

@@ -25,9 +25,14 @@ const translations = {
 interface HomePageProps {
   onExit?: () => void;
   onGamesClick?: () => void;
+  onARClick?: () => void; // Add this new prop
 }
 
-const HomePage: React.FC<HomePageProps> = ({ onExit, onGamesClick }) => {
+const HomePage: React.FC<HomePageProps> = ({
+  onExit,
+  onGamesClick,
+  onARClick,
+}) => {
   const [username, setUsername] = useState("");
   const [avatar, setAvatar] = useState("");
   const [language, setLanguage] = useState<"en" | "fil">("en");
@@ -75,7 +80,9 @@ const HomePage: React.FC<HomePageProps> = ({ onExit, onGamesClick }) => {
 
   // Handle button clicks
   const handleScanExplore = () => {
-    console.log("not implemented yet");
+    if (onARClick) {
+      onARClick(); // Call the navigation function when "Scan & Explore" is clicked
+    }
   };
 
   const handleQuizPuzzles = () => {
