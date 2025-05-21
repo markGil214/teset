@@ -7,19 +7,19 @@ import "networked-aframe";
 const injectARScript = () => {
   const script = document.createElement("script");
   script.src =
-    "https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js";
+     "https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js";
   script.async = true;
   document.head.appendChild(script);
-  
+
   // Log when script is loaded to help with debugging
   script.onload = () => {
     console.log("AR.js script loaded successfully");
   };
-  
+
   script.onerror = (error) => {
     console.error("Error loading AR.js script:", error);
   };
-  
+
   return script;
 };
 
@@ -29,8 +29,7 @@ interface HeartARViewerProps {
   onBack: () => void;
 }
 
-const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
-  useEffect(() => {
+const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {  useEffect(() => {
     // Add AR.js script
     const script = injectARScript();
 
@@ -41,7 +40,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
         .then(function (stream) {
           console.log("Camera permission granted");
           // We don't need to do anything with the stream here as AR.js will handle it
-          stream.getTracks().forEach(track => track.stop()); // Stop the tracks as AR.js will request them again
+          stream.getTracks().forEach((track) => track.stop()); // Stop the tracks as AR.js will request them again
         })
         .catch(function (error) {
           console.error("Camera permission error:", error);
@@ -49,11 +48,20 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
         });
     }
 
+    // Add event listener for model-error
+    const handleModelError = () => {
+      console.error("Error loading 3D model");
+      alert("Failed to load 3D model. Please check your connection.");
+    };
+
+    document.addEventListener("model-error", handleModelError);
+
     // Clean up script when component unmounts
     return () => {
       if (script.parentNode) {
         script.parentNode.removeChild(script);
       }
+      document.removeEventListener("model-error", handleModelError);
     };
   }, []);
   return (
@@ -86,7 +94,6 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
       >
         Back
       </button>
-
       {/* Get Marker button */}
       <button
         onClick={() => window.open("/marker.html", "_blank")}
@@ -106,8 +113,8 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
       >
         Get Marker
       </button>
-
-      {/* Instructions */}      <div
+      {/* Instructions */}{" "}
+      <div
         style={{
           position: "fixed",
           bottom: "20px",
@@ -124,36 +131,38 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
       >
         <p>Scan the Hiro marker to see the 3D heart model</p>
         <p style={{ fontSize: "10px", marginTop: "5px" }}>
-          Using: {navigator.userAgent}<br/>
+          Using: {navigator.userAgent}
+          <br />
           3D Path: /realistic_human_heart/scene.gltf
         </p>
       </div>
-
-      {/* A-Frame Scene using dangerouslySetInnerHTML to avoid TypeScript errors */}      <div
+      {/* A-Frame Scene using dangerouslySetInnerHTML to avoid TypeScript errors */}{" "}      <div
         dangerouslySetInnerHTML={{
           __html: `
           <a-scene
             embedded
-            arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
-            renderer="logarithmicDepthBuffer: true; precision: medium;"
+            arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono;"
+            renderer="logarithmicDepthBuffer: true;"
             vr-mode-ui="enabled: false"
-            device-orientation-permission-ui="enabled: false"
           >
             <a-assets>
               <a-asset-item
                 id="heart-model"
                 src="/realistic_human_heart/scene.gltf"
+                response-type="arraybuffer"
               ></a-asset-item>
             </a-assets>
 
-            <a-marker preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
+            <a-marker preset="hiro">
               <a-entity
                 position="0 0.5 0"
                 rotation="0 0 0"
-                scale="0.5 0.5 0.5"
+                scale="0.1 0.1 0.1"
                 gltf-model="#heart-model"
                 animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
               ></a-entity>
+              <!-- Fallback box to check if marker is detected -->
+              <a-box position="0 0 0" color="red"></a-box>
             </a-marker>
 
             <a-entity camera></a-entity>
