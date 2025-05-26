@@ -100,7 +100,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
             <a-entity
               position="0 0 0"
               rotation="-90 0 0"
-              scale="0.2 0.2 0.2"
+              scale="1 1 1"
               gltf-model="#heart-model"
               animation="property: rotation; to: -90 360 0; loop: true; dur: 10000; easing: linear;"
             ></a-entity>
