@@ -107,7 +107,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
             ></a-entity>
           </a-marker>
 
-          <a-entity camera="fov: 80; near: 0.01; far: 1000" position="0 0 3"></a-entity>
+          <a-entity camera position="0 0 6"></a-entity>
         </a-scene>
       `,
     };
