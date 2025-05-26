@@ -87,6 +87,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
           renderer="logarithmicDepthBuffer: true; antialias: true; precision: mediump;"
           vr-mode-ui="enabled: false"
+          device-orientation-permission-ui="enabled: false"
         >
           <a-assets>
             <a-asset-item
@@ -106,7 +107,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
             ></a-entity>
           </a-marker>
 
-          <a-entity camera></a-entity>
+          <a-entity camera="fov: 150; near: 0.01; far: 1000"></a-entity>
         </a-scene>
       `,
     };
