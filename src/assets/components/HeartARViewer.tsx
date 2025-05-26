@@ -52,9 +52,9 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
             video: {
-              facingMode: "environment",
-              width: { ideal: window.innerWidth },
-              height: { ideal: window.innerHeight },
+              facingMode: { exact: "environment" },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
             },
           });
           // Stop stream as AR.js will request it again
@@ -83,10 +83,9 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
     return {
       __html: `
         <a-scene
-          embedded
-          arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-          renderer="logarithmicDepthBuffer: true; antialias: true; precision: mediump;"
-          vr-mode-ui="enabled: false"
+          embedded  style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;"
+        arjs="sourceType: webcam; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+
         >
           <a-assets>
             <a-asset-item
@@ -120,6 +119,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
         left: 0,
         right: 0,
         bottom: 0,
+        overflow: "hidden",
         zIndex: 1000,
       }}
     >
