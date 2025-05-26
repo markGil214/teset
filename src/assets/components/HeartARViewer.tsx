@@ -82,60 +82,33 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
   const createARScene = () => {
     return {
       __html: `
-      <style>
-        html, body, #root {
-          margin: 0;
-          padding: 0;
-          overflow: hidden;
-          width: 100vw;
-          height: 100vh;
-        }
+        <a-scene
+          embedded
+          arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+          renderer="logarithmicDepthBuffer: true; antialias: true; precision: mediump;"
+          vr-mode-ui="enabled: false"
+        >
+          <a-assets>
+            <a-asset-item
+              id="heart-model"
+              src="/realistic_human_heart/scene.gltf"
+              response-type="arraybuffer"
+            ></a-asset-item>
+          </a-assets>
 
-        a-scene {
-          position: fixed !important;
-          top: 0;
-          left: 0;
-          width: 100vw !important;
-          height: 100vh !important;
-          z-index: 0 !important;
-        }
+          <a-marker preset="hiro">
+            <a-entity
+              position="0 0 0"
+              rotation="0 0 0"
+              scale="2 2 2"
+              gltf-model="#heart-model"
+              animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
+            ></a-entity>
+          </a-marker>
 
-        #arjs-video {
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          object-fit: cover !important;
-          z-index: -1 !important;
-          display: block !important;
-        }
-      </style>
-
-      <a-scene
-        embedded
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-        renderer="logarithmicDepthBuffer: true; antialias: true;"
-        vr-mode-ui="enabled: false"
-      >
-        <a-assets>
-          <a-asset-item
-            id="heart-model"
-            src="/realistic_human_heart/scene.gltf"
-          ></a-asset-item>
-        </a-assets>
-
-        <a-marker preset="hiro">
-          <a-entity
-            gltf-model="#heart-model"
-            scale="2 2 2"
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
-          ></a-entity>
-        </a-marker>
-
-        <a-entity camera></a-entity>
-      </a-scene>
-    `,
+          <a-entity camera></a-entity>
+        </a-scene>
+      `,
     };
   };
 
