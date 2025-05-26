@@ -84,7 +84,15 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
       __html: `
         <a-scene
           embedded
-          arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+          arjs="sourceType: webcam; 
+                debugUIEnabled: false; 
+                detectionMode: mono_and_matrix; 
+                matrixCodeType: 3x3;
+                maxDetectionRate: 60;
+                canvasWidth: window.innerWidth;
+                canvasHeight: window.innerHeight;
+                displayWidth: window.innerWidth;
+                displayHeight: window.innerHeight;"
           renderer="logarithmicDepthBuffer: true; antialias: true; precision: mediump;"
           vr-mode-ui="enabled: false"
           device-orientation-permission-ui="enabled: false"
@@ -107,7 +115,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
             ></a-entity>
           </a-marker>
 
-          <a-entity camera position="0 0 6"></a-entity>
+          <a-entity camera="zoom: 0.5; fov: 70;" position="0 0 0"></a-entity>
         </a-scene>
       `,
     };
