@@ -95,144 +95,108 @@ const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
     {
       matchId: 1,
       organ: {
-        content: {
-          en: "Brain",
-          fil: "Utak",
-        },
         image: "/brain.png",
       },
       function: {
         content: {
-          en: "Controls",
-          fil: "Kumokontrol",
+          en: "Brain",
+          fil: "Utak",
         },
       },
     },
     {
       matchId: 2,
       organ: {
-        content: {
-          en: "Heart",
-          fil: "Puso",
-        },
         image: "/heart.png",
       },
       function: {
         content: {
-          en: "Pumps",
-          fil: "Nagbobomba",
+          en: "Heart",
+          fil: "Puso",
         },
       },
     },
     {
       matchId: 3,
       organ: {
-        content: {
-          en: "Lungs",
-          fil: "Baga",
-        },
         image: "/lungs.png",
       },
       function: {
         content: {
-          en: "Breathes",
-          fil: "Humihinga",
+          en: "Lungs",
+          fil: "Baga",
         },
       },
     },
     {
       matchId: 4,
       organ: {
-        content: {
-          en: "Stomach",
-          fil: "Tiyan",
-        },
         image: "/stomach.png",
       },
       function: {
         content: {
-          en: "Digests",
-          fil: "Tumutunaaw",
+          en: "Stomach",
+          fil: "Tiyan",
         },
       },
     },
     {
       matchId: 5,
       organ: {
-        content: {
-          en: "Liver",
-          fil: "Atay",
-        },
         image: "/liver.png",
       },
       function: {
         content: {
-          en: "Detoxifies",
-          fil: "Naglilinis",
+          en: "Liver",
+          fil: "Atay",
         },
       },
     },
     {
       matchId: 6,
       organ: {
-        content: {
-          en: "Kidneys",
-          fil: "Bato",
-        },
         image: "/kidneys.png",
       },
       function: {
         content: {
-          en: "Filters",
-          fil: "Nagsasala",
+          en: "Kidneys",
+          fil: "Bato",
         },
       },
     },
     {
       matchId: 7,
       organ: {
-        content: {
-          en: "Intestines",
-          fil: "Bituka",
-        },
         image: "/intestines.png",
       },
       function: {
         content: {
-          en: "Absorbs",
-          fil: "Sumasipsip",
+          en: "Intestines",
+          fil: "Bituka",
         },
       },
     },
     {
       matchId: 8,
       organ: {
-        content: {
-          en: "Pancreas",
-          fil: "Lapay",
-        },
         image: "/pancreas.png",
       },
       function: {
         content: {
-          en: "Regulates",
-          fil: "Nagreregulate",
+          en: "Pancreas",
+          fil: "Lapay",
         },
       },
     },
     {
       matchId: 9,
       organ: {
-        content: {
-          en: "Skin",
-          fil: "Balat",
-        },
         image: "/skin.png",
       },
       function: {
         content: {
-          en: "Protects",
-          fil: "Nagpoprotekta",
+          en: "Skin",
+          fil: "Balat",
         },
       },
     },
@@ -266,7 +230,7 @@ const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
       cardPairs.push({
         id: index * 2,
         type: "organ",
-        content: item.organ.content,
+        content: item.function.content, // Use the organ name for both
         matchId: item.matchId,
         isFlipped: false,
         isMatched: false,
