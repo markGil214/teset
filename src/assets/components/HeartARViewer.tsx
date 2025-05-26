@@ -10,6 +10,13 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
   const sceneContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Add viewport meta tag to prevent scaling issues
+    const viewportMeta = document.createElement("meta");
+    viewportMeta.name = "viewport";
+    viewportMeta.content =
+      "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
+    document.head.appendChild(viewportMeta);
+
     // Load required scripts
     const loadScripts = async () => {
       try {
@@ -39,22 +46,24 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
         script.async = true;
 
         script.onload = () => resolve();
-        script.onerror = () =>
-          reject(new Error(`Failed to load script: ${src}`));
+        script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
 
         document.head.appendChild(script);
       });
     };
 
-    // Request camera permission
+    // Request camera permission with adaptive dimensions
     const requestCameraPermission = async () => {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
+          // Use true environment mode if possible, fallback to user mode
+          let facingModeConstraint = { ideal: "environment" };
+
           const stream = await navigator.mediaDevices.getUserMedia({
             video: {
-              facingMode: { exact: "environment" },
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
+              facingMode: facingModeConstraint,
+              width: { ideal: window.innerWidth },
+              height: { ideal: window.innerHeight },
             },
           });
           // Stop stream as AR.js will request it again
@@ -72,9 +81,24 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
       requestCameraPermission();
     });
 
+    // Handle window resize to adjust camera view
+    const handleResize = () => {
+      const video = document.getElementById("arjs-video") as HTMLVideoElement;
+      if (video) {
+        video.style.width = "100vw";
+        video.style.height = "100vh";
+        video.style.objectFit = "cover";
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+
     // Clean up when component unmounts
     return () => {
-      // Nothing specific to clean up as the scripts remain loaded
+      window.removeEventListener("resize", handleResize);
+      if (viewportMeta.parentNode) {
+        viewportMeta.parentNode.removeChild(viewportMeta);
+      }
     };
   }, []);
 
@@ -82,31 +106,59 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
   const createARScene = () => {
     return {
       __html: `
-        <a-scene
-          embedded  style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;"
-        arjs="sourceType: webcam; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+      <style>
+        body, html {
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+          width: 100vw;
+          height: 100vh;
+        }
+        .a-canvas, .a-canvas.a-grab-cursor:hover {
+          cursor: auto !important;
+        }
+        #arjs-video {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          object-fit: cover !important;
+          z-index: -10 !important;
+        }
+        .a-enter-vr, .a-orientation-modal {
+          display: none !important;
+        }
+      </style>
+      
+      <a-scene
+        embedded
+        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        vr-mode-ui="enabled: false"
+        renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true"
+        style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;"
+      >
+        <a-assets>
+          <a-asset-item
+            id="heart-model"
+            src="/realistic_human_heart/scene.gltf"
+            response-type="arraybuffer"
+          ></a-asset-item>
+        </a-assets>
 
-        >
-          <a-assets>
-            <a-asset-item
-              id="heart-model"
-              src="/realistic_human_heart/scene.gltf"
-              response-type="arraybuffer"
-            ></a-asset-item>
-          </a-assets>
+        <a-marker preset="hiro" raycaster="objects: .clickable" emitevents="true" cursor="rayOrigin: mouse">
+          <a-entity
+            position="0 0 0"
+            rotation="0 0 0"
+            scale="2 2 2"
+            gltf-model="#heart-model"
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
+            class="clickable"
+          ></a-entity>
+        </a-marker>
 
-          <a-marker preset="hiro">
-            <a-entity
-              position="0 0 0"
-              rotation="0 0 0"
-              scale="2 2 2"
-              gltf-model="#heart-model"
-              animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
-            ></a-entity>
-          </a-marker>
-
-          <a-entity camera></a-entity>
-        </a-scene>
+        <a-entity camera></a-entity>
+      </a-scene>
       `,
     };
   };
@@ -157,7 +209,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           position: "fixed",
           top: "10px",
           left: "10px",
-          zIndex: 2000,
+          zIndex: 9999, // Increased z-index to ensure visibility
           backgroundColor: "#e78c11",
           color: "white",
           border: "none",
@@ -177,7 +229,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           position: "fixed",
           top: "10px",
           right: "10px",
-          zIndex: 2000,
+          zIndex: 9999, // Increased z-index to ensure visibility
           backgroundColor: "#4a5dbd",
           color: "white",
           border: "none",
@@ -202,7 +254,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
             color: "white",
             padding: "20px",
             borderRadius: "10px",
-            zIndex: 3000,
+            zIndex: 9999, // Increased z-index to ensure visibility
             textAlign: "center",
             maxWidth: "80%",
           }}
