@@ -97,8 +97,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           left: 0;
           width: 100vw !important;
           height: 100vh !important;
-          margin: 0;
-          padding: 0;
+          z-index: 0 !important;
         }
 
         #arjs-video {
@@ -108,7 +107,8 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           width: 100vw !important;
           height: 100vh !important;
           object-fit: cover !important;
-          z-index: -2 !important;
+          z-index: -1 !important;
+          display: block !important;
         }
       </style>
 
