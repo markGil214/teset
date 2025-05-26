@@ -82,9 +82,9 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
     // Handle window resize to adjust AR.js video element
     const handleResize = () => {
       setTimeout(() => {
+        // Fix video element
         const video = document.getElementById("arjs-video");
         if (video) {
-          // Fix video element to cover the screen properly
           video.style.width = "100vw";
           video.style.height = "100vh";
           video.style.objectFit = "cover";
@@ -92,6 +92,23 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           video.style.top = "0";
           video.style.left = "0";
           video.style.zIndex = "-1";
+        }
+
+        // Fix scene container element
+        const sceneContainer = document.querySelector(".a-scene-container") as HTMLElement | null;
+        if (sceneContainer) {
+          sceneContainer.style.width = "100vw";
+          sceneContainer.style.left = "0";
+        }
+
+        // Fix canvas element
+        const canvas = document.querySelector("canvas.a-canvas") as HTMLCanvasElement | null;
+        if (canvas) {
+          canvas.style.width = "100vw";
+          canvas.style.height = "100vh";
+          canvas.style.position = "fixed";
+          canvas.style.left = "0";
+          canvas.style.top = "0";
         }
       }, 1000); // Delay to ensure AR.js has created the video element
     };
@@ -121,14 +138,21 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           width: 100vw;
           height: 100vh;
         }
+        
+        /* Force AR.js scene to full width */
         .a-enter-vr, .a-orientation-modal {
           display: none !important;
         }
+        
+        /* Apply these styles to force full width camera */
         .a-canvas {
-          width: 100% !important;
-          height: 100% !important;
+          width: 100vw !important;
+          height: 100vh !important;
           position: fixed !important;
+          left: 0 !important;
+          top: 0 !important;
         }
+        
         #arjs-video {
           position: fixed !important;
           top: 0 !important;
@@ -138,13 +162,24 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           object-fit: cover !important;
           z-index: -1 !important;
         }
+        
+        /* Fix the split screen issue */
+        .a-scene-container {
+          width: 100vw !important;
+          left: 0 !important;
+        }
+        
+        .a-scene {
+          width: 100% !important;
+        }
       </style>
 
       <a-scene
         embedded
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-        renderer="logarithmicDepthBuffer: true; antialias: true; precision: mediump;"
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; cameraParametersUrl: data/camera_para.dat;"
+        renderer="logarithmicDepthBuffer: true; antialias: true; precision: mediump; alpha: true;"
         vr-mode-ui="enabled: false"
+        style="width: 100vw; height: 100vh; position: absolute; left: 0; top: 0;"
       >
         <a-assets>
           <a-asset-item
