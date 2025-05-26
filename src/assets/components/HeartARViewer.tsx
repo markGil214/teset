@@ -99,7 +99,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           <a-marker preset="hiro">
             <a-entity
               position="0 0 0"
-              rotation="-90 0 0"
+              rotation="0 0 0"
               scale="1.5 1.5 1.5"
               gltf-model="#heart-model"
               animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
@@ -219,26 +219,6 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
       )}
 
       {/* Instructions */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: "20px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          backgroundColor: "rgba(0,0,0,0.7)",
-          color: "white",
-          padding: "10px 20px",
-          borderRadius: "10px",
-          zIndex: 2000,
-          textAlign: "center",
-          maxWidth: "80%",
-        }}
-      >
-        <p>Scan the Hiro marker to see the 3D heart model</p>
-        <p style={{ fontSize: "12px", marginTop: "5px" }}>
-          Hold your device steady for better tracking
-        </p>
-      </div>
     </div>
   );
 };
