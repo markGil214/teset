@@ -46,7 +46,8 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
         script.async = true;
 
         script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+        script.onerror = () =>
+          reject(new Error(`Failed to load script: ${src}`));
 
         document.head.appendChild(script);
       });
@@ -56,17 +57,14 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
     const requestCameraPermission = async () => {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
-          // Use true environment mode if possible, fallback to user mode
-          let facingModeConstraint = { ideal: "environment" };
-
+          // Use environment mode but don't force specific dimensions
           const stream = await navigator.mediaDevices.getUserMedia({
             video: {
-              facingMode: facingModeConstraint,
-              width: { ideal: window.innerWidth },
-              height: { ideal: window.innerHeight },
+              facingMode: { ideal: "environment" },
+              // Remove width/height constraints to prevent stretching
+              // Let the browser use the camera's natural aspect ratio
             },
           });
-          // Stop stream as AR.js will request it again
           stream.getTracks().forEach((track) => track.stop());
           console.log("Camera permission granted");
         } catch (error) {
@@ -123,7 +121,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           left: 0 !important;
           width: 100vw !important;
           height: 100vh !important;
-          object-fit: cover !important;
+          object-fit: contain !important; /* Changed from 'cover' to 'contain' */
           z-index: -10 !important;
         }
         .a-enter-vr, .a-orientation-modal {
@@ -133,7 +131,7 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
       
       <a-scene
         embedded
-        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        arjs="sourceType: webcam; cameraParametersUrl: https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/camera_para.dat; videoTexture: false; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
         vr-mode-ui="enabled: false"
         renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true"
         style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;"
