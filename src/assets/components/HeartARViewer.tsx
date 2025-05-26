@@ -53,8 +53,8 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           const stream = await navigator.mediaDevices.getUserMedia({
             video: {
               facingMode: "environment",
-              width: { ideal: window.innerWidth },
-              height: { ideal: window.innerHeight },
+              width: { ideal: window.innerWidth, min: 1280 },
+              height: { ideal: window.innerHeight, min: 720 },
             },
           });
           // Stop stream as AR.js will request it again
@@ -78,57 +78,73 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
     };
   }, []);
 
+  useEffect(() => {
+    // Handle window resize
+    const handleResize = () => {
+      const arjsVideo = document.getElementById("arjs-video");
+      if (arjsVideo) {
+        arjsVideo.style.width = window.innerWidth + "px";
+        arjsVideo.style.height = window.innerHeight + "px";
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   // Create AR scene with HTML string
   const createARScene = () => {
     return {
       __html: `
       <style>
-        html, body, #root {
-          margin: 0;
-          padding: 0;
-          overflow: hidden;
-          width: 100vw;
-          height: 100vh;
-        }
-
         a-scene {
+          width: 100vw !important;
+          height: 100vh !important;
           position: fixed !important;
           top: 0;
           left: 0;
-          width: 100vw !important;
-          height: 100vh !important;
-          z-index: 0 !important;
+          margin: 0;
+          padding: 0;
         }
-
+        body {
+          margin: 0;
+          overflow: hidden;
+        }
         #arjs-video {
-          position: fixed !important;
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          object-position: center !important;
+          position: absolute !important;
           top: 0 !important;
           left: 0 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          object-fit: cover !important;
-          z-index: -1 !important;
-          display: block !important;
+          z-index: -2 !important;
         }
       </style>
 
       <a-scene
         embedded
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-        renderer="logarithmicDepthBuffer: true; antialias: true;"
+        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        renderer="logarithmicDepthBuffer: true; antialias: true; precision: mediump;"
         vr-mode-ui="enabled: false"
       >
         <a-assets>
           <a-asset-item
             id="heart-model"
             src="/realistic_human_heart/scene.gltf"
+            response-type="arraybuffer"
           ></a-asset-item>
         </a-assets>
 
         <a-marker preset="hiro">
           <a-entity
-            gltf-model="#heart-model"
+            position="0 0 0"
+            rotation="0 0 0"
             scale="2 2 2"
+            gltf-model="#heart-model"
             animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
           ></a-entity>
         </a-marker>
