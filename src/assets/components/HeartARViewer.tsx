@@ -10,13 +10,6 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
   const sceneContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Add viewport meta tag to prevent scaling issues
-    const viewportMeta = document.createElement("meta");
-    viewportMeta.name = "viewport";
-    viewportMeta.content =
-      "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
-    document.head.appendChild(viewportMeta);
-
     // Load required scripts
     const loadScripts = async () => {
       try {
@@ -59,9 +52,9 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
             video: {
-              facingMode: "environment",
-              width: { ideal: window.innerWidth },
-              height: { ideal: window.innerHeight },
+              facingMode: { exact: "environment" },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
             },
           });
           // Stop stream as AR.js will request it again
@@ -79,50 +72,9 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
       requestCameraPermission();
     });
 
-    // Handle window resize to adjust AR.js video element
-    const handleResize = () => {
-      setTimeout(() => {
-        // Fix video element
-        const video = document.getElementById("arjs-video");
-        if (video) {
-          video.style.width = "100vw";
-          video.style.height = "100vh";
-          video.style.objectFit = "cover";
-          video.style.position = "fixed";
-          video.style.top = "0";
-          video.style.left = "0";
-          video.style.zIndex = "-1";
-        }
-
-        // Fix scene container element
-        const sceneContainer = document.querySelector(".a-scene-container") as HTMLElement | null;
-        if (sceneContainer) {
-          sceneContainer.style.width = "100vw";
-          sceneContainer.style.left = "0";
-        }
-
-        // Fix canvas element
-        const canvas = document.querySelector("canvas.a-canvas") as HTMLCanvasElement | null;
-        if (canvas) {
-          canvas.style.width = "100vw";
-          canvas.style.height = "100vh";
-          canvas.style.position = "fixed";
-          canvas.style.left = "0";
-          canvas.style.top = "0";
-        }
-      }, 1000); // Delay to ensure AR.js has created the video element
-    };
-
-    window.addEventListener("resize", handleResize);
-    // Initial call to set video properties once loaded
-    setTimeout(handleResize, 2000);
-
     // Clean up when component unmounts
     return () => {
-      window.removeEventListener("resize", handleResize);
-      if (viewportMeta.parentNode) {
-        viewportMeta.parentNode.removeChild(viewportMeta);
-      }
+      // Nothing specific to clean up as the scripts remain loaded
     };
   }, []);
 
@@ -130,77 +82,31 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
   const createARScene = () => {
     return {
       __html: `
-      <style>
-        body, html {
-          margin: 0;
-          padding: 0;
-          overflow: hidden;
-          width: 100vw;
-          height: 100vh;
-        }
-        
-        /* Force AR.js scene to full width */
-        .a-enter-vr, .a-orientation-modal {
-          display: none !important;
-        }
-        
-        /* Apply these styles to force full width camera */
-        .a-canvas {
-          width: 100vw !important;
-          height: 100vh !important;
-          position: fixed !important;
-          left: 0 !important;
-          top: 0 !important;
-        }
-        
-        #arjs-video {
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          object-fit: cover !important;
-          z-index: -1 !important;
-        }
-        
-        /* Fix the split screen issue */
-        .a-scene-container {
-          width: 100vw !important;
-          left: 0 !important;
-        }
-        
-        .a-scene {
-          width: 100% !important;
-        }
-      </style>
+        <a-scene
+          embedded  style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;"
+        arjs="sourceType: webcam; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
 
-      <a-scene
-        embedded
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; cameraParametersUrl: data/camera_para.dat;"
-        renderer="logarithmicDepthBuffer: true; antialias: true; precision: mediump; alpha: true;"
-        vr-mode-ui="enabled: false"
-        style="width: 100vw; height: 100vh; position: absolute; left: 0; top: 0;"
-      >
-        <a-assets>
-          <a-asset-item
-            id="heart-model"
-            src="/realistic_human_heart/scene.gltf"
-            response-type="arraybuffer"
-          ></a-asset-item>
-        </a-assets>
+        >
+          <a-assets>
+            <a-asset-item
+              id="heart-model"
+              src="/realistic_human_heart/scene.gltf"
+              response-type="arraybuffer"
+            ></a-asset-item>
+          </a-assets>
 
-        <a-marker preset="hiro">
-          <a-entity
-            position="0 0 0"
-            rotation="0 0 0"
-            scale="2 2 2"
-            gltf-model="#heart-model"
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
-          ></a-entity>
-        </a-marker>
+          <a-marker preset="hiro">
+            <a-entity
+              position="0 0 0"
+              rotation="0 0 0"
+              scale="2 2 2"
+              gltf-model="#heart-model"
+              animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
+            ></a-entity>
+          </a-marker>
 
-        <a-entity camera></a-entity>
-      </a-scene>
+          <a-entity camera></a-entity>
+        </a-scene>
       `,
     };
   };
@@ -317,6 +223,8 @@ const HeartARViewer: React.FC<HeartARViewerProps> = ({ onBack }) => {
           </button>
         </div>
       )}
+
+      {/* Instructions */}
     </div>
   );
 };
