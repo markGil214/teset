@@ -606,28 +606,25 @@ const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
                   onClick={() => handleCardClick(card.id)}
                   style={{
                     backgroundColor: "#4a5dbd",
-                    borderRadius: "8px", // Slightly smaller radius
-                    aspectRatio: "1 / 1", // Keep cards square
+                    borderRadius: "8px",
+                    aspectRatio: "1 / 1",
                     perspective: "1000px",
                     cursor: "pointer",
                     position: "relative",
                     transform: card.isMatched ? "scale(0.95)" : "scale(1)",
                     opacity: card.isMatched ? 0.8 : 1,
                     transition: "all 0.3s ease",
-                    // Simpler, more adaptive sizing based on difficulty
                     height:
                       difficulty === "hard"
-                        ? "min(13vh, 90px)" // Smaller for hard difficulty
+                        ? "min(13vh, 90px)"
                         : difficulty === "medium"
-                        ? "min(16vh, 110px)" // Medium size
-                        : "min(18vh, 130px)", // Largest for easy
+                        ? "min(16vh, 110px)"
+                        : "min(18vh, 130px)",
                     width: "100%",
-                    // Add max-width to ensure cards don't get too wide on large screens
                     maxWidth: "130px",
-                    margin: "0 auto", // Center cards in their grid cells
+                    margin: "0 auto",
                   }}
                 >
-                  {/* Card inner content */}
                   <div
                     className="card-inner"
                     style={{
@@ -657,13 +654,12 @@ const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
                         borderRadius: "8px",
                         backgroundColor: "#4a5dbd",
                         color: "white",
-                        boxShadow: "0 2px 6px rgba(0,0,0,0.2)", // Lighter shadow
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                       }}
                     >
                       <div
                         className="card-question-mark"
                         style={{
-                          // Smaller question mark for better fit
                           fontSize:
                             difficulty === "hard"
                               ? "clamp(1.2rem, 3vw, 2rem)"
@@ -688,28 +684,26 @@ const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
                         flexDirection: "column",
                         justifyContent: "center",
                         alignItems: "center",
-                        // Minimal padding to maximize space
                         padding: difficulty === "hard" ? "0.15rem" : "0.25rem",
                         borderRadius: "8px",
                         backgroundColor:
                           card.type === "organ" ? "#2ecc71" : "#e74c3c",
                         color: "white",
-                        boxShadow: "0 2px 6px rgba(0,0,0,0.2)", // Lighter shadow
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                       }}
                     >
                       {card.type === "organ" && card.image && (
                         <div
                           className="card-image"
                           style={{
-                            // Adjusted image size for better fit
                             width: difficulty === "hard" ? "50%" : "60%",
                             height: difficulty === "hard" ? "50%" : "60%",
-                            marginBottom: "0.15rem", // Minimal margin
+                            marginBottom: "0.15rem",
                           }}
                         >
                           <img
                             src={card.image}
-                            alt={card.content[language]}
+                            alt=""
                             style={{
                               maxWidth: "100%",
                               maxHeight: "100%",
@@ -718,28 +712,29 @@ const OrganMatcherGame: React.FC<OrganMatcherGameProps> = ({
                           />
                         </div>
                       )}
-                      <div
-                        className="card-content"
-                        style={{
-                          // Even smaller font for better fit
-                          fontSize:
-                            difficulty === "hard"
-                              ? "clamp(0.55rem, 1.5vw, 0.7rem)"
-                              : "clamp(0.65rem, 1.8vw, 0.8rem)",
-                          fontWeight: "bold",
-                          textAlign: "center",
-                          maxHeight: "2.2em",
-                          overflow: "hidden",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          lineHeight: "1.1em", // Tighter line height
-                          margin: 0,
-                          padding: 0,
-                        }}
-                      >
-                        {card.content[language]}
-                      </div>
+                      {card.type === "function" && (
+                        <div
+                          className="card-content"
+                          style={{
+                            fontSize:
+                              difficulty === "hard"
+                                ? "clamp(0.55rem, 1.5vw, 0.7rem)"
+                                : "clamp(0.65rem, 1.8vw, 0.8rem)",
+                            fontWeight: "bold",
+                            textAlign: "center",
+                            maxHeight: "2.2em",
+                            overflow: "hidden",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            lineHeight: "1.1em",
+                            margin: 0,
+                            padding: 0,
+                          }}
+                        >
+                          {card.content[language]}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
