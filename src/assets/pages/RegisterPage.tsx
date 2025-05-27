@@ -10,7 +10,6 @@ const avatarOptions = [
   { value: "avatar2", src: "/avatar2.webp", alt: "Avatar 2" },
   { value: "avatar3", src: "/avatar3.webp", alt: "Avatar 3" },
   { value: "avatar4", src: "/avatar4.webp", alt: "Avatar 4" },
-  { value: "avatar5", src: "/avatar5.webp", alt: "Avatar 5" },
   { value: "avatar6", src: "/avatar6.webp", alt: "Avatar 6" },
 ];
 
