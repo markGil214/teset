@@ -17,7 +17,9 @@ import Animation from "./assets/components/animation";
 import OrganMatcherGame from "./assets/pages/OrganMatcherGame";
 import LandscapeWrapper from "./assets/components/LandscapeWrapper";
 import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
-import HeartARViewer from "./assets/components/HeartARViewer";
+import ScanExploreHub from "./assets/pages/ScanExploreHub";
+import OrganDetailPage from "./assets/pages/OrganDetailPage";
+import ARScannerPage from "./assets/pages/ARScannerPage";
 
 // Main App wrapper that provides the Router context
 function App() {
@@ -223,7 +225,6 @@ function AppContent() {
                 <HomePage
                   onExit={() => {}}
                   onGamesClick={navigateToGames}
-                  onARClick={() => navigate("/ar-heart")} // Add this
                 />
               ) : (
                 <Navigate to="/" />
@@ -276,11 +277,32 @@ function AppContent() {
               )
             }
           />
+          <Route path="/ar-heart" element={<Navigate to="/" />} />
           <Route
-            path="/ar-heart"
+            path="/scan-explore"
             element={
               secondRegistrationComplete ? (
-                <HeartARViewer onBack={() => navigate("/home")} />
+                <ScanExploreHub />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/scan-explore/:organId"
+            element={
+              secondRegistrationComplete ? (
+                <OrganDetailPage />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/scan-explore/:organId/ar"
+            element={
+              secondRegistrationComplete ? (
+                <ARScannerPage />
               ) : (
                 <Navigate to="/" />
               )

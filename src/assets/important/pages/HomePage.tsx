@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import "../components/animation.css";
 import LearnMoreSection from "../components/LearnMore";
 
@@ -26,19 +25,19 @@ const translations = {
 interface HomePageProps {
   onExit?: () => void;
   onGamesClick?: () => void;
-  // onARClick?: () => void; // Remove unused prop
+  onARClick?: () => void; // Add this new prop
 }
 
 const HomePage: React.FC<HomePageProps> = ({
   onExit,
   onGamesClick,
-  // onARClick, // Remove unused prop
+  onARClick,
 }) => {
   const [username, setUsername] = useState("");
   const [avatar, setAvatar] = useState("");
   const [language, setLanguage] = useState<"en" | "fil">("en");
+  // Add state for showing/hiding the Learn More modal
   const [showLearnMore, setShowLearnMore] = useState(false);
-  const navigate = useNavigate();
 
   // Array of available avatar options matching those in RegisterPage
   const avatarOptions = [
@@ -81,7 +80,9 @@ const HomePage: React.FC<HomePageProps> = ({
 
   // Handle button clicks
   const handleScanExplore = () => {
-    navigate("/scan-explore");
+    if (onARClick) {
+      onARClick(); // Call the navigation function when "Scan & Explore" is clicked
+    }
   };
 
   const handleQuizPuzzles = () => {
@@ -129,7 +130,7 @@ const HomePage: React.FC<HomePageProps> = ({
           <div className="block green"></div>
           <div className="block pink"></div>
         </div>
-        <h1 className="logo-text">OrganQuest</h1>
+        <h1 className="logo-text">{t.organQuest}</h1>
       </div>
 
       <div className="dashboard-buttons">

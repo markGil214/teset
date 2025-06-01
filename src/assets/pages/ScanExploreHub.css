@@ -1,0 +1,37 @@
+.scan-explore-hub {
+  padding: 2rem;
+  text-align: center;
+}
+.organ-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+.organ-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 1rem;
+  width: 160px;
+  cursor: pointer;
+  transition: transform 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.organ-card:hover {
+  transform: translateY(-6px) scale(1.04);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+.organ-image {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin-bottom: 0.5rem;
+}
+.organ-name {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
