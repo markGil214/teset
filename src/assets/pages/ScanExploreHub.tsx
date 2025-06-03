@@ -12,7 +12,7 @@ const ScanExploreHub: React.FC = () => {
           <div
             key={organ.id}
             className="organ-card"
-            onClick={() => navigate(`/scan-explore/ar`)}
+            onClick={() => navigate(`/scan-explore/ar?organ=${organ.id}`)}
           >
             <img src={organ.image} alt={organ.name} className="organ-image" />
             <div className="organ-name">{organ.name}</div>
