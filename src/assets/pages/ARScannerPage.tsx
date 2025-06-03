@@ -22,6 +22,24 @@ const ARScannerPage: React.FC = () => {
   if (!organ) {
     return <div>Organ not found</div>;
   }
+
+  // Prevent body scrolling when AR is active
+  useEffect(() => {
+    // Store original overflow values
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
+    // Disable scrolling
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    // Cleanup: restore original overflow values
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    };
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -183,7 +201,18 @@ const ARScannerPage: React.FC = () => {
     };
   }, [organ]);
   return (
-    <div style={{ margin: "0px", overflow: "hidden", fontFamily: "Monospace" }}>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        margin: "0px",
+        overflow: "hidden",
+        fontFamily: "Monospace",
+      }}
+    >
       {/* Text overlay - EXACT same style as cutout example */}
       <div
         style={{
