@@ -44,13 +44,16 @@ export class ZoomController {
   // Check if zooming is currently animating
   isAnimating(): boolean {
     return this.zoomState.isAnimating;
-  }
-
-  // Set zoom level with validation
+  }  // Set zoom level with validation
   setZoom(zoom: number, animate: boolean = true): void {
     const clampedZoom = Math.max(0.5, Math.min(3.0, zoom));
     
-    if (clampedZoom === this.zoomState.currentZoom) return;
+    console.log(`ZoomController.setZoom - requested: ${zoom}, clamped: ${clampedZoom}, current: ${this.zoomState.currentZoom}`);
+    
+    if (clampedZoom === this.zoomState.currentZoom) {
+      console.log('Zoom unchanged, skipping');
+      return;
+    }
 
     // Check for threshold crossings
     this.checkThresholdCrossings(this.zoomState.currentZoom, clampedZoom);
@@ -58,22 +61,35 @@ export class ZoomController {
     this.zoomState.currentZoom = clampedZoom;
     
     if (animate) {
+      console.log('Starting zoom animation to', clampedZoom);
       this.animateZoom(clampedZoom);
     } else {
+      console.log('Applying zoom immediately to', clampedZoom);
       this.callbacks.onZoomChange?.(clampedZoom);
     }
   }
-
   // Zoom in by step
   zoomIn(step: number = 0.2): void {
-    if (this.zoomState.isAnimating) return;
-    this.setZoom(this.zoomState.currentZoom + step);
+    console.log(`ZoomController.zoomIn called - current: ${this.zoomState.currentZoom}, animating: ${this.zoomState.isAnimating}`);
+    if (this.zoomState.isAnimating) {
+      console.log('Zoom in blocked - animation in progress');
+      return;
+    }
+    const newZoom = this.zoomState.currentZoom + step;
+    console.log(`Zooming in from ${this.zoomState.currentZoom} to ${newZoom}`);
+    this.setZoom(newZoom);
   }
 
   // Zoom out by step
   zoomOut(step: number = 0.2): void {
-    if (this.zoomState.isAnimating) return;
-    this.setZoom(this.zoomState.currentZoom - step);
+    console.log(`ZoomController.zoomOut called - current: ${this.zoomState.currentZoom}, animating: ${this.zoomState.isAnimating}`);
+    if (this.zoomState.isAnimating) {
+      console.log('Zoom out blocked - animation in progress');
+      return;
+    }
+    const newZoom = this.zoomState.currentZoom - step;
+    console.log(`Zooming out from ${this.zoomState.currentZoom} to ${newZoom}`);
+    this.setZoom(newZoom);
   }
 
   // Handle touch start event
@@ -112,15 +128,15 @@ export class ZoomController {
     const dx = touch1.clientX - touch2.clientX;
     const dy = touch1.clientY - touch2.clientY;
     return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  // Animate zoom change
+  }  // Animate zoom change
   private animateZoom(targetZoom: number): void {
     this.zoomState.isAnimating = true;
     
     const startZoom = this.zoomState.currentZoom;
     const duration = 300; // ms
     const startTime = Date.now();
+
+    console.log(`Starting animation from ${startZoom} to ${targetZoom}`);
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
@@ -131,12 +147,18 @@ export class ZoomController {
       
       const currentZoom = startZoom + (targetZoom - startZoom) * easeOut;
       
+      console.log(`Animation progress: ${(progress * 100).toFixed(1)}%, zoom: ${currentZoom.toFixed(2)}`);
+      
       this.callbacks.onZoomChange?.(currentZoom);
       
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
+        // Ensure final zoom is exactly the target
+        this.zoomState.currentZoom = targetZoom;
+        this.callbacks.onZoomChange?.(targetZoom);
         this.zoomState.isAnimating = false;
+        console.log(`Animation complete at ${targetZoom}x`);
       }
     };
 

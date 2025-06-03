@@ -23,40 +23,14 @@ const ARScannerPage: React.FC = () => {
   
   // Zoom state
   const [currentZoom, setCurrentZoom] = useState(1.0);
-  const [isZoomAnimating, setIsZoomAnimating] = useState(false);
-  const zoomControllerRef = useRef<ZoomController | null>(null);
+  const [isZoomAnimating, setIsZoomAnimating] = useState(false);  const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
+  const baseScaleRef = useRef<number>(0.5);
+
   if (!organ) {
     return <div>Organ not found</div>;
   }
-
-  // Initialize zoom controller
-  useEffect(() => {
-    zoomControllerRef.current = new ZoomController(1.0, {
-      onZoomChange: (zoom: number) => {
-        setCurrentZoom(zoom);
-        // Apply zoom to the 3D model
-        if (organModelRef.current) {
-          const baseScale = getBaseScale(organ.id);
-          organModelRef.current.scale.set(
-            baseScale * zoom,
-            baseScale * zoom, 
-            baseScale * zoom
-          );
-        }
-      },
-      onThresholdCrossed: (threshold: string, zoom: number) => {
-        console.log(`Zoom threshold crossed: ${threshold} at ${zoom}x`);
-        // Future: Handle threshold crossings for slicing, labels, etc.
-      }
-    });
-
-    return () => {
-      zoomControllerRef.current?.destroy();
-    };
-  }, [organ.id]);
-
   // Get base scale for organ type
   const getBaseScale = useCallback((organId: string): number => {
     switch (organId) {
@@ -68,22 +42,76 @@ const ARScannerPage: React.FC = () => {
       default: return 0.5;
     }
   }, []);
+  // Initialize zoom controller
+  useEffect(() => {
+    const baseScale = getBaseScale(organ.id);
+    baseScaleRef.current = baseScale;
+    console.log(`Initializing zoom controller for ${organ.name} with base scale ${baseScale}`);
 
-  // Zoom control handlers
+    zoomControllerRef.current = new ZoomController(1.0, {
+      onZoomChange: (zoom: number) => {
+        console.log(`ARScannerPage: Zoom changed to: ${zoom}x`);
+        setCurrentZoom(zoom);
+        // Apply zoom to the 3D model
+        if (organModelRef.current) {
+          const newScale = baseScaleRef.current * zoom;
+          console.log(`ARScannerPage: Applying scale: ${newScale} (base: ${baseScaleRef.current}, zoom: ${zoom})`);
+          organModelRef.current.scale.set(newScale, newScale, newScale);
+        } else {
+          console.log('ARScannerPage: Model not loaded yet - will apply zoom when loaded');
+        }
+      },
+      onThresholdCrossed: (threshold: string, zoom: number) => {
+        console.log(`ARScannerPage: Zoom threshold crossed: ${threshold} at ${zoom}x`);
+        // Future: Handle threshold crossings for slicing, labels, etc.
+      }
+    });
+
+    console.log('Zoom controller initialized successfully');
+
+    return () => {
+      console.log('Cleaning up zoom controller');
+      zoomControllerRef.current?.destroy();
+    };
+  }, [organ.id, getBaseScale]);  // Zoom control handlers
   const handleZoomIn = useCallback(() => {
-    zoomControllerRef.current?.zoomIn();
+    console.log('=== ARScannerPage: Zoom In button clicked ===');
+    console.log('ZoomController exists:', !!zoomControllerRef.current);
+    console.log('Model exists:', !!organModelRef.current);
+    if (zoomControllerRef.current) {
+      console.log('Current zoom before zoomIn:', zoomControllerRef.current.getCurrentZoom());
+      zoomControllerRef.current.zoomIn();
+    } else {
+      console.error('ZoomController not initialized!');
+    }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    zoomControllerRef.current?.zoomOut();
+    console.log('=== ARScannerPage: Zoom Out button clicked ===');
+    console.log('ZoomController exists:', !!zoomControllerRef.current);
+    console.log('Model exists:', !!organModelRef.current);
+    if (zoomControllerRef.current) {
+      console.log('Current zoom before zoomOut:', zoomControllerRef.current.getCurrentZoom());
+      zoomControllerRef.current.zoomOut();
+    } else {
+      console.error('ZoomController not initialized!');
+    }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
   }, []);
 
   const handleResetZoom = useCallback(() => {
-    zoomControllerRef.current?.resetZoom();
+    console.log('=== ARScannerPage: Reset Zoom button clicked ===');
+    console.log('ZoomController exists:', !!zoomControllerRef.current);
+    console.log('Model exists:', !!organModelRef.current);
+    if (zoomControllerRef.current) {
+      console.log('Current zoom before reset:', zoomControllerRef.current.getCurrentZoom());
+      zoomControllerRef.current.resetZoom();
+    } else {
+      console.error('ZoomController not initialized!');
+    }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
   }, []);
@@ -183,9 +211,7 @@ const ARScannerPage: React.FC = () => {
             default:
               scale = 0.5;
               positionY = 0;
-          }
-
-          model.scale.set(scale, scale, scale);
+          }          model.scale.set(scale, scale, scale);
           model.position.y = positionY;
           markerGroup.add(model);
 
@@ -194,9 +220,19 @@ const ARScannerPage: React.FC = () => {
           markerGroupRef.current = markerGroup;
           (markerGroup as any).organModel = model;
 
+          // Apply current zoom level to the newly loaded model
+          if (zoomControllerRef.current) {
+            const currentZoomLevel = zoomControllerRef.current.getCurrentZoom();
+            if (currentZoomLevel !== 1.0) {
+              const newScale = scale * currentZoomLevel;
+              console.log(`Applying initial zoom ${currentZoomLevel}x to loaded model: scale ${newScale}`);
+              model.scale.set(newScale, newScale, newScale);
+            }
+          }
+
           // Model loaded successfully
           setModelLoading(false);
-          console.log(`${organ.name} 3D model loaded successfully`);
+          console.log(`${organ.name} 3D model loaded successfully with scale: ${scale}`);
         },
         undefined,
         (error: any) => {
