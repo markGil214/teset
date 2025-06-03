@@ -293,6 +293,9 @@ function AppContent() {
                 <Navigate to="/" />
               )
             }
+          />          <Route
+            path="/scan-explore/heart"
+            element={<Navigate to="/scan-explore/ar" />}
           />
           <Route
             path="/scan-explore/:organId"
