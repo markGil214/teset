@@ -8,12 +8,11 @@ const ScanExploreHub: React.FC = () => {
   return (
     <div className="scan-explore-hub">
       <h1>Scan & Explore</h1>
-      <div className="organ-grid">
-        {organs.map((organ) => (
+      <div className="organ-grid">        {organs.map((organ) => (
           <div
             key={organ.id}
             className="organ-card"
-            onClick={() => navigate(`/scan-explore/${organ.id}`)}
+            onClick={() => navigate(`/scan-explore/ar`)}
           >
             <img src={organ.image} alt={organ.name} className="organ-image" />
             <div className="organ-name">{organ.name}</div>

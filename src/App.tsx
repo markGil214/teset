@@ -284,6 +284,15 @@ function AppContent() {
                 <Navigate to="/" />
               )
             }
+          />          <Route
+            path="/scan-explore/ar"
+            element={
+              secondRegistrationComplete ? (
+                <ARScannerPage />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
           />
           <Route
             path="/scan-explore/:organId"
