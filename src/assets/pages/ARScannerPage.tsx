@@ -1,10 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { organs } from "../components/organData";
-import HeartAnimationController from "../../utils/HeartAnimationController";
-import HeartLabelManager from "../../utils/HeartLabelManager";
-import PerformanceMonitor from "../../utils/PerformanceMonitor";
-import "../HeartVisualization.css"; // Heart-specific styles
+import { ZoomController } from "../../utils/ZoomController";
+import ARControls from "../components/ARControls";
 
 // Declare global variables for the libraries
 declare global {
@@ -18,77 +16,136 @@ const ARScannerPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const organId = searchParams.get("organ");
-  const organ = organs.find((o) => o.id === organId);  const containerRef = useRef<HTMLDivElement>(null);
+  const organ = organs.find((o) => o.id === organId);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [modelLoading, setModelLoading] = useState(true);
   const [modelError, setModelError] = useState(false);
   
-  // Heart animation specific state
-  const heartAnimationControllerRef = useRef<HeartAnimationController | null>(null);
-  const heartLabelManagerRef = useRef<HeartLabelManager | null>(null);
-  const performanceMonitorRef = useRef<PerformanceMonitor | null>(null);
-  const [isHeartSlicing, setIsHeartSlicing] = useState(false);
+  // Zoom state
   const [currentZoom, setCurrentZoom] = useState(1.0);
+  const [isZoomAnimating, setIsZoomAnimating] = useState(false);  const zoomControllerRef = useRef<ZoomController | null>(null);
+  const organModelRef = useRef<any>(null);
+  const markerGroupRef = useRef<any>(null);
+  const baseScaleRef = useRef<number>(0.5);
+
   if (!organ) {
     return <div>Organ not found</div>;
   }
-  // Initialize heart-specific features
-  const initializeHeartFeatures = (model: any) => {
-    try {
-      console.log('Initializing heart animation features...');
-      
-      // Initialize performance monitor
-      performanceMonitorRef.current = new PerformanceMonitor();
-      
-      // Initialize heart label manager
-      heartLabelManagerRef.current = new HeartLabelManager('body');
-      
-      // Initialize heart animation controller
-      heartAnimationControllerRef.current = new HeartAnimationController(
-        model as any, // Cast to Entity type
-        {
-          zoomThreshold: 1.5,
-          animationDuration: 2000,
-          enableDebugMode: true,
-          enableMobileOptimizations: true
-        }
-      );
-      
-      // Add event listeners for heart animations
-      if (heartAnimationControllerRef.current) {
-        heartAnimationControllerRef.current.addEventListener((event) => {
-          console.log('Heart animation event:', event);
-          
-          switch (event.type) {
-            case 'slicing-start':
-              setIsHeartSlicing(true);
-              // Show labels when slicing starts
-              if (heartLabelManagerRef.current) {
-                heartLabelManagerRef.current.showAllLabels();
-              }
-              break;
-              
-            case 'reassemble-complete':
-              setIsHeartSlicing(false);
-              // Hide labels when reassembly completes
-              if (heartLabelManagerRef.current) {
-                heartLabelManagerRef.current.hideAllLabels();
-              }
-              break;
-              
-            case 'performance-warning':
-              console.warn('Heart animation performance warning:', event.data);
-              break;
-          }
-        });
-      }
-      
-      console.log('Heart animation features initialized successfully');
-      
-    } catch (error) {
-      console.error('Failed to initialize heart features:', error);
+  // Get base scale for organ type
+  const getBaseScale = useCallback((organId: string): number => {
+    switch (organId) {
+      case "brain": return 0.3;
+      case "heart": return 0.8;
+      case "kidney": return 0.4;
+      case "lungs": return 0.6;
+      case "skin": return 0.5;
+      default: return 0.5;
     }
-  };
-  
+  }, []);
+  // Initialize zoom controller
+  useEffect(() => {
+    const baseScale = getBaseScale(organ.id);
+    baseScaleRef.current = baseScale;
+    console.log(`Initializing zoom controller for ${organ.name} with base scale ${baseScale}`);
+
+    zoomControllerRef.current = new ZoomController(1.0, {
+      onZoomChange: (zoom: number) => {
+        console.log(`ARScannerPage: Zoom changed to: ${zoom}x`);
+        setCurrentZoom(zoom);
+        // Apply zoom to the 3D model
+        if (organModelRef.current) {
+          const newScale = baseScaleRef.current * zoom;
+          console.log(`ARScannerPage: Applying scale: ${newScale} (base: ${baseScaleRef.current}, zoom: ${zoom})`);
+          organModelRef.current.scale.set(newScale, newScale, newScale);
+        } else {
+          console.log('ARScannerPage: Model not loaded yet - will apply zoom when loaded');
+        }
+      },
+      onThresholdCrossed: (threshold: string, zoom: number) => {
+        console.log(`ARScannerPage: Zoom threshold crossed: ${threshold} at ${zoom}x`);
+        // Future: Handle threshold crossings for slicing, labels, etc.
+      }
+    });
+
+    console.log('Zoom controller initialized successfully');
+
+    return () => {
+      console.log('Cleaning up zoom controller');
+      zoomControllerRef.current?.destroy();
+    };
+  }, [organ.id, getBaseScale]);  // Zoom control handlers
+  const handleZoomIn = useCallback(() => {
+    console.log('=== ARScannerPage: Zoom In button clicked ===');
+    console.log('ZoomController exists:', !!zoomControllerRef.current);
+    console.log('Model exists:', !!organModelRef.current);
+    if (zoomControllerRef.current) {
+      console.log('Current zoom before zoomIn:', zoomControllerRef.current.getCurrentZoom());
+      zoomControllerRef.current.zoomIn();
+    } else {
+      console.error('ZoomController not initialized!');
+    }
+    setIsZoomAnimating(true);
+    setTimeout(() => setIsZoomAnimating(false), 300);
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    console.log('=== ARScannerPage: Zoom Out button clicked ===');
+    console.log('ZoomController exists:', !!zoomControllerRef.current);
+    console.log('Model exists:', !!organModelRef.current);
+    if (zoomControllerRef.current) {
+      console.log('Current zoom before zoomOut:', zoomControllerRef.current.getCurrentZoom());
+      zoomControllerRef.current.zoomOut();
+    } else {
+      console.error('ZoomController not initialized!');
+    }
+    setIsZoomAnimating(true);
+    setTimeout(() => setIsZoomAnimating(false), 300);
+  }, []);
+
+  const handleResetZoom = useCallback(() => {
+    console.log('=== ARScannerPage: Reset Zoom button clicked ===');
+    console.log('ZoomController exists:', !!zoomControllerRef.current);
+    console.log('Model exists:', !!organModelRef.current);
+    if (zoomControllerRef.current) {
+      console.log('Current zoom before reset:', zoomControllerRef.current.getCurrentZoom());
+      zoomControllerRef.current.resetZoom();
+    } else {
+      console.error('ZoomController not initialized!');
+    }
+    setIsZoomAnimating(true);
+    setTimeout(() => setIsZoomAnimating(false), 300);
+  }, []);
+
+  // Touch gesture handlers
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    zoomControllerRef.current?.handleTouchStart(e);
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    zoomControllerRef.current?.handleTouchMove(e);
+  }, []);
+
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    zoomControllerRef.current?.handleTouchEnd(e);
+  }, []);
+
+  // Prevent body scrolling when AR is active
+  useEffect(() => {
+    // Store original overflow values
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
+    // Disable scrolling
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    // Cleanup: restore original overflow values
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    };
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -125,8 +182,7 @@ const ARScannerPage: React.FC = () => {
       scene.add(directionalLight); // Load the 3D model for this organ
       var gltfLoader = new window.THREE.GLTFLoader();
       gltfLoader.load(
-        organ.modelPath,
-        (gltf: any) => {
+        organ.modelPath,        (gltf: any) => {
           var model = gltf.scene;
 
           // Scale and position the model appropriately for AR based on organ type
@@ -159,15 +215,24 @@ const ARScannerPage: React.FC = () => {
           model.position.y = positionY;
           markerGroup.add(model);
 
-          // Store model reference for animation
-          (markerGroup as any).organModel = model;          // Initialize heart-specific features for heart organ
-          if (organ.id === "heart") {
-            initializeHeartFeatures(model);
+          // Store model reference for zoom control
+          organModelRef.current = model;
+          markerGroupRef.current = markerGroup;
+          (markerGroup as any).organModel = model;
+
+          // Apply current zoom level to the newly loaded model
+          if (zoomControllerRef.current) {
+            const currentZoomLevel = zoomControllerRef.current.getCurrentZoom();
+            if (currentZoomLevel !== 1.0) {
+              const newScale = scale * currentZoomLevel;
+              console.log(`Applying initial zoom ${currentZoomLevel}x to loaded model: scale ${newScale}`);
+              model.scale.set(newScale, newScale, newScale);
+            }
           }
 
           // Model loaded successfully
           setModelLoading(false);
-          console.log(`${organ.name} 3D model loaded successfully`);
+          console.log(`${organ.name} 3D model loaded successfully with scale: ${scale}`);
         },
         undefined,
         (error: any) => {
@@ -202,45 +267,33 @@ const ARScannerPage: React.FC = () => {
         var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
         lastTimeMsec = nowMsec;
         // call each update function
-        controller.update(source.domElement);        // Rotate the 3D model if it's loaded
+        controller.update(source.domElement);
+
+        // Rotate the 3D model if it's loaded
         if ((markerGroup as any).organModel) {
           (markerGroup as any).organModel.rotation.y +=
             (deltaMsec / 2000) * Math.PI;
-            
-          // For heart organ, track zoom and trigger animations
-          if (organ?.id === "heart" && heartAnimationControllerRef.current) {
-            // Simple zoom calculation based on scale (this could be more sophisticated)
-            const currentScale = (markerGroup as any).organModel.scale.x;
-            const zoomLevel = currentScale / 0.8; // 0.8 is the initial heart scale
-            
-            if (Math.abs(zoomLevel - currentZoom) > 0.1) { // Only update if significant change
-              setCurrentZoom(zoomLevel);
-              heartAnimationControllerRef.current.onZoomChange(zoomLevel);
-            }
-          }
         }
 
         renderer.render(scene, camera);
-      }
+      }      animationId = requestAnimationFrame(animate);
+    });
 
-      animationId = requestAnimationFrame(animate);    }); // Cleanup
+    // Add touch event listeners for pinch-to-zoom
+    const handleTouchStartEvent = (e: TouchEvent) => handleTouchStart(e);
+    const handleTouchMoveEvent = (e: TouchEvent) => handleTouchMove(e);
+    const handleTouchEndEvent = (e: TouchEvent) => handleTouchEnd(e);
+
+    document.addEventListener('touchstart', handleTouchStartEvent, { passive: false });
+    document.addEventListener('touchmove', handleTouchMoveEvent, { passive: false });
+    document.addEventListener('touchend', handleTouchEndEvent, { passive: false });
+
+    // Cleanup
     return () => {
-      // Cleanup heart animation features
-      if (heartAnimationControllerRef.current) {
-        heartAnimationControllerRef.current.dispose();
-        heartAnimationControllerRef.current = null;
-      }
-      
-      if (heartLabelManagerRef.current) {
-        heartLabelManagerRef.current.dispose();
-        heartLabelManagerRef.current = null;
-      }
-      
-      if (performanceMonitorRef.current) {
-        performanceMonitorRef.current.dispose();
-        performanceMonitorRef.current = null;
-      }
-      
+      // Remove touch event listeners
+      document.removeEventListener('touchstart', handleTouchStartEvent);
+      document.removeEventListener('touchmove', handleTouchMoveEvent);
+      document.removeEventListener('touchend', handleTouchEndEvent);
       // Cancel animation frame
       if (animationId) {
         cancelAnimationFrame(animationId);
@@ -276,7 +329,18 @@ const ARScannerPage: React.FC = () => {
     };
   }, [organ]);
   return (
-    <div style={{ margin: "0px", overflow: "hidden", fontFamily: "Monospace" }}>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        margin: "0px",
+        overflow: "hidden",
+        fontFamily: "Monospace",
+      }}
+    >
       {/* Text overlay - EXACT same style as cutout example */}
       <div
         style={{
@@ -287,26 +351,11 @@ const ARScannerPage: React.FC = () => {
           zIndex: 100,
         }}
       >
-        {" "}        <div>
+        {" "}
+        <div>
           AR Scanner for <strong>{organ.name}</strong> - Point your camera at
           the Hiro marker
         </div>
-        {organ.id === "heart" && (
-          <div
-            style={{
-              backgroundColor: "rgba(0, 150, 255, 0.8)",
-              padding: "8px",
-              marginTop: "10px",
-              borderRadius: "4px",
-              color: "white",
-            }}
-          >
-            💖 Heart Slicing Mode Active - Zoom in to see internal chambers
-            {isHeartSlicing && " 🔄 Slicing Animation Active"}
-            <br />
-            <small>Current Zoom: {currentZoom.toFixed(1)}x</small>
-          </div>
-        )}
         {modelLoading && (
           <div
             style={{
@@ -343,9 +392,18 @@ const ARScannerPage: React.FC = () => {
           }}
           onClick={() => navigate(-1)}
         >
-          ← Back to Menu [{organ.name} 3D Model]
-        </div>
+          ← Back to Menu [{organ.name} 3D Model]        </div>
       </div>
+
+      {/* Zoom Controls */}
+      <ARControls
+        currentZoom={currentZoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onResetZoom={handleResetZoom}
+        isAnimating={isZoomAnimating}
+        disabled={modelLoading || modelError}
+      />
 
       {/* AR container - attached to body like cutout example */}
       <div
