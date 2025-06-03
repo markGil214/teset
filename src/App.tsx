@@ -274,7 +274,7 @@ function AppContent() {
               )
             }
           />
-          <Route path="/ar-heart" element={<Navigate to="/" />} />
+          <Route path="/ar-heart" element={<Navigate to="/" />} />{" "}
           <Route
             path="/scan-explore"
             element={
@@ -286,20 +286,20 @@ function AppContent() {
             }
           />
           <Route
-            path="/scan-explore/:organId"
+            path="/scan-explore/ar"
             element={
               secondRegistrationComplete ? (
-                <OrganDetailPage />
+                <ARScannerPage />
               ) : (
                 <Navigate to="/" />
               )
             }
           />
           <Route
-            path="/scan-explore/:organId/ar"
+            path="/scan-explore/:organId"
             element={
               secondRegistrationComplete ? (
-                <ARScannerPage />
+                <OrganDetailPage />
               ) : (
                 <Navigate to="/" />
               )
