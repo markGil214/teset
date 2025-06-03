@@ -19,7 +19,7 @@ import LandscapeWrapper from "./assets/components/LandscapeWrapper";
 import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
 import ScanExploreHub from "./assets/pages/ScanExploreHub";
 import OrganDetailPage from "./assets/pages/OrganDetailPage";
-import ARPage from "./assets/pages/ARPage";
+import ARScannerPage from "./assets/pages/ARScannerPage";
 
 // Main App wrapper that provides the Router context
 function App() {
@@ -272,7 +272,9 @@ function AppContent() {
               ) : (
                 <Navigate to="/" />
               )
-            }          />
+            }
+          />
+          <Route path="/ar-heart" element={<Navigate to="/" />} />
           <Route
             path="/scan-explore"
             element={
@@ -284,15 +286,20 @@ function AppContent() {
             }
           />
           <Route
-            path="/scan-explore/ar"
-            element={
-              secondRegistrationComplete ? <ARPage /> : <Navigate to="/" />
-            }
-          />          <Route
             path="/scan-explore/:organId"
             element={
               secondRegistrationComplete ? (
                 <OrganDetailPage />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/scan-explore/:organId/ar"
+            element={
+              secondRegistrationComplete ? (
+                <ARScannerPage />
               ) : (
                 <Navigate to="/" />
               )

@@ -2,58 +2,6 @@
   padding: 2rem;
   text-align: center;
 }
-
-/* AR Scanner Section */
-.ar-scanner-section {
-  margin: 2rem 0;
-}
-
-.ar-scanner-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  border-radius: 16px;
-  padding: 1.5rem 2rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 0 auto;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
-  color: white;
-}
-
-.ar-scanner-button:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-}
-
-.ar-scanner-icon {
-  font-size: 2rem;
-}
-
-.ar-scanner-text h3 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.ar-scanner-text p {
-  margin: 0;
-  font-size: 0.9rem;
-  opacity: 0.9;
-}
-
-.section-separator {
-  margin: 3rem 0 1rem 0;
-}
-
-.section-separator h2 {
-  color: #666;
-  font-size: 1.5rem;
-  font-weight: 500;
-}
-
 .organ-grid {
   display: flex;
   flex-wrap: wrap;
