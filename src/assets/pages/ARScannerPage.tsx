@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { organs } from "../components/organData";
 import { ZoomController } from "../../utils/ZoomController";
+import { HeartAnimationController } from "../../utils/HeartAnimationController";
+import { PerformanceMonitor } from "../../utils/PerformanceMonitor";
 import ARControls from "../components/ARControls";
 
 // Declare global variables for the libraries
@@ -20,13 +22,22 @@ const ARScannerPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [modelLoading, setModelLoading] = useState(true);
   const [modelError, setModelError] = useState(false);
-  
-  // Zoom state
+    // Zoom state
   const [currentZoom, setCurrentZoom] = useState(1.0);
-  const [isZoomAnimating, setIsZoomAnimating] = useState(false);  const zoomControllerRef = useRef<ZoomController | null>(null);
+  const [isZoomAnimating, setIsZoomAnimating] = useState(false);
+  const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
   const baseScaleRef = useRef<number>(0.5);
+  
+  // Heart animation state (for Phase 2)
+  const heartAnimationControllerRef = useRef<HeartAnimationController | null>(null);
+  const [isHeartSliced, setIsHeartSliced] = useState(false);
+  const [isHeartSlicing, setIsHeartSlicing] = useState(false);
+
+  // Performance monitoring
+  const performanceMonitorRef = useRef<PerformanceMonitor | null>(null);
+  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
 
   if (!organ) {
     return <div>Organ not found</div>;
@@ -46,9 +57,7 @@ const ARScannerPage: React.FC = () => {
   useEffect(() => {
     const baseScale = getBaseScale(organ.id);
     baseScaleRef.current = baseScale;
-    console.log(`Initializing zoom controller for ${organ.name} with base scale ${baseScale}`);
-
-    zoomControllerRef.current = new ZoomController(1.0, {
+    console.log(`Initializing zoom controller for ${organ.name} with base scale ${baseScale}`);    zoomControllerRef.current = new ZoomController(1.0, {
       onZoomChange: (zoom: number) => {
         console.log(`ARScannerPage: Zoom changed to: ${zoom}x`);
         setCurrentZoom(zoom);
@@ -57,13 +66,26 @@ const ARScannerPage: React.FC = () => {
           const newScale = baseScaleRef.current * zoom;
           console.log(`ARScannerPage: Applying scale: ${newScale} (base: ${baseScaleRef.current}, zoom: ${zoom})`);
           organModelRef.current.scale.set(newScale, newScale, newScale);
+          
+          // If this is a heart model, trigger heart animations based on zoom level
+          if (organ.id === 'heart' && heartAnimationControllerRef.current) {
+            heartAnimationControllerRef.current.handleZoomChange(zoom);
+          }
         } else {
           console.log('ARScannerPage: Model not loaded yet - will apply zoom when loaded');
         }
       },
       onThresholdCrossed: (threshold: string, zoom: number) => {
         console.log(`ARScannerPage: Zoom threshold crossed: ${threshold} at ${zoom}x`);
-        // Future: Handle threshold crossings for slicing, labels, etc.
+        
+        // Handle threshold crossings for heart slicing
+        if (organ.id === 'heart' && heartAnimationControllerRef.current) {
+          if (threshold === 'startSlicing' && zoom >= 1.5) {
+            console.log('🔪 Heart slicing threshold crossed');
+          } else if (threshold === 'showLabels' && zoom >= 2.0) {
+            console.log('🏷️ Heart labeling threshold crossed');
+          }
+        }
       }
     });
 
@@ -151,9 +173,7 @@ const ARScannerPage: React.FC = () => {
 
     let animationId: number;
     let renderer: any;
-    let source: any;
-
-    // EXACT COPY-CAT of basic-cutout.html script section
+    let source: any;    // EXACT COPY-CAT of basic-cutout.html script section
     renderer = new window.THREE.WebGLRenderer({
       // antialias: true,
       alpha: true,
@@ -164,7 +184,12 @@ const ARScannerPage: React.FC = () => {
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0px";
     renderer.domElement.style.left = "0px";
-    document.body.appendChild(renderer.domElement); // init scene and camera - EXACT SAME AS BASIC.HTML
+    document.body.appendChild(renderer.domElement);
+    
+    // Connect renderer to performance monitor
+    if (performanceMonitorRef.current) {
+      performanceMonitorRef.current.setRenderer(renderer);
+    }// init scene and camera - EXACT SAME AS BASIC.HTML
     var scene = new window.THREE.Scene();
     var camera = new window.THREE.Camera();
     scene.add(camera);
@@ -229,10 +254,11 @@ const ARScannerPage: React.FC = () => {
               model.scale.set(newScale, newScale, newScale);
             }
           }
-
-          // Model loaded successfully
-          setModelLoading(false);
-          console.log(`${organ.name} 3D model loaded successfully with scale: ${scale}`);
+          
+          // If this is a heart model, apply rendering optimizations
+          if (organ.id === 'heart' && heartAnimationControllerRef.current) {
+            heartAnimationControllerRef.current.optimizeRendering(renderer);
+          }
         },
         undefined,
         (error: any) => {
@@ -267,12 +293,13 @@ const ARScannerPage: React.FC = () => {
         var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
         lastTimeMsec = nowMsec;
         // call each update function
-        controller.update(source.domElement);
-
-        // Rotate the 3D model if it's loaded
+        controller.update(source.domElement);        // Rotate the 3D model if it's loaded
         if ((markerGroup as any).organModel) {
-          (markerGroup as any).organModel.rotation.y +=
-            (deltaMsec / 2000) * Math.PI;
+          // Don't rotate if heart is in sliced mode
+          if (!(organ?.id === 'heart' && isHeartSliced)) {
+            (markerGroup as any).organModel.rotation.y +=
+              (deltaMsec / 2000) * Math.PI;
+          }
         }
 
         renderer.render(scene, camera);
@@ -308,15 +335,18 @@ const ARScannerPage: React.FC = () => {
       // Dispose of renderer
       if (renderer) {
         renderer.dispose();
-      }
-
-      // Remove the renderer element from document.body
+      }      // Remove the renderer element from document.body
       const rendererElements = document.querySelectorAll("canvas");
       rendererElements.forEach((canvas) => {
         if (canvas.parentElement === document.body) {
           document.body.removeChild(canvas);
         }
       });
+
+      // Stop performance monitoring
+      if (performanceMonitorRef.current) {
+        performanceMonitorRef.current.stopMonitoring();
+      }
 
       // Remove video elements that might be created by AR
       const videoElements = document.querySelectorAll("video");
@@ -328,6 +358,120 @@ const ARScannerPage: React.FC = () => {
       });
     };
   }, [organ]);
+  // Initialize heart animation controller
+  useEffect(() => {
+    // Only initialize for heart models
+    if (organ?.id !== 'heart') return;
+    
+    // Wait until model is loaded before initializing
+    if (!organModelRef.current) {
+      console.log('❌ Heart model not yet loaded, waiting before initializing animation controller');
+      return;
+    }
+
+    console.log('🫀 Initializing heart animation controller');
+    
+    // Clean up any existing controller first
+    if (heartAnimationControllerRef.current) {
+      console.log('♻️ Cleaning up existing heart animation controller');
+      heartAnimationControllerRef.current.destroy();
+      heartAnimationControllerRef.current = null;
+    }
+    
+    heartAnimationControllerRef.current = new HeartAnimationController({
+      // Custom config can be passed here if needed
+    }, {
+      onSliceStart: () => {
+        console.log('🔪 Heart slicing animation started');
+        setIsHeartSlicing(true);
+      },
+      onSliceComplete: (isSliced) => {
+        console.log(`Heart slicing animation completed. Sliced: ${isSliced}`);
+        setIsHeartSlicing(false);
+        setIsHeartSliced(isSliced);
+      },
+      onLabelShow: (partId) => {
+        console.log(`Label shown for heart part: ${partId}`);
+      }
+    });
+    
+    // Initialize with the model
+    heartAnimationControllerRef.current.initializeHeartModel(organModelRef.current);
+    
+    // Apply current zoom level
+    if (zoomControllerRef.current) {
+      const currentZoom = zoomControllerRef.current.getCurrentZoom();
+      heartAnimationControllerRef.current.handleZoomChange(currentZoom);
+    }
+
+    console.log('✅ Heart animation controller initialized successfully');
+
+    return () => {
+      console.log('Cleaning up heart animation controller');
+      if (heartAnimationControllerRef.current) {
+        heartAnimationControllerRef.current.destroy();
+        heartAnimationControllerRef.current = null;
+      }
+    };
+  }, [organ?.id, organModelRef.current]);
+
+  // Handle page visibility changes to conserve resources
+  useEffect(() => {
+    if (organ?.id !== 'heart' || !heartAnimationControllerRef.current) return;
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('📱 Page hidden, pausing heart animations to save resources');
+        heartAnimationControllerRef.current?.pauseAnimations();
+      } else {
+        console.log('📱 Page visible again, resuming heart animations');
+        heartAnimationControllerRef.current?.resumeAnimations();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [organ?.id, heartAnimationControllerRef.current]);
+
+  // Handle device orientation changes
+  useEffect(() => {
+    if (organ?.id !== 'heart' || !heartAnimationControllerRef.current) return;
+    
+    const handleResize = () => {
+      console.log('📱 Window resized or orientation changed');
+      heartAnimationControllerRef.current?.handleOrientationChange();
+    };
+    
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, [organ?.id, heartAnimationControllerRef.current]);
+
+  // Initialize performance monitor
+  useEffect(() => {
+    performanceMonitorRef.current = new PerformanceMonitor();
+    
+    // Check for development mode or debug URL param
+    const isDebugMode = process.env.NODE_ENV === 'development' || searchParams.get('debug') === 'true';
+    
+    if (isDebugMode) {
+      console.log('🔍 Performance monitoring enabled in debug mode');
+      performanceMonitorRef.current.startMonitoring(showPerformanceMonitor);
+    }
+    
+    return () => {
+      performanceMonitorRef.current?.stopMonitoring();
+      performanceMonitorRef.current = null;
+    };
+  }, [showPerformanceMonitor, searchParams]);
+
   return (
     <div
       style={{
@@ -351,11 +495,37 @@ const ARScannerPage: React.FC = () => {
           zIndex: 100,
         }}
       >
-        {" "}
-        <div>
+        {" "}        <div>
           AR Scanner for <strong>{organ.name}</strong> - Point your camera at
           the Hiro marker
         </div>
+        {organ.id === 'heart' && isHeartSliced && (
+          <div
+            style={{
+              backgroundColor: "rgba(255, 0, 89, 0.8)",
+              padding: "8px",
+              marginTop: "10px",
+              borderRadius: "4px",
+              color: "white",
+              fontWeight: "bold",
+            }}
+          >
+            🔪 Heart Sliced Mode - Showing Internal Chambers
+          </div>
+        )}
+        {organ.id === 'heart' && isHeartSlicing && (
+          <div
+            style={{
+              backgroundColor: "rgba(255, 123, 0, 0.8)",
+              padding: "8px",
+              marginTop: "10px",
+              borderRadius: "4px",
+              color: "white",
+            }}
+          >
+            ✂️ Slicing heart chambers...
+          </div>
+        )}
         {modelLoading && (
           <div
             style={{
@@ -392,7 +562,87 @@ const ARScannerPage: React.FC = () => {
           }}
           onClick={() => navigate(-1)}
         >
-          ← Back to Menu [{organ.name} 3D Model]        </div>
+          ← Back to Menu [{organ.name} 3D Model]        
+        </div>
+          {/* Debug buttons for heart slicing - will be removed in production */}
+        {organ?.id === 'heart' && !modelLoading && !modelError && (
+          <>
+            <div
+              style={{
+                backgroundColor: isHeartSliced ? "rgba(0, 150, 136, 0.7)" : "rgba(33, 150, 243, 0.7)",
+                padding: "8px",
+                marginTop: "10px",
+                cursor: "pointer",
+                borderRadius: "4px",
+                textAlign: "center",
+                fontWeight: "bold",
+                color: "white"
+              }}
+              onClick={() => {
+                if (heartAnimationControllerRef.current) {
+                  if (isHeartSliced) {
+                    heartAnimationControllerRef.current.forceReassemble();
+                  } else {
+                    heartAnimationControllerRef.current.forceSlice();
+                  }
+                }
+              }}
+            >
+              {isHeartSliced ? "🔄 Reassemble Heart" : "🔪 Force Slice Heart"}
+            </div>
+            
+            <div
+              style={{
+                backgroundColor: "rgba(255, 152, 0, 0.7)",
+                padding: "8px",
+                marginTop: "10px",
+                cursor: "pointer",
+                borderRadius: "4px",
+                textAlign: "center",
+                fontWeight: "bold",
+                color: "white"
+              }}
+              onClick={() => {
+                if (heartAnimationControllerRef.current) {
+                  heartAnimationControllerRef.current.debugHeartModel();
+                }
+              }}
+            >
+              🔍 Debug Heart Model
+            </div>
+          </>
+        )}
+        {/* Performance monitoring toggle - DEBUG ONLY */}
+        {organ?.id === 'heart' && (
+          <div
+            style={{
+              backgroundColor: "rgba(75, 0, 130, 0.7)",
+              padding: "8px",
+              marginTop: "10px",
+              cursor: "pointer",
+              borderRadius: "4px",
+              textAlign: "center",
+              fontWeight: "bold",
+              color: "white"
+            }}
+            onClick={() => {
+              setShowPerformanceMonitor(prev => {
+                const newValue = !prev;
+                if (performanceMonitorRef.current) {
+                  if (newValue) {
+                    performanceMonitorRef.current.startMonitoring(true);
+                  } else {
+                    performanceMonitorRef.current.stopMonitoring();
+                    performanceMonitorRef.current.startMonitoring(false);
+                  }
+                }
+                return newValue;
+              });
+            }}
+          >
+            {showPerformanceMonitor ? "📊 Hide Performance Stats" : "📊 Show Performance Stats"}
+          </div>
+        )}
       </div>
 
       {/* Zoom Controls */}

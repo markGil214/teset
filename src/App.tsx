@@ -20,6 +20,7 @@ import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
 import ScanExploreHub from "./assets/pages/ScanExploreHub";
 import OrganDetailPage from "./assets/pages/OrganDetailPage";
 import ARScannerPage from "./assets/pages/ARScannerPage";
+import ZoomTestPage from "./assets/pages/ZoomTestPage";
 
 // Main App wrapper that provides the Router context
 function App() {
@@ -290,6 +291,16 @@ function AppContent() {
             element={
               secondRegistrationComplete ? (
                 <ARScannerPage />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/zoom-test"
+            element={
+              secondRegistrationComplete ? (
+                <ZoomTestPage />
               ) : (
                 <Navigate to="/" />
               )
