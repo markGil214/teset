@@ -1,5 +1,5 @@
 // Zoom logic and animations for AR heart visualization
-import { ZoomState, ZoomConfig, AnimationConfig } from "../types/ARTypes";
+import { ZoomState, ZoomConfig } from "../types/ARTypes";
 
 export class ZoomController {
   private zoomState: ZoomState;
