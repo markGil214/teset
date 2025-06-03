@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { organs } from "../components/organData";
+import { ZoomController } from "../../utils/ZoomController";
+import ARControls from "../components/ARControls";
 
 // Declare global variables for the libraries
 declare global {
@@ -18,10 +20,86 @@ const ARScannerPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [modelLoading, setModelLoading] = useState(true);
   const [modelError, setModelError] = useState(false);
-
+  
+  // Zoom state
+  const [currentZoom, setCurrentZoom] = useState(1.0);
+  const [isZoomAnimating, setIsZoomAnimating] = useState(false);
+  const zoomControllerRef = useRef<ZoomController | null>(null);
+  const organModelRef = useRef<any>(null);
+  const markerGroupRef = useRef<any>(null);
   if (!organ) {
     return <div>Organ not found</div>;
   }
+
+  // Initialize zoom controller
+  useEffect(() => {
+    zoomControllerRef.current = new ZoomController(1.0, {
+      onZoomChange: (zoom: number) => {
+        setCurrentZoom(zoom);
+        // Apply zoom to the 3D model
+        if (organModelRef.current) {
+          const baseScale = getBaseScale(organ.id);
+          organModelRef.current.scale.set(
+            baseScale * zoom,
+            baseScale * zoom, 
+            baseScale * zoom
+          );
+        }
+      },
+      onThresholdCrossed: (threshold: string, zoom: number) => {
+        console.log(`Zoom threshold crossed: ${threshold} at ${zoom}x`);
+        // Future: Handle threshold crossings for slicing, labels, etc.
+      }
+    });
+
+    return () => {
+      zoomControllerRef.current?.destroy();
+    };
+  }, [organ.id]);
+
+  // Get base scale for organ type
+  const getBaseScale = useCallback((organId: string): number => {
+    switch (organId) {
+      case "brain": return 0.3;
+      case "heart": return 0.8;
+      case "kidney": return 0.4;
+      case "lungs": return 0.6;
+      case "skin": return 0.5;
+      default: return 0.5;
+    }
+  }, []);
+
+  // Zoom control handlers
+  const handleZoomIn = useCallback(() => {
+    zoomControllerRef.current?.zoomIn();
+    setIsZoomAnimating(true);
+    setTimeout(() => setIsZoomAnimating(false), 300);
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    zoomControllerRef.current?.zoomOut();
+    setIsZoomAnimating(true);
+    setTimeout(() => setIsZoomAnimating(false), 300);
+  }, []);
+
+  const handleResetZoom = useCallback(() => {
+    zoomControllerRef.current?.resetZoom();
+    setIsZoomAnimating(true);
+    setTimeout(() => setIsZoomAnimating(false), 300);
+  }, []);
+
+  // Touch gesture handlers
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    zoomControllerRef.current?.handleTouchStart(e);
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    zoomControllerRef.current?.handleTouchMove(e);
+  }, []);
+
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    zoomControllerRef.current?.handleTouchEnd(e);
+  }, []);
 
   // Prevent body scrolling when AR is active
   useEffect(() => {
@@ -76,8 +154,7 @@ const ARScannerPage: React.FC = () => {
       scene.add(directionalLight); // Load the 3D model for this organ
       var gltfLoader = new window.THREE.GLTFLoader();
       gltfLoader.load(
-        organ.modelPath,
-        (gltf: any) => {
+        organ.modelPath,        (gltf: any) => {
           var model = gltf.scene;
 
           // Scale and position the model appropriately for AR based on organ type
@@ -112,7 +189,9 @@ const ARScannerPage: React.FC = () => {
           model.position.y = positionY;
           markerGroup.add(model);
 
-          // Store model reference for animation
+          // Store model reference for zoom control
+          organModelRef.current = model;
+          markerGroupRef.current = markerGroup;
           (markerGroup as any).organModel = model;
 
           // Model loaded successfully
@@ -161,11 +240,24 @@ const ARScannerPage: React.FC = () => {
         }
 
         renderer.render(scene, camera);
-      }
+      }      animationId = requestAnimationFrame(animate);
+    });
 
-      animationId = requestAnimationFrame(animate);
-    }); // Cleanup
+    // Add touch event listeners for pinch-to-zoom
+    const handleTouchStartEvent = (e: TouchEvent) => handleTouchStart(e);
+    const handleTouchMoveEvent = (e: TouchEvent) => handleTouchMove(e);
+    const handleTouchEndEvent = (e: TouchEvent) => handleTouchEnd(e);
+
+    document.addEventListener('touchstart', handleTouchStartEvent, { passive: false });
+    document.addEventListener('touchmove', handleTouchMoveEvent, { passive: false });
+    document.addEventListener('touchend', handleTouchEndEvent, { passive: false });
+
+    // Cleanup
     return () => {
+      // Remove touch event listeners
+      document.removeEventListener('touchstart', handleTouchStartEvent);
+      document.removeEventListener('touchmove', handleTouchMoveEvent);
+      document.removeEventListener('touchend', handleTouchEndEvent);
       // Cancel animation frame
       if (animationId) {
         cancelAnimationFrame(animationId);
@@ -264,9 +356,18 @@ const ARScannerPage: React.FC = () => {
           }}
           onClick={() => navigate(-1)}
         >
-          ← Back to Menu [{organ.name} 3D Model]
-        </div>
+          ← Back to Menu [{organ.name} 3D Model]        </div>
       </div>
+
+      {/* Zoom Controls */}
+      <ARControls
+        currentZoom={currentZoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onResetZoom={handleResetZoom}
+        isAnimating={isZoomAnimating}
+        disabled={modelLoading || modelError}
+      />
 
       {/* AR container - attached to body like cutout example */}
       <div
