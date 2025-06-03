@@ -5,7 +5,7 @@ import { heartParts, heartSlicingConfig } from '../assets/components/HeartData';
 
 declare global {
   interface Window {
-    gsap?: any;
+    gsap: any; // Changed from gsap?: any to match HeartAnimations.ts
   }
 }
 
