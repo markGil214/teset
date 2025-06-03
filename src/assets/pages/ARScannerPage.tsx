@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { organs } from "../components/organData";
 
@@ -15,6 +15,8 @@ const ARScannerPage: React.FC = () => {
   const navigate = useNavigate();
   const organ = organs.find((o) => o.id === organId);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [modelLoading, setModelLoading] = useState(true);
+  const [modelError, setModelError] = useState(false);
 
   if (!organ) {
     return <div>Organ not found</div>;
@@ -41,32 +43,77 @@ const ARScannerPage: React.FC = () => {
     var markerGroup = new window.THREE.Group();
     scene.add(markerGroup);
 
-    var source = new window.THREEAR.Source({ renderer, camera });
+    var source = new window.THREEAR.Source({ renderer, camera });    window.THREEAR.initialize({ source: source }).then((controller: any) => {
+      // Add lighting for better 3D model visibility
+      var ambientLight = new window.THREE.AmbientLight(0x404040, 0.6);
+      scene.add(ambientLight);
 
-    window.THREEAR.initialize({ source: source }).then((controller: any) => {
-      // add a torus knot - EXACT SAME AS BASIC.HTML		
-      var geometry = new window.THREE.TorusKnotGeometry(0.3,0.1,64,16);
-      var material = new window.THREE.MeshNormalMaterial(); 
-      var torus = new window.THREE.Mesh( geometry, material );
-      torus.position.y = 0.5;
-      markerGroup.add(torus);
-
-      var geometry = new window.THREE.CubeGeometry(1,1,1);
-      var material = new window.THREE.MeshNormalMaterial({
-        transparent : true,
-        opacity: 0.5,
-        side: window.THREE.DoubleSide
-      }); 
-      var cube = new window.THREE.Mesh( geometry, material );
-      cube.position.y = geometry.parameters.height / 2;
-      markerGroup.add(cube);      var patternMarker = new window.THREEAR.PatternMarker({
+      var directionalLight = new window.THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);      // Load the 3D model for this organ
+      var gltfLoader = new window.THREE.GLTFLoader();
+      gltfLoader.load(organ.modelPath, (gltf: any) => {
+        var model = gltf.scene;
+        
+        // Scale and position the model appropriately for AR based on organ type
+        let scale, positionY;
+        switch(organ.id) {
+          case 'brain':
+            scale = 0.3;
+            positionY = 0.1;
+            break;
+          case 'heart':
+            scale = 0.8;
+            positionY = 0;
+            break;
+          case 'kidney':
+            scale = 0.4;
+            positionY = 0;
+            break;
+          case 'lungs':
+            scale = 0.6;
+            positionY = 0;
+            break;
+          case 'skin':
+            scale = 0.5;
+            positionY = 0;
+            break;
+          default:
+            scale = 0.5;
+            positionY = 0;
+        }
+        
+        model.scale.set(scale, scale, scale);
+        model.position.y = positionY;
+          markerGroup.add(model);
+        
+        // Store model reference for animation
+        (markerGroup as any).organModel = model;
+        
+        // Model loaded successfully
+        setModelLoading(false);
+        console.log(`${organ.name} 3D model loaded successfully`);
+      }, undefined, (error: any) => {
+        console.error('Error loading 3D model:', error);
+        setModelLoading(false);
+        setModelError(true);
+        
+        // Fallback: add a simple cube if model fails to load
+        var geometry = new window.THREE.CubeGeometry(1,1,1);
+        var material = new window.THREE.MeshNormalMaterial({
+          transparent : true,
+          opacity: 0.5,
+          side: window.THREE.DoubleSide
+        }); 
+        var cube = new window.THREE.Mesh( geometry, material );
+        cube.position.y = geometry.parameters.height / 2;
+        markerGroup.add(cube);
+      });var patternMarker = new window.THREEAR.PatternMarker({
         patternUrl: "/data/patt.hiro",
         markerObject: markerGroup,
       });
 
-      controller.trackMarker(patternMarker);
-
-      // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
+      controller.trackMarker(patternMarker);      // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
       var lastTimeMsec = 0;
       requestAnimationFrame(function animate(nowMsec: number) {
         // keep looping
@@ -77,9 +124,12 @@ const ARScannerPage: React.FC = () => {
         lastTimeMsec = nowMsec;
         // call each update function
         controller.update( source.domElement );
-        // cube.rotation.x += deltaMsec/10000 * Math.PI
-        torus.rotation.y += deltaMsec/1000 * Math.PI;
-        torus.rotation.z += deltaMsec/1000 * Math.PI;
+        
+        // Rotate the 3D model if it's loaded
+        if ((markerGroup as any).organModel) {
+          (markerGroup as any).organModel.rotation.y += deltaMsec/2000 * Math.PI;
+        }
+        
         renderer.render( scene, camera );
       });
     });// Cleanup
@@ -104,11 +154,35 @@ const ARScannerPage: React.FC = () => {
           right: "10px",
           zIndex: 100,
         }}
-      >
-        <div>
+      >        <div>
           AR Scanner for <strong>{organ.name}</strong> - Point your camera at
           the Hiro marker
         </div>
+        
+        {modelLoading && (
+          <div style={{
+            backgroundColor: "rgba(0, 123, 255, 0.8)",
+            padding: "8px",
+            marginTop: "10px",
+            borderRadius: "4px",
+            color: "white"
+          }}>
+            🔄 Loading {organ.name} 3D model...
+          </div>
+        )}
+        
+        {modelError && (
+          <div style={{
+            backgroundColor: "rgba(255, 193, 7, 0.8)",
+            padding: "8px",
+            marginTop: "10px",
+            borderRadius: "4px",
+            color: "black"
+          }}>
+            ⚠️ Model loading failed - showing fallback cube
+          </div>
+        )}
+        
         <div
           id="button"
           style={{
