@@ -1,746 +1,709 @@
-// Heart slicing animation controller for AR visualization
-import * as THREE from 'three';
-import { HeartAnimationState, HeartSlicingConfig } from '../types/HeartTypes';
-import { heartParts, heartSlicingConfig } from '../assets/components/HeartData';
+// Heart Animation Controller for AR Heart Visualization System Phase 2
+// Handles heart slicing animations triggered by zoom levels with performance optimizations
 
+import { 
+  HeartPart, 
+  HeartAnimationState, 
+  HeartSlicingConfig,
+  HeartAnimationControllerState,
+  HeartAnimationEvent,
+  HeartAnimationCallback,
+  HeartModelAnalysis,
+  Entity
+} from '../types/HeartTypes';
+
+import { 
+  DEFAULT_HEART_PARTS, 
+  DEFAULT_SLICING_CONFIG,
+  FALLBACK_HEART_PARTS,
+  getOptimizedConfig
+} from '../assets/components/HeartData';
+
+// Declare global variables for the libraries
 declare global {
   interface Window {
-    gsap: any; // Changed from gsap?: any to match HeartAnimations.ts
+    THREE: any;
+    gsap: any;
   }
 }
 
 export class HeartAnimationController {
-  private heartModel: THREE.Group | null = null;
-  private heartParts: Map<string, THREE.Object3D> = new Map();
-  private originalPositions: Map<string, THREE.Vector3> = new Map();
-  private animationState: HeartAnimationState;
-  private config: HeartSlicingConfig;
-  private isSlicingEnabled: boolean = true;
-  private callbacks: {
-    onSliceStart?: () => void;
-    onSliceComplete?: (isSliced: boolean) => void;
-    onLabelShow?: (partId: string) => void;
-  };
+  private state: HeartAnimationControllerState;
+  private callbacks: HeartAnimationCallback[] = [];
+  private animationTimeline: any = null; // GSAP timeline
+  private isGSAPAvailable: boolean = false;
+  private resizeObserver: ResizeObserver | null = null;
+  private visibilityChangeHandler: (() => void) | null = null;
 
-  constructor(
-    config?: Partial<HeartSlicingConfig>,
-    callbacks?: {
-      onSliceStart?: () => void;
-      onSliceComplete?: (isSliced: boolean) => void;
-      onLabelShow?: (partId: string) => void;
-    }
-  ) {
-    this.config = { ...heartSlicingConfig, ...config };
-    this.callbacks = callbacks || {};
-    
-    this.animationState = {
-      isSlicing: false,
-      isSliced: false,
-      isReassembling: false,
-      animationProgress: 0,
-      currentZoomLevel: 1.0,
-      activeLabels: []
+  constructor(heartEntity: Entity, config?: Partial<HeartSlicingConfig>) {
+    // Initialize state
+    this.state = {
+      currentZoom: 1.0,
+      animationState: HeartAnimationState.IDLE,
+      heartParts: [],
+      isInitialized: false,
+      isAnimating: false,
+      config: { ...DEFAULT_SLICING_CONFIG, ...config },
+      heartEntity,
+      performanceMode: 'high'
     };
 
-    console.log('🫀 HeartAnimationController initialized with config:', this.config);
-  }  // Initialize with the loaded heart model
-  initializeHeartModel(model: THREE.Group): void {
-    console.log('🫀 Initializing heart model for slicing animation...');
-    this.heartModel = model;
-    this.heartParts.clear();
-    this.originalPositions.clear();
-
-    // Find and map heart parts based on mesh names
-    model.traverse((child) => {
-      if ((child as any).isMesh || (child as any).isGroup) {
-        const meshName = child.name;
-        console.log(`Found mesh: "${meshName}"`);
-
-        // Try to match mesh names with our heart parts data
-        const heartPart = heartParts.find(part => 
-          part.meshName && (
-            meshName.toLowerCase().includes(part.meshName.toLowerCase()) ||
-            part.meshName.toLowerCase().includes(meshName.toLowerCase())
-          )
-        );
-
-        if (heartPart) {
-          console.log(`✅ Mapped "${meshName}" to heart part: ${heartPart.name}`);
-          this.heartParts.set(heartPart.id, child);
-          this.originalPositions.set(heartPart.id, child.position.clone());
-        } else {
-          console.log(`⚠️ No mapping found for mesh: "${meshName}"`);
-        }
-      }
-    });
-
-    console.log(`🎯 Successfully mapped ${this.heartParts.size} heart parts:`, 
-      Array.from(this.heartParts.keys()));
-
-    // If we couldn't find specific parts, try different strategies
-    if (this.heartParts.size === 0) {
-      console.log('⚠️ No heart parts matched by name, trying fallback methods...');
-      
-      // Try to create simulated parts based on model structure
-      this.createSimulatedHeartParts();
-      
-      // If that doesn't work either, create virtual parts
-      if (this.heartParts.size === 0) {
-        console.log('📦 Creating virtual separation points...');
-        this.createVirtualHeartParts(model);
-      }
-    }
+    // Check for GSAP availability
+    this.checkGSAPAvailability();
     
-    // Apply optimizations based on device capabilities
-    this.optimizeForDevice();
+    // Initialize the controller
+    this.initialize();
   }
 
-  // Create virtual parts if the model doesn't have named components
-  private createVirtualHeartParts(model: THREE.Group): void {
-    console.log('Creating virtual heart parts for slicing demonstration...');
-      // Find all mesh children
-    const meshes: THREE.Mesh[] = [];
-    model.traverse((child) => {
-      if ((child as any).isMesh) {
-        meshes.push(child as THREE.Mesh);
-      }
-    });
-
-    if (meshes.length > 0) {
-      // Create groups for different "sections" of the heart
-      const sections = Math.min(4, meshes.length); // Up to 4 sections
-      const meshesPerSection = Math.ceil(meshes.length / sections);
-
-      for (let i = 0; i < sections; i++) {
-        const sectionMeshes = meshes.slice(i * meshesPerSection, (i + 1) * meshesPerSection);
-        const partId = `virtual_part_${i}`;
-        
-        // Create a group for this section
-        const partGroup = new THREE.Group();
-        partGroup.name = `VirtualHeartPart_${i}`;
-        
-        sectionMeshes.forEach(mesh => {
-          partGroup.add(mesh.clone());
-        });
-
-        model.add(partGroup);
-        this.heartParts.set(partId, partGroup);
-        this.originalPositions.set(partId, partGroup.position.clone());
-        
-        console.log(`Created virtual heart part ${i} with ${sectionMeshes.length} meshes`);
-      }
-    }
-  }
-
-  // Create simulated heart parts from a complex heart model
-  private createSimulatedHeartParts(): void {
-    console.log('🫀 Creating simulated heart parts from actual model...');
-    
-    if (!this.heartModel) return;
-    
-    // Get model center and size for calculations
-    const boundingBox = new THREE.Box3().setFromObject(this.heartModel);
-    const center = new THREE.Vector3();
-    boundingBox.getCenter(center);
-    const size = new THREE.Vector3();
-    boundingBox.getSize(size);
-    
-    console.log(`Heart model size: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`);
-    console.log(`Heart model center: ${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)}`);
-    
-    // Clean any existing parts
-    this.heartParts.clear();
-    this.originalPositions.clear();
-    
-    // Divide the model into logical sections based on anatomy
-    const sections = [
-      { id: 'upper_left', name: 'Left Atrium', position: new THREE.Vector3(-size.x/4, size.y/4, 0) },
-      { id: 'upper_right', name: 'Right Atrium', position: new THREE.Vector3(size.x/4, size.y/4, 0) },
-      { id: 'lower_left', name: 'Left Ventricle', position: new THREE.Vector3(-size.x/4, -size.y/4, 0) },
-      { id: 'lower_right', name: 'Right Ventricle', position: new THREE.Vector3(size.x/4, -size.y/4, 0) },
-      { id: 'top', name: 'Aorta', position: new THREE.Vector3(0, size.y/2, 0) },
-    ];
-    
-    // Find meshes in each section
-    const meshes: THREE.Mesh[] = [];
-    this.heartModel.traverse((object) => {
-      if ((object as any).isMesh) {
-        meshes.push(object as THREE.Mesh);
-      }
-    });
-      // Create a group for each section
-    sections.forEach(section => {
-      const group = new THREE.Group();
-      group.name = section.name;
+  /**
+   * Initialize the heart animation controller
+   */
+  private async initialize(): Promise<void> {
+    try {
+      console.log('HeartAnimationController: Initializing...');
       
-      // Calculate region bounds
-      const sectionCenter = center.clone().add(section.position);
-      const sectionRadius = Math.max(size.x, size.y) / 3;
+      // Analyze the heart model structure
+      const modelAnalysis = await this.analyzeHeartModel();
+      console.log('Heart model analysis:', modelAnalysis);
       
-      // Find meshes that belong to this section
-      meshes.forEach(mesh => {
-        // Clone the mesh to avoid affecting the original
-        const clonedMesh = mesh.clone();
-        
-        // Calculate if this mesh is in this section's region
-        const meshPosition = new THREE.Vector3();
-        mesh.getWorldPosition(meshPosition);
-        
-        const distance = meshPosition.distanceTo(sectionCenter);
-        
-        // If close enough to this section's center, add it
-        if (distance < sectionRadius) {
-          group.add(clonedMesh);
-        }
+      // Set performance mode based on device capabilities
+      this.setPerformanceMode();
+      
+      // Initialize heart parts
+      await this.initializeHeartParts(modelAnalysis);
+      
+      // Setup performance monitoring
+      if (this.state.config.enableDebugMode) {
+        this.setupPerformanceMonitoring();
+      }
+      
+      // Setup visibility and resize handlers
+      this.setupEventHandlers();
+      
+      this.state.isInitialized = true;
+      console.log('HeartAnimationController: Initialization complete');
+      
+      // Emit initialization event
+      this.emitEvent({
+        type: 'slicing-complete',
+        data: { animationState: HeartAnimationState.IDLE }
       });
       
-      // Only add non-empty groups
-      if (group.children.length > 0) {
-        // Position at center of this section
-        group.position.copy(sectionCenter);
-        
-        // Map to our heart parts structure
-        const heartPartId = `simulated_${section.id}`;
-        this.heartParts.set(heartPartId, group);
-        this.originalPositions.set(heartPartId, group.position.clone());
-        
-        // Also map to a real heart part ID if possible
-        const heartPart = heartParts.find(p => p.name.toLowerCase().includes(section.name.toLowerCase()));
-        if (heartPart) {
-          this.heartParts.set(heartPart.id, group);
-          this.originalPositions.set(heartPart.id, group.position.clone());
-        }
-        
-        console.log(`Created simulated heart part "${section.name}" with ${group.children.length} meshes`);
-      }
-    });
-    
-    console.log(`Created ${this.heartParts.size} simulated heart parts`);
+    } catch (error) {
+      console.error('HeartAnimationController: Initialization failed:', error);
+      // Use fallback configuration
+      this.initializeFallback();
+    }
+  }
+  /**
+   * Check if GSAP is available for animations
+   */
+  private checkGSAPAvailability(): void {
+    try {
+      this.isGSAPAvailable = typeof window.gsap !== 'undefined' && window.gsap.timeline;
+      console.log('GSAP availability:', this.isGSAPAvailable);
+    } catch (error) {
+      console.warn('GSAP not available, using fallback animations:', error);
+      this.isGSAPAvailable = false;
+    }
   }
 
-  // Handle zoom level changes and trigger appropriate animations
-  handleZoomChange(zoomLevel: number): void {
-    this.animationState.currentZoomLevel = zoomLevel;
-    
-    console.log(`🔍 Heart zoom level: ${zoomLevel.toFixed(2)}x`);
+  /**
+   * Analyze the heart model to identify parts and structure
+   */
+  private async analyzeHeartModel(): Promise<HeartModelAnalysis> {
+    const analysis: HeartModelAnalysis = {
+      totalParts: 0,
+      identifiedChambers: [],
+      identifiedValves: [],
+      identifiedVessels: [],
+      sliceableElements: 0,
+      modelComplexity: 'low',
+      recommendedPerformanceMode: 'high',
+      hasRequiredParts: false,
+      missingParts: []
+    };
 
-    // Check for slicing threshold
-    if (zoomLevel >= this.config.sliceThreshold && !this.animationState.isSliced && 
-        !this.animationState.isSlicing && this.isSlicingEnabled) {
-      console.log(`🔪 Starting heart slicing animation at ${zoomLevel}x zoom`);
-      this.startSlicingAnimation();
+    if (!this.state.heartEntity) {
+      return analysis;
     }
-    // Check for reassembly threshold
-    else if (zoomLevel < this.config.sliceThreshold && this.animationState.isSliced && 
-             !this.animationState.isReassembling) {
-      console.log(`🔗 Starting heart reassembly animation at ${zoomLevel}x zoom`);
-      this.startReassemblyAnimation();
-    }
-    // Check for label threshold
-    else if (zoomLevel >= this.config.labelThreshold && this.animationState.isSliced) {
-      console.log(`🏷️ Showing anatomical labels at ${zoomLevel}x zoom`);
-      this.showAnatomicalLabels();
-    }
-    // Hide labels if zoom is too low
-    else if (zoomLevel < this.config.labelThreshold) {
-      this.hideAnatomicalLabels();
-    }
-  }  // Start the heart slicing animation
-  private startSlicingAnimation(): void {
-    if (this.animationState.isSlicing || this.animationState.isSliced) return;
-    
-    this.animationState.isSlicing = true;
-    this.animationState.animationProgress = 0;
-    this.callbacks.onSliceStart?.();
 
-    // Capture performance data at start of animation
-    this.capturePerformanceData('slice_start');
+    try {
+      // Get all child elements of the heart model
+      const children = this.state.heartEntity.querySelectorAll('*');
+      analysis.totalParts = children.length;      // Analyze each part
+      children.forEach((element: Element) => {
+        const id = element.id;
 
-    console.log('🎬 Starting heart slicing animation...');
-    console.log(`🔍 Heart parts found: ${this.heartParts.size}`);
-    
-    // Log parts that will be animated
-    console.table(Array.from(this.heartParts.keys()).map(id => {
-      const part = heartParts.find(p => p.id === id);
-      return {
-        id,
-        name: part?.name || 'Virtual Part',
-        found: !!part
-      };
-    }));
-    
-    // Animate each heart part to its separated position
-    const animations: Promise<void>[] = [];
-    
-    this.heartParts.forEach((partObject, partId) => {
-      const heartPart = heartParts.find(p => p.id === partId);
-      if (!heartPart) return;
+        // Check for chambers
+        if (this.isPartType(element, 'chamber')) {
+          analysis.identifiedChambers.push(id || element.tagName);
+        }
 
-      const originalPos = this.originalPositions.get(partId);
-      if (!originalPos) return;
+        // Check for valves
+        if (this.isPartType(element, 'valve')) {
+          analysis.identifiedValves.push(id || element.tagName);
+        }
 
-      const targetPos = heartPart.separatedPosition.clone();
-      
-      // Create animation promise
-      const animationPromise = new Promise<void>((resolve) => {
-        // Check if GSAP is available, otherwise use basic animation
-        if (window.gsap) {
-          window.gsap.to(partObject.position, {
-            duration: this.config.animationDuration / 1000,
-            x: originalPos.x + targetPos.x,
-            y: originalPos.y + targetPos.y, 
-            z: originalPos.z + targetPos.z,
-            ease: this.config.easingFunction,
-            onComplete: resolve
-          });
-        } else {
-          // Fallback animation without GSAP
-          this.animatePosition(partObject, originalPos, targetPos, resolve);
+        // Check for vessels
+        if (this.isPartType(element, 'vessel')) {
+          analysis.identifiedVessels.push(id || element.tagName);
+        }
+
+        // Count sliceable elements
+        if (element.getAttribute('position') || element.getAttribute('animation')) {
+          analysis.sliceableElements++;
         }
       });
 
-      animations.push(animationPromise);
-      
-      console.log(`🎯 Animating ${heartPart.name} from ${originalPos.x.toFixed(2)}, ${originalPos.y.toFixed(2)}, ${originalPos.z.toFixed(2)} to separated position`);
-    });    // Wait for all animations to complete
-    Promise.all(animations).then(() => {
-      this.animationState.isSlicing = false;
-      this.animationState.isSliced = true;
-      this.animationState.animationProgress = 1;
-      
-      // Capture performance data at end of animation
-      this.capturePerformanceData('slice_complete');
-      
-      console.log('✅ Heart slicing animation completed');
-      this.callbacks.onSliceComplete?.(true);
-    });
-  }
-  // Start the heart reassembly animation
-  private startReassemblyAnimation(): void {
-    if (this.animationState.isReassembling || !this.animationState.isSliced) return;
-    
-    this.animationState.isReassembling = true;
-    this.animationState.animationProgress = 1;
-    
-    // Capture performance data at start of reassembly
-    this.capturePerformanceData('reassembly_start');
-    
-    console.log('🔄 Starting heart reassembly animation...');
-    
-    // Hide labels during reassembly
-    this.hideAnatomicalLabels();
-    
-    // Animate each part back to original position
-    const animations: Promise<void>[] = [];
-    
-    this.heartParts.forEach((partObject, partId) => {
-      const originalPos = this.originalPositions.get(partId);
-      if (!originalPos) return;
-
-      const animationPromise = new Promise<void>((resolve) => {
-        if (window.gsap) {
-          window.gsap.to(partObject.position, {
-            duration: this.config.animationDuration / 1000,
-            x: originalPos.x,
-            y: originalPos.y,
-            z: originalPos.z,
-            ease: this.config.easingFunction,
-            onComplete: resolve
-          });
-        } else {
-          // Fallback animation
-          this.animatePositionBack(partObject, originalPos, resolve);
-        }
-      });
-
-      animations.push(animationPromise);
-    });    // Wait for all animations to complete
-    Promise.all(animations).then(() => {
-      this.animationState.isReassembling = false;
-      this.animationState.isSliced = false;
-      this.animationState.animationProgress = 0;
-      
-      // Capture performance data at end of reassembly
-      this.capturePerformanceData('reassembly_complete');
-      
-      console.log('✅ Heart reassembly animation completed');
-      this.callbacks.onSliceComplete?.(false);
-    });
-  }
-
-  // Fallback position animation without GSAP
-  private animatePosition(object: THREE.Object3D, originalPos: THREE.Vector3, targetPos: THREE.Vector3, onComplete: () => void): void {
-    const startTime = Date.now();
-    const duration = this.config.animationDuration;
-    
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Ease-out function
-      const easedProgress = 1 - Math.pow(1 - progress, 3);
-      
-      object.position.x = originalPos.x + (targetPos.x * easedProgress);
-      object.position.y = originalPos.y + (targetPos.y * easedProgress);
-      object.position.z = originalPos.z + (targetPos.z * easedProgress);
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        onComplete();
+      // Determine model complexity
+      if (analysis.totalParts > 50) {
+        analysis.modelComplexity = 'high';
+        analysis.recommendedPerformanceMode = 'medium';
+      } else if (analysis.totalParts > 20) {
+        analysis.modelComplexity = 'medium';
+        analysis.recommendedPerformanceMode = 'high';
       }
-    };
-    
-    requestAnimationFrame(animate);
-  }
 
-  // Fallback animation back to original position
-  private animatePositionBack(object: THREE.Object3D, originalPos: THREE.Vector3, onComplete: () => void): void {
-    const startTime = Date.now();
-    const duration = this.config.animationDuration;
-    const startPos = object.position.clone();
-    
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Ease-out function
-      const easedProgress = 1 - Math.pow(1 - progress, 3);
-      
-      object.position.x = startPos.x + (originalPos.x - startPos.x) * easedProgress;
-      object.position.y = startPos.y + (originalPos.y - startPos.y) * easedProgress;
-      object.position.z = startPos.z + (originalPos.z - startPos.z) * easedProgress;
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        object.position.copy(originalPos);
-        onComplete();
-      }
-    };
-    
-    requestAnimationFrame(animate);
-  }
+      // Check if model has required parts
+      analysis.hasRequiredParts = analysis.identifiedChambers.length >= 2;
 
-  // Show anatomical labels
-  private showAnatomicalLabels(): void {
-    if (this.animationState.activeLabels.length > 0) return;
-    
-    console.log('🏷️ Showing anatomical labels...');
-    
-    // For now, just log which labels would be shown
-    // In Phase 3, we'll create actual HTML labels
-    this.heartParts.forEach((_, partId) => {
-      const heartPart = heartParts.find(p => p.id === partId);
-      if (heartPart) {
-        this.animationState.activeLabels.push(partId);
-        this.callbacks.onLabelShow?.(partId);
-        console.log(`📋 Showing label for: ${heartPart.name}`);
-      }
-    });
-  }
+      console.log('Heart model analysis complete:', analysis);
+      return analysis;
 
-  // Hide anatomical labels
-  private hideAnatomicalLabels(): void {
-    if (this.animationState.activeLabels.length === 0) return;
-    
-    console.log('🫥 Hiding anatomical labels...');
-    this.animationState.activeLabels = [];
-  }
-
-  // Get current animation state
-  getAnimationState(): HeartAnimationState {
-    return { ...this.animationState };
-  }
-
-  // Enable/disable slicing
-  setSlicingEnabled(enabled: boolean): void {
-    this.isSlicingEnabled = enabled;
-    console.log(`🔪 Heart slicing ${enabled ? 'enabled' : 'disabled'}`);
-  }
-
-  // Force slicing animation (for testing)
-  forceSlice(): void {
-    if (!this.animationState.isSliced) {
-      console.log('🧪 Force triggering heart slicing animation...');
-      this.startSlicingAnimation();
+    } catch (error) {
+      console.error('Error analyzing heart model:', error);
+      return analysis;
     }
   }
 
-  // Force reassembly animation (for testing)
-  forceReassemble(): void {
-    if (this.animationState.isSliced) {
-      console.log('🧪 Force triggering heart reassembly animation...');
-      this.startReassemblyAnimation();
+  /**
+   * Check if an element represents a specific anatomical part type
+   */
+  private isPartType(element: Element, partType: string): boolean {
+    const text = (element.className + ' ' + element.id + ' ' + element.tagName).toLowerCase();
+    
+    switch (partType) {
+      case 'chamber':
+        return /atrium|ventricle|chamber/.test(text);
+      case 'valve':
+        return /valve|mitral|tricuspid|aortic|pulmonary/.test(text);
+      case 'vessel':
+        return /artery|vein|aorta|vessel|vena/.test(text);
+      default:
+        return false;
     }
   }
 
-  // Get the heart model for external access
-  getHeartModel(): THREE.Group | null {
-    return this.heartModel;
-  }
-  // Cleanup
-  destroy(): void {
-    console.log('🧹 Cleaning up HeartAnimationController...');
+  /**
+   * Set performance mode based on device capabilities
+   */
+  private setPerformanceMode(): void {
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isLowEnd = this.detectLowEndDevice();
     
-    // Clean up animation resources first
-    this.cleanupResources();
-    
-    // Clear all part references
-    this.heartParts.clear();
-    this.originalPositions.clear();
-    this.heartModel = null;
-    this.animationState.activeLabels = [];
-    
-    // Reset animation state
-    this.animationState.isSliced = false;
-    this.animationState.isSlicing = false;
-    this.animationState.isReassembling = false;
-    this.animationState.animationProgress = 0;
-    
-    console.log('👋 HeartAnimationController destroyed');
-  }
-
-  // Pause animations to conserve resources when not visible
-  pauseAnimations(): void {
-    if (window.gsap) {
-      console.log('⏸️ Pausing all heart animations to conserve resources');
-      window.gsap.globalTimeline.pause();
-    }
-    
-    // Reset any in-progress animation states if needed
-    if (this.animationState.isSlicing) {
-      this.animationState.isSlicing = false;
-    }
-    
-    if (this.animationState.isReassembling) {
-      this.animationState.isReassembling = false;
-    }
-  }
-  
-  // Resume animations when visible again
-  resumeAnimations(): void {
-    if (window.gsap) {
-      console.log('▶️ Resuming heart animations');
-      window.gsap.globalTimeline.resume();
-    }
-  }
-  
-  // Cleanup resources and memory when not needed
-  cleanupResources(): void {
-    console.log('🧹 Cleaning up animation resources');
-    
-    // Clear any active animations
-    if (window.gsap) {
-      window.gsap.killTweensOf(Array.from(this.heartParts.values()));
-    }
-    
-    // Clear label elements if any
-    this.hideAnatomicalLabels();
-    
-    // Keep references but free memory where possible
-    this.animationState.activeLabels = [];
-  }
-
-  // Optimize rendering based on device capabilities
-  optimizeForDevice(): void {
-    // Check if running on a mobile device
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      console.log('📱 Optimizing heart animation for mobile device');
-      
-      // Reduce animation complexity on mobile devices
-      this.config.animationDuration = Math.max(1000, this.config.animationDuration * 0.8); // Slightly faster animations
-      
-      // Lower separation distance slightly for mobile displays
-      this.config.separationDistance = this.config.separationDistance * 0.9;
-      
-      // Simplify parts if we have too many
-      if (this.heartParts.size > 6) {
-        console.log('⚡ Simplifying heart parts for better mobile performance');
-        // Keep only the main parts for mobile
-        const keysToKeep = ['left_ventricle', 'right_ventricle', 'left_atrium', 'right_atrium', 'aorta', 'pulmonary_artery'];
-        
-        // Remove non-essential parts
-        Array.from(this.heartParts.keys()).forEach(key => {
-          if (!keysToKeep.includes(key) && !key.startsWith('virtual_part_')) {
-            this.heartParts.delete(key);
-            this.originalPositions.delete(key);
-          }
-        });
-      }
-    }
-  }
-
-  // Optimize rendering based on hardware capabilities
-  optimizeRendering(renderer: THREE.WebGLRenderer): void {
-    console.log('⚡ Optimizing heart animation rendering');
-    
-    // Check if this is a mobile device
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    // Apply optimizations based on device type
-    if (isMobile) {
-      console.log('📱 Applying mobile-specific rendering optimizations');
-      
-      // Lower pixel ratio for better performance on mobile
-      const pixelRatio = Math.min(1.5, window.devicePixelRatio);
-      renderer.setPixelRatio(pixelRatio);
-      
-      // Use simpler shadows on mobile
-      renderer.shadowMap.type = THREE.BasicShadowMap;
+    if (isLowEnd) {
+      this.state.performanceMode = 'low';
+    } else if (isMobile) {
+      this.state.performanceMode = 'medium';
     } else {
-      // Use better shadows on desktop
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      this.state.performanceMode = 'high';
     }
-    
-    // General optimizations for all devices
-    renderer.shadowMap.enabled = true;
-    
-    // Log renderer info
-    console.log('📊 Renderer info:', {
-      pixelRatio: renderer.getPixelRatio(),
-      shadowMapType: renderer.shadowMap.type,
-      maxTextures: (renderer.capabilities as any).maxTextures,
-      precision: (renderer.capabilities as any).precision
-    });
-    
-    // Capture performance baseline
-    this.capturePerformanceData('rendering_optimized');
+
+    // Update configuration based on performance mode
+    if (this.state.performanceMode !== 'high') {
+      this.state.config = getOptimizedConfig(isMobile ? 'mobile' : 'tablet');
+    }
+
+    console.log('Performance mode set to:', this.state.performanceMode);
   }
 
-  // Handle device orientation changes for mobile
-  handleOrientationChange(): void {
-    console.log('📱 Handling device orientation change');
+  /**
+   * Detect if device is low-end based on available APIs
+   */
+  private detectLowEndDevice(): boolean {
+    // Check navigator.hardwareConcurrency (number of CPU cores)
+    const cores = (navigator as any).hardwareConcurrency || 2;
     
-    // Check if we're in sliced mode
-    if (this.animationState.isSliced) {
-      // Re-layout heart parts based on new orientation
-      const isLandscape = window.innerWidth > window.innerHeight;
-      console.log(`Device orientation: ${isLandscape ? 'Landscape' : 'Portrait'}`);
-      
-      // Adjust separation based on orientation
-      const separationMultiplier = isLandscape ? 1.2 : 0.8; // More separation in landscape
-      
-      // Re-position heart parts with adjusted separation
-      this.heartParts.forEach((partObject, partId) => {
-        const heartPart = heartParts.find(p => p.id === partId);
-        if (!heartPart) return;
-        
-        const originalPos = this.originalPositions.get(partId);
-        if (!originalPos) return;
-        
-        const targetPos = heartPart.separatedPosition.clone();
-        
-        // Adjust target position based on orientation
-        targetPos.multiplyScalar(separationMultiplier);
-        
-        // Apply new position immediately if in sliced state
-        if (window.gsap) {
-          window.gsap.to(partObject.position, {
-            duration: 0.5, // Quick transition
-            x: originalPos.x + targetPos.x,
-            y: originalPos.y + targetPos.y,
-            z: originalPos.z + targetPos.z,
-            ease: "power1.out"
-          });
-        } else {
-          // Immediate position update without animation
-          partObject.position.set(
-            originalPos.x + targetPos.x,
-            originalPos.y + targetPos.y,
-            originalPos.z + targetPos.z
-          );
-        }
-      });
-    }
+    // Check device memory (if available)
+    const memory = (navigator as any).deviceMemory || 4;
+    
+    // Check if WebGL context creation is slow
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    
+    return cores <= 2 || memory < 2 || !gl;
   }
 
-  // Debug method to validate model structure and heart part mapping
-  debugHeartModel(): void {
-    console.log('🔍 DEBUG: Heart model structure analysis');
-    
-    if (!this.heartModel) {
-      console.error('❌ No heart model is loaded!');
+  /**
+   * Initialize heart parts for animation
+   */
+  private async initializeHeartParts(analysis: HeartModelAnalysis): Promise<void> {
+    this.state.heartParts = [];
+
+    if (!this.state.heartEntity) {
       return;
     }
-    
-    console.log('📊 Model hierarchy:');
-    let meshCount = 0;
-    this.heartModel.traverse((object) => {
-      if ((object as any).isMesh) {
-        meshCount++;
-        console.log(`Mesh ${meshCount}: "${object.name}" - Position: ${object.position.x.toFixed(2)}, ${object.position.y.toFixed(2)}, ${object.position.z.toFixed(2)}`);
-      } else if (object !== this.heartModel) {
-        console.log(`Group/Other: "${object.name}"`);
+
+    // Use detected parts or fallback to default configuration
+    const partsToUse = analysis.hasRequiredParts ? DEFAULT_HEART_PARTS : FALLBACK_HEART_PARTS;
+
+    for (const partConfig of partsToUse) {
+      try {
+        const element = this.findPartElement(partConfig.selector);
+        
+        if (element) {
+          const heartPart: HeartPart = {
+            ...partConfig,
+            originalPosition: this.getElementPosition(element),
+            originalRotation: this.getElementRotation(element),
+            originalScale: this.getElementScale(element)
+          };
+
+          this.state.heartParts.push(heartPart);
+          console.log(`Initialized heart part: ${heartPart.name}`);
+        } else {
+          console.warn(`Heart part not found: ${partConfig.name} (${partConfig.selector})`);
+        }
+      } catch (error) {
+        console.error(`Error initializing heart part ${partConfig.name}:`, error);
       }
-    });
-    
-    console.log(`📋 Found ${meshCount} meshes in the heart model`);
-    console.log(`📋 Mapped ${this.heartParts.size} heart parts`);
-    
-    // Compare with expected parts
-    const expectedParts = heartParts.map(p => p.id);
-    const mappedParts = Array.from(this.heartParts.keys());
-    
-    console.log('🔍 Expected parts:', expectedParts);
-    console.log('🔍 Actually mapped parts:', mappedParts);
-    
-    // Show parts that couldn't be mapped
-    const unmappedParts = expectedParts.filter(id => !mappedParts.includes(id));
-    if (unmappedParts.length > 0) {
-      console.warn('⚠️ Some heart parts could not be mapped:', unmappedParts);
     }
+
+    console.log(`Initialized ${this.state.heartParts.length} heart parts`);
+  }
+
+  /**
+   * Find an element in the heart model using CSS selectors
+   */
+  private findPartElement(selector: string): Element | null {
+    if (!this.state.heartEntity) return null;
+
+    // Try multiple selectors (split by comma)
+    const selectors = selector.split(',').map(s => s.trim());
     
-    // Analyze mesh names to help with mapping
-    console.log('🔍 Mesh name patterns found:');
-    const meshNames: string[] = [];
-    this.heartModel.traverse((object) => {
-      if ((object as any).isMesh && object.name) {
-        meshNames.push(object.name.toLowerCase());
+    for (const sel of selectors) {
+      try {
+        const element = this.state.heartEntity.querySelector(sel);
+        if (element) return element;
+      } catch (error) {
+        console.warn(`Invalid selector: ${sel}`);
+      }
+    }
+
+    return null;
+  }
+  /**
+   * Get element's current position
+   */
+  private getElementPosition(element: Element): { x: number; y: number; z: number } {
+    const position = element.getAttribute('position');
+    if (position) {
+      const [x, y, z] = position.split(' ').map(Number);
+      return { x: x || 0, y: y || 0, z: z || 0 };
+    }
+    return { x: 0, y: 0, z: 0 };
+  }
+
+  /**
+   * Get element's current rotation
+   */
+  private getElementRotation(element: Element): { x: number; y: number; z: number } {
+    const rotation = element.getAttribute('rotation');
+    if (rotation) {
+      const [x, y, z] = rotation.split(' ').map(Number);
+      return { x: x || 0, y: y || 0, z: z || 0 };
+    }
+    return { x: 0, y: 0, z: 0 };
+  }
+
+  /**
+   * Get element's current scale
+   */
+  private getElementScale(element: Element): { x: number; y: number; z: number } {
+    const scale = element.getAttribute('scale');
+    if (scale) {
+      const [x, y, z] = scale.split(' ').map(Number);
+      return { x: x || 1, y: y || 1, z: z || 1 };
+    }
+    return { x: 1, y: 1, z: 1 };
+  }
+
+  /**
+   * Initialize fallback configuration when model analysis fails
+   */
+  private initializeFallback(): void {
+    console.warn('Using fallback heart animation configuration');
+    
+    this.state.heartParts = [...FALLBACK_HEART_PARTS];
+    this.state.isInitialized = true;
+    this.state.performanceMode = 'low';
+  }
+
+  /**
+   * Setup performance monitoring
+   */
+  private setupPerformanceMonitoring(): void {
+    // This would integrate with PerformanceMonitor.ts
+    console.log('Performance monitoring enabled');
+  }
+
+  /**
+   * Setup event handlers for visibility and resize
+   */
+  private setupEventHandlers(): void {
+    // Handle visibility change (pause animations when tab is not visible)
+    this.visibilityChangeHandler = () => {
+      if (document.hidden && this.state.isAnimating) {
+        this.pauseAnimations();
+      } else if (!document.hidden && this.state.animationState === HeartAnimationState.SLICING) {
+        this.resumeAnimations();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', this.visibilityChangeHandler);
+
+    // Handle window resize
+    if (window.ResizeObserver) {
+      this.resizeObserver = new ResizeObserver(() => {
+        // Recalculate positions if needed
+        if (this.state.isInitialized && !this.state.isAnimating) {
+          this.recalculatePositions();
+        }
+      });
+      
+      this.resizeObserver.observe(document.body);
+    }
+  }
+
+  /**
+   * Handle zoom level changes
+   */
+  public onZoomChange(zoomLevel: number): void {
+    if (!this.state.isInitialized || this.state.isAnimating) {
+      return;
+    }
+
+    this.state.currentZoom = zoomLevel;
+    const threshold = this.state.config.zoomThreshold;
+
+    // Check if we need to start slicing
+    if (zoomLevel >= threshold && this.state.animationState === HeartAnimationState.IDLE) {
+      this.startSlicing();
+    }    // Check if we need to reassemble
+    else if (zoomLevel < threshold && this.state.animationState === HeartAnimationState.SLICED) {
+      this.startReassembly();
+    }
+  }
+
+  /**
+   * Start the heart slicing animation
+   */
+  private async startSlicing(): Promise<void> {
+    if (this.state.isAnimating || this.state.animationState !== HeartAnimationState.IDLE) {
+      return;
+    }
+
+    console.log('Starting heart slicing animation');
+    this.state.isAnimating = true;
+    this.state.animationState = HeartAnimationState.SLICING;
+
+    this.emitEvent({
+      type: 'slicing-start',
+      data: { 
+        animationState: HeartAnimationState.SLICING,
+        zoomLevel: this.state.currentZoom,
+        affectedParts: this.state.heartParts.map(p => p.id)
       }
     });
-    
-    // Look for common heart part keywords
-    const heartKeywords = ['atrium', 'ventricle', 'aorta', 'valve', 'chamber', 'artery', 'vein'];
-    heartKeywords.forEach(keyword => {
-      const matchingMeshes = meshNames.filter(name => name.includes(keyword));
-      if (matchingMeshes.length > 0) {
-        console.log(`Found ${matchingMeshes.length} meshes matching "${keyword}":`, matchingMeshes);
+
+    try {
+      if (this.isGSAPAvailable) {
+        await this.animateWithGSAP('slice');
+      } else {
+        await this.animateWithCSS('slice');
+      }
+
+      this.state.animationState = HeartAnimationState.SLICED;
+      this.emitEvent({
+        type: 'slicing-complete',
+        data: { animationState: HeartAnimationState.SLICED }
+      });
+
+    } catch (error) {
+      console.error('Slicing animation failed:', error);
+    } finally {
+      this.state.isAnimating = false;
+    }
+  }
+
+  /**
+   * Start the heart reassembly animation
+   */
+  private async startReassembly(): Promise<void> {
+    if (this.state.isAnimating || this.state.animationState !== HeartAnimationState.SLICED) {
+      return;
+    }
+
+    console.log('Starting heart reassembly animation');
+    this.state.isAnimating = true;
+    this.state.animationState = HeartAnimationState.REASSEMBLING;
+
+    this.emitEvent({
+      type: 'reassemble-start',
+      data: { 
+        animationState: HeartAnimationState.REASSEMBLING,
+        zoomLevel: this.state.currentZoom
+      }
+    });
+
+    try {
+      if (this.isGSAPAvailable) {
+        await this.animateWithGSAP('reassemble');
+      } else {
+        await this.animateWithCSS('reassemble');
+      }
+
+      this.state.animationState = HeartAnimationState.IDLE;
+      this.emitEvent({
+        type: 'reassemble-complete',
+        data: { animationState: HeartAnimationState.IDLE }
+      });
+
+    } catch (error) {
+      console.error('Reassembly animation failed:', error);
+    } finally {
+      this.state.isAnimating = false;
+    }
+  }
+
+  /**
+   * Animate using GSAP library
+   */
+  private async animateWithGSAP(action: 'slice' | 'reassemble'): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        // Clear any existing timeline
+        if (this.animationTimeline) {
+          this.animationTimeline.kill();
+        }        this.animationTimeline = window.gsap.timeline({
+          onComplete: resolve,
+          onError: reject
+        });
+
+        // Animate each heart part
+        this.state.heartParts.forEach((part) => {
+          const element = this.findPartElement(part.selector);
+          if (!element) return;
+
+          const delay = (part.animationDelay || 0) / 1000; // Convert to seconds
+          
+          if (action === 'slice') {
+            // Move parts away from center
+            const targetPosition = this.calculateSlicePosition(part);
+            
+            this.animationTimeline.to(element, {
+              duration: this.state.config.animationDuration / 1000,
+              delay,
+              ease: this.state.config.easing,
+              attr: {
+                position: `${targetPosition.x} ${targetPosition.y} ${targetPosition.z}`
+              }
+            }, 0);
+            
+          } else {
+            // Move parts back to original position
+            const originalPos = part.originalPosition || { x: 0, y: 0, z: 0 };
+            
+            this.animationTimeline.to(element, {
+              duration: this.state.config.animationDuration / 1000,
+              delay,
+              ease: this.state.config.easing,
+              attr: {
+                position: `${originalPos.x} ${originalPos.y} ${originalPos.z}`
+              }
+            }, 0);
+          }
+        });
+
+      } catch (error) {
+        reject(error);
       }
     });
   }
 
-  // Log performance data during animations
-  private capturePerformanceData(operation: string): void {
-    // Check if performance monitoring is available
-    if (!window.performance || !window.performance.now) return;
-    
-    // Capture basic timing information
-    const timestamp = window.performance.now();
-    const memory = (window.performance as any).memory ? 
-      (window.performance as any).memory.usedJSHeapSize / (1024 * 1024) : // MB
-      undefined;
-    
-    // Assemble performance data point
-    const dataPoint = {
-      operation,
-      timestamp,
-      memory,
-      animationState: { ...this.animationState },
-      partsCount: this.heartParts.size,
-      devicePixelRatio: window.devicePixelRatio,
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight
-      },
-      isSliced: this.animationState.isSliced
+  /**
+   * Animate using CSS animations (fallback)
+   */
+  private async animateWithCSS(action: 'slice' | 'reassemble'): Promise<void> {
+    return new Promise((resolve) => {
+      let completedAnimations = 0;
+      const totalAnimations = this.state.heartParts.length;
+
+      if (totalAnimations === 0) {
+        resolve();
+        return;
+      }      this.state.heartParts.forEach((part) => {
+        const element = this.findPartElement(part.selector);
+        if (!element) {
+          completedAnimations++;
+          if (completedAnimations >= totalAnimations) resolve();
+          return;
+        }
+
+        setTimeout(() => {
+          const targetPosition = action === 'slice' 
+            ? this.calculateSlicePosition(part)
+            : (part.originalPosition || { x: 0, y: 0, z: 0 });
+
+          // Apply CSS transition
+          (element as HTMLElement).style.transition = `all ${this.state.config.animationDuration}ms ${this.state.config.easing}`;
+          element.setAttribute('position', `${targetPosition.x} ${targetPosition.y} ${targetPosition.z}`);
+
+          // Wait for animation to complete
+          setTimeout(() => {
+            completedAnimations++;
+            if (completedAnimations >= totalAnimations) {
+              resolve();
+            }
+          }, this.state.config.animationDuration);
+
+        }, part.animationDelay || 0);
+      });
+    });
+  }
+  /**
+   * Calculate the target position for a heart part when slicing
+   */
+  private calculateSlicePosition(part: HeartPart): { x: number; y: number; z: number } {
+    const originalPos = part.originalPosition || { x: 0, y: 0, z: 0 };
+    const sliceDir = part.sliceDirection || { x: 0, y: 0, z: 1 };
+    const sliceDist = Math.min(part.sliceDistance || 1, this.state.config.maxSliceDistance);
+
+    return {
+      x: originalPos.x + (sliceDir.x * sliceDist),
+      y: originalPos.y + (sliceDir.y * sliceDist),
+      z: originalPos.z + (sliceDir.z * sliceDist)
     };
-    
-    // Log performance data
-    console.log('📊 Performance data:', dataPoint);
-    
-    // Could send to analytics service in production
+  }
+
+  /**
+   * Pause animations
+   */
+  private pauseAnimations(): void {
+    if (this.animationTimeline && this.isGSAPAvailable) {
+      this.animationTimeline.pause();
+    }
+  }
+
+  /**
+   * Resume animations
+   */
+  private resumeAnimations(): void {
+    if (this.animationTimeline && this.isGSAPAvailable) {
+      this.animationTimeline.resume();
+    }
+  }
+
+  /**
+   * Recalculate positions after window resize
+   */
+  private recalculatePositions(): void {
+    // This could be implemented to adjust positions based on new viewport size
+    console.log('Recalculating positions after resize');
+  }
+
+  /**
+   * Add event listener
+   */
+  public addEventListener(callback: HeartAnimationCallback): void {
+    this.callbacks.push(callback);
+  }
+
+  /**
+   * Remove event listener
+   */
+  public removeEventListener(callback: HeartAnimationCallback): void {
+    const index = this.callbacks.indexOf(callback);
+    if (index > -1) {
+      this.callbacks.splice(index, 1);
+    }
+  }
+
+  /**
+   * Emit event to all listeners
+   */
+  private emitEvent(event: HeartAnimationEvent): void {
+    this.callbacks.forEach(callback => {
+      try {
+        callback(event);
+      } catch (error) {
+        console.error('Error calling animation callback:', error);
+      }
+    });
+  }
+
+  /**
+   * Get current state (readonly)
+   */
+  public getState(): Readonly<HeartAnimationControllerState> {
+    return { ...this.state };
+  }
+
+  /**
+   * Update configuration
+   */
+  public updateConfig(newConfig: Partial<HeartSlicingConfig>): void {
+    this.state.config = { ...this.state.config, ...newConfig };
+    console.log('Heart animation configuration updated:', this.state.config);
+  }
+
+  /**
+   * Force slicing (for manual testing)
+   */
+  public forceSlice(): void {
+    if (this.state.animationState === HeartAnimationState.IDLE) {
+      this.startSlicing();
+    }
+  }
+
+  /**
+   * Force reassembly (for manual testing)
+   */
+  public forceReassemble(): void {
+    if (this.state.animationState === HeartAnimationState.SLICED) {
+      this.startReassembly();
+    }
+  }
+
+  /**
+   * Cleanup resources
+   */
+  public dispose(): void {
+    console.log('HeartAnimationController: Disposing resources');
+
+    // Clear animations
+    if (this.animationTimeline) {
+      this.animationTimeline.kill();
+      this.animationTimeline = null;
+    }
+
+    // Remove event listeners
+    if (this.visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+    }
+
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+
+    // Clear callbacks
+    this.callbacks = [];
+
+    // Reset state
+    this.state.isInitialized = false;
+    this.state.isAnimating = false;
   }
 }
+
+export default HeartAnimationController;
