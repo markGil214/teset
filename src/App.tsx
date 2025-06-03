@@ -222,10 +222,7 @@ function AppContent() {
             path="/home"
             element={
               secondRegistrationComplete ? (
-                <HomePage
-                  onExit={() => {}}
-                  onGamesClick={navigateToGames}
-                />
+                <HomePage onExit={() => {}} onGamesClick={navigateToGames} />
               ) : (
                 <Navigate to="/" />
               )

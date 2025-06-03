@@ -1,67 +1,145 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Heart AR Marker</title>
+    <title>AR Marker - THREEAR</title>
     <style>
       body {
-        margin: 0;
-        padding: 20px;
         display: flex;
-        justify-content: center;
-        align-items: center;
         flex-direction: column;
-        min-height: 100vh;
-        background-color: #241245;
+        align-items: center;
         font-family: Arial, sans-serif;
-        color: white;
+        padding: 20px;
+        line-height: 1.5;
       }
       .marker-container {
-        width: 100%;
-        max-width: 500px;
+        max-width: 600px;
+        margin: 20px auto;
         text-align: center;
       }
       img {
-        width: 100%;
-        border: 2px solid white;
-        background: white;
+        max-width: 100%;
+        border: 1px solid #ccc;
       }
       .instructions {
         margin-top: 20px;
-        text-align: center;
-        padding: 20px;
-        background-color: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
+        padding: 15px;
+        background: #f5f5f5;
+        border-radius: 5px;
+        text-align: left;
       }
-      h1 {
-        color: #f3d849;
-      }
-      .print-button {
+      .troubleshooting {
         margin-top: 20px;
+        padding: 15px;
+        background: #fff3e0;
+        border-radius: 5px;
+        text-align: left;
+        border: 1px solid #ffe0b2;
+      }
+      button {
         padding: 10px 20px;
-        background-color: #e78c11;
+        margin-top: 20px;
+        background: #4285f4;
         color: white;
         border: none;
-        border-radius: 5px;
+        border-radius: 4px;
         cursor: pointer;
-        font-size: 16px;
+      }
+      button:hover {
+        background: #3b78e7;
+      }
+      .download-btn {
+        background: #34a853;
+      }
+      .download-btn:hover {
+        background: #2e9549;
+      }
+      .marker-info {
+        margin-top: 10px;
+        font-size: 0.9em;
+        color: #666;
       }
     </style>
   </head>
   <body>
     <div class="marker-container">
-      <h1>Heart AR Marker</h1>
-      <img src="./hiro.png" alt="Hiro AR Marker" />
-      <button class="print-button" onclick="window.print()">
-        Print Marker
-      </button>
+      <h1>AR Marker for THREEAR</h1>
+      <p>
+        Print this marker or display it on another device to use with the AR
+        scanner
+      </p>
+
+      <img src="data/hiro.jpg" alt="AR Marker" />
+
+      <div class="marker-info">
+        <p>
+          This is the "Hiro" pattern marker - a standard marker used in AR
+          applications
+        </p>
+      </div>
+
+      <div class="button-group">
+        <button onclick="window.print()">Print Marker</button>
+        <button class="download-btn" onclick="downloadMarker()">
+          Download Marker
+        </button>
+      </div>
+
+      <div class="instructions">
+        <h3>Instructions:</h3>
+        <ol>
+          <li>
+            Print this marker at a size of at least 5 x 5 cm (2 x 2 inches) or
+            display it on another device
+          </li>
+          <li>Ensure the marker is well-lit and placed on a flat surface</li>
+          <li>
+            Point your device's camera at the marker from about 20-30 cm (8-12
+            inches) away
+          </li>
+          <li>Hold your device steady until the 3D model appears</li>
+          <li>
+            Once detected, you can move your device around to view the 3D model
+            from different angles
+          </li>
+        </ol>
+      </div>
+
+      <div class="troubleshooting">
+        <h3>Troubleshooting Tips:</h3>
+        <ul>
+          <li>
+            <strong>Lighting:</strong> Make sure the marker is in a well-lit
+            area without glare or shadows
+          </li>
+          <li>
+            <strong>Distance:</strong> Not too close, not too far - find the
+            sweet spot
+          </li>
+          <li>
+            <strong>Stability:</strong> Keep your hand steady when pointing at
+            the marker
+          </li>
+          <li>
+            <strong>Visibility:</strong> Ensure the entire marker is visible in
+            the camera view
+          </li>
+          <li>
+            <strong>Debug Mode:</strong> If available, try enabling debug mode
+            in the AR application
+          </li>
+        </ul>
+      </div>
     </div>
 
-    <div class="instructions">
-      <h2>How to use:</h2>
-      <p>1. Print this marker or display it on another screen</p>
-      <p>2. Go back to the AR scanner in the app</p>
-      <p>3. Point your camera at this marker</p>
-      <p>4. The 3D heart model will appear above the marker</p>
-    </div>
+    <script>
+      function downloadMarker() {
+        const link = document.createElement("a");
+        link.href = "data/hiro.jpg";
+        link.download = "ar-hiro-marker.jpg";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    </script>
   </body>
 </html>

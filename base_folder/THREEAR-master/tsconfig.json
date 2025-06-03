@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+      "strict": true,
+      "noUnusedLocals": true,
+      "noImplicitReturns": true,
+      "module": "commonjs",
+      "target": "es5",
+      "declaration": true,
+      "sourceMap": true,
+      "outDir": "./dist"
+    },
+    "include": [
+      "src/THREEAR.ts"
+    ],
+    "typedocOptions": {
+      "mode": "file",
+      "out": "docs",
+      "externalPattern": "src/**/**.ts",
+      "exclude": ["src/artoolkit/**/**.ts", "src/BaseMarker.ts"]
+    }
+}

@@ -1,0 +1,55 @@
+{
+  "name": "threear",
+  "version": "1.0.0-alpha.5",
+  "description": "A marker based Augmented Reality library for Three.js",
+  "keywords": [
+    "AR",
+    "Augmented Reality",
+    "three.js",
+    "Marker Based",
+    "artoolkit"
+  ],
+  "browser": "dist/THREEAR.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JamesLMilner/THREEAR.git"
+  },
+  "scripts": {
+    "serve": "live-server --cors",
+    "build:ci": "webpack --mode=production --config webpack.config.js && npm run lint:fix",
+    "build:prod": "webpack --mode=production --config webpack.config.js && npm run docs && npm run lint:fix",
+    "build:dev": "webpack --mode=development --config webpack.config.js",
+    "build:watch": "webpack --mode=development --config webpack.config.js --watch",
+    "lint": "tslint src/**/*.ts && prettier **/*.ts --check",
+    "lint:fix": "tslint --fix src/**/*.ts && prettier **/*.ts --write",
+    "docs": "typedoc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "version": "auto-changelog -p && git add CHANGELOG.md"
+  },
+  "author": "James Milner",
+  "license": "MIT and LGPLv3",
+  "dependencies": {
+    "three": "^0.122.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.103.2",
+    "auto-changelog": "^1.14.1",
+    "husky": "^4.3.0",
+    "live-server": "^1.2.1",
+    "prettier": "^2.1.2",
+    "prettier-webpack-plugin": "^1.2.0",
+    "ts-loader": "^8.0.11",
+    "tslint": "^6.1.3",
+    "tslint-config-prettier": "^1.18.0",
+    "typedoc": "^0.19.2",
+    "typescript": "^4.0.5",
+    "webpack": "^5.4.0",
+    "webpack-cli": "^4.2.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint:fix"
+    }
+  },
+  "types": "src/THREEAR.ts"
+}

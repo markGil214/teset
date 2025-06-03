@@ -1,0 +1,33 @@
+/* ARScannerPage.css */
+.ar-scanner-page {
+  margin: 0px;
+  overflow: hidden;
+  font-family: Monospace;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+.ar-header {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 100;
+  color: white;
+  font-family: Monospace;
+}
+
+.back-btn {
+  background-color: rgba(201, 76, 76, 0.7);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.back-btn:hover {
+  background-color: rgba(201, 76, 76, 0.9);
+}
