@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { organs } from "../components/organData";
+import { useNavigate } from "react-router-dom";
 import { ZoomController } from "../../utils/ZoomController";
 import { ARControls } from "../components/ARControls";
 import {
@@ -18,10 +17,8 @@ declare global {
   }
 }
 
-const ARScannerPage: React.FC = () => {
-  const { organId } = useParams<{ organId: string }>();
+const ARPage: React.FC = () => {
   const navigate = useNavigate();
-  const organ = organs.find((o) => o.id === organId);
   const containerRef = useRef<HTMLDivElement>(null);
   const [modelLoading, setModelLoading] = useState(true);
   const [modelError, setModelError] = useState(false);
@@ -182,38 +179,20 @@ const ARScannerPage: React.FC = () => {
     [touchState, currentZoom]
   );
 
-  // Helper function to get base scale for different organs
-  const getBaseScale = (organId: string): number => {
-    switch (organId) {
-      case "brain":
-        return 0.3;
-      case "heart":
-        return 0.8;
-      case "kidney":
-        return 0.4;
-      case "lungs":
-        return 0.6;
-      case "skin":
-        return 0.5;
-      default:
-        return 0.5;
-    }
-  };
   useEffect(() => {
-    if (!containerRef.current || !organ) return;
+    if (!containerRef.current) return;
 
-    // EXACT COPY-CAT of basic-cutout.html script section
+    // Initialize AR with heart model by default
     var renderer = new window.THREE.WebGLRenderer({
-      // antialias: true,
       alpha: true,
     });
     renderer.setClearColor(new window.THREE.Color("lightgrey"), 0);
-    // renderer.setPixelRatio(2);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0px";
     renderer.domElement.style.left = "0px";
-    document.body.appendChild(renderer.domElement); // init scene and camera - EXACT SAME AS BASIC.HTML
+    document.body.appendChild(renderer.domElement);
+
     var scene = new window.THREE.Scene();
     var camera = new window.THREE.Camera();
     scene.add(camera);
@@ -229,44 +208,24 @@ const ARScannerPage: React.FC = () => {
 
       var directionalLight = new window.THREE.DirectionalLight(0xffffff, 0.8);
       directionalLight.position.set(1, 1, 1);
-      scene.add(directionalLight); // Load the 3D model for this organ
+      scene.add(directionalLight);
+
+      // Load the heart 3D model
       var gltfLoader = new window.THREE.GLTFLoader();
       gltfLoader.load(
-        organ.modelPath,
+        "/realistic_human_heart/scene.gltf", // Default to heart model
         (gltf: any) => {
           var model = gltf.scene;
 
-          // Scale and position the model appropriately for AR based on organ type
-          let scale, positionY;
-          switch (organ.id) {
-            case "brain":
-              scale = 0.3;
-              positionY = 0.1;
-              break;
-            case "heart":
-              scale = 1;
-              positionY = 0;
-              break;
-            case "kidney":
-              scale = 0.4;
-              positionY = 0;
-              break;
-            case "lungs":
-              scale = 0.6;
-              positionY = 0;
-              break;
-            case "skin":
-              scale = 0.5;
-              positionY = 0;
-              break;
-            default:
-              scale = 0.5;
-              positionY = 0;
-          }
+          // Scale and position the heart model for AR
+          const scale = 0.8;
+          const positionY = 0;
 
           model.scale.set(scale, scale, scale);
           model.position.y = positionY;
-          markerGroup.add(model); // Store model reference for animation
+          markerGroup.add(model);
+
+          // Store model reference for animation
           (markerGroup as any).organModel = model;
 
           // Create model reference for zoom system
@@ -276,18 +235,18 @@ const ARScannerPage: React.FC = () => {
             renderer,
             scene,
             camera,
-            controller: null, // Will be set after controller is available
+            controller,
             source,
           };
           setModelRef(modelReference);
 
           // Model loaded successfully
           setModelLoading(false);
-          console.log(`${organ.name} 3D model loaded successfully`);
+          console.log("Heart 3D model loaded successfully for AR view");
         },
         undefined,
         (error: any) => {
-          console.error("Error loading 3D model:", error);
+          console.error("Error loading heart 3D model:", error);
           setModelLoading(false);
           setModelError(true);
 
@@ -303,6 +262,7 @@ const ARScannerPage: React.FC = () => {
           markerGroup.add(cube);
         }
       );
+
       var patternMarker = new window.THREEAR.PatternMarker({
         patternUrl: "/data/patt.hiro",
         markerObject: markerGroup,
@@ -310,39 +270,40 @@ const ARScannerPage: React.FC = () => {
 
       controller.trackMarker(patternMarker);
 
-      // Update model reference with controller
-      if (modelRef) {
-        setModelRef((prev) => (prev ? { ...prev, controller } : null));
-      } // Add touch event listeners for pinch-to-zoom
+      // Add touch event listeners for pinch-to-zoom
       document.addEventListener("touchstart", handleTouchStart, {
         passive: false,
       });
       document.addEventListener("touchmove", handleTouchMove, {
         passive: false,
       });
-      document.addEventListener("touchend", handleTouchEnd, { passive: false }); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
+      document.addEventListener("touchend", handleTouchEnd, { passive: false });
+
+      // Animation loop
       var lastTimeMsec = 0;
       requestAnimationFrame(function animate(nowMsec: number) {
-        // keep looping
         requestAnimationFrame(animate);
-        // measure time
         lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
         var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
         lastTimeMsec = nowMsec;
-        // call each update function
-        controller.update(source.domElement); // Rotate the 3D model if it's loaded
+
+        controller.update(source.domElement);
+
+        // Rotate the heart model if it's loaded
         if ((markerGroup as any).organModel) {
           const model = (markerGroup as any).organModel;
           model.rotation.y += (deltaMsec / 2000) * Math.PI;
 
-          // Apply current zoom level to model
-          const baseScale = getBaseScale(organ.id);
+          // Apply current zoom level to model (base scale for heart is 0.8)
+          const baseScale = 0.8;
           model.scale.setScalar(baseScale * currentZoom);
         }
 
         renderer.render(scene, camera);
       });
-    }); // Cleanup
+    });
+
+    // Cleanup
     return () => {
       // Remove touch event listeners
       document.removeEventListener("touchstart", handleTouchStart);
@@ -356,20 +317,21 @@ const ARScannerPage: React.FC = () => {
           document.body.removeChild(canvas);
         }
       });
+
       // Clean up zoom controller
       zoomController.destroy();
     };
   }, [
-    organ,
     currentZoom,
     handleTouchStart,
     handleTouchMove,
     handleTouchEnd,
     zoomController,
   ]);
+
   return (
     <div style={{ margin: "0px", overflow: "hidden", fontFamily: "Monospace" }}>
-      {/* Text overlay - EXACT same style as cutout example */}
+      {/* Text overlay */}
       <div
         style={{
           position: "absolute",
@@ -379,11 +341,7 @@ const ARScannerPage: React.FC = () => {
           zIndex: 100,
         }}
       >
-        {" "}
-        <div>
-          AR Scanner for <strong>{organ!.name}</strong> - Point your camera at
-          the Hiro marker
-        </div>
+        <div>AR Heart Visualization - Point your camera at the Hiro marker</div>
         {modelLoading && (
           <div
             style={{
@@ -394,7 +352,7 @@ const ARScannerPage: React.FC = () => {
               color: "white",
             }}
           >
-            🔄 Loading {organ!.name} 3D model...
+            🔄 Loading Heart 3D model...
           </div>
         )}
         {modelError && (
@@ -409,7 +367,7 @@ const ARScannerPage: React.FC = () => {
           >
             ⚠️ Model loading failed - showing fallback cube
           </div>
-        )}{" "}
+        )}
         <div
           id="button"
           style={{
@@ -420,7 +378,7 @@ const ARScannerPage: React.FC = () => {
           }}
           onClick={() => navigate(-1)}
         >
-          ← Back to Menu [{organ!.name} 3D Model]
+          ← Back to Menu [Heart AR Visualization]
         </div>
       </div>
 
@@ -437,7 +395,7 @@ const ARScannerPage: React.FC = () => {
         />
       )}
 
-      {/* AR container - attached to body like cutout example */}
+      {/* AR container */}
       <div
         ref={containerRef}
         style={{
@@ -450,4 +408,4 @@ const ARScannerPage: React.FC = () => {
   );
 };
 
-export default ARScannerPage;
+export default ARPage;

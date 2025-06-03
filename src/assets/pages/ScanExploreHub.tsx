@@ -7,8 +7,8 @@ const ScanExploreHub: React.FC = () => {
   const navigate = useNavigate();
   return (
     <div className="scan-explore-hub">
-      <h1>Scan & Explore</h1>
-      <div className="organ-grid">        {organs.map((organ) => (
+      <h1>Scan & Explore</h1>      <div className="organ-grid">
+        {organs.map((organ) => (
           <div
             key={organ.id}
             className="organ-card"
