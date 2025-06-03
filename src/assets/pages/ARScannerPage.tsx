@@ -1,14 +1,6 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { organs } from "../components/organData";
-import { ZoomController } from "../../utils/ZoomController";
-import { ARControls } from "../components/ARControls";
-import {
-  ModelReference,
-  TouchState,
-  HeartViewState,
-} from "../../types/ARTypes";
-import "../ARInterface.css";
 
 // Declare global variables for the libraries
 declare global {
@@ -26,181 +18,12 @@ const ARScannerPage: React.FC = () => {
   const [modelLoading, setModelLoading] = useState(true);
   const [modelError, setModelError] = useState(false);
 
-  // AR and Zoom State Management
-  const [modelRef, setModelRef] = useState<ModelReference | null>(null);
-  const [zoomController] = useState(() => new ZoomController());
-  const [currentZoom, setCurrentZoom] = useState(1.0);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [currentViewState, setCurrentViewState] =
-    useState<HeartViewState>("normal");
-  const [touchState, setTouchState] = useState<TouchState>({
-    isPinching: false,
-    initialDistance: 0,
-    baseZoom: 1.0,
-    lastTouchTime: 0,
-  });
+  if (!organ) {
+    return <div>Organ not found</div>;
+  }
 
-  // Zoom Handlers
-  const handleZoomIn = useCallback(async () => {
-    if (!modelRef || isAnimating) return;
-
-    setIsAnimating(true);
-    const newZoom = Math.min(3.0, currentZoom + 0.2);
-
-    try {
-      await zoomController.animateZoom(
-        newZoom,
-        modelRef.organModel,
-        () => {
-          setIsAnimating(false);
-          updateViewState(newZoom);
-        },
-        (zoom) => setCurrentZoom(zoom)
-      );
-    } catch (error) {
-      console.error("Zoom in failed:", error);
-      setIsAnimating(false);
-    }
-  }, [modelRef, isAnimating, currentZoom, zoomController]);
-
-  const handleZoomOut = useCallback(async () => {
-    if (!modelRef || isAnimating) return;
-
-    setIsAnimating(true);
-    const newZoom = Math.max(0.5, currentZoom - 0.2);
-
-    try {
-      await zoomController.animateZoom(
-        newZoom,
-        modelRef.organModel,
-        () => {
-          setIsAnimating(false);
-          updateViewState(newZoom);
-        },
-        (zoom) => setCurrentZoom(zoom)
-      );
-    } catch (error) {
-      console.error("Zoom out failed:", error);
-      setIsAnimating(false);
-    }
-  }, [modelRef, isAnimating, currentZoom, zoomController]);
-
-  const handleReset = useCallback(async () => {
-    if (!modelRef || isAnimating) return;
-
-    setIsAnimating(true);
-
-    try {
-      await zoomController.animateZoom(
-        1.0,
-        modelRef.organModel,
-        () => {
-          setIsAnimating(false);
-          setCurrentViewState("normal");
-        },
-        (zoom) => setCurrentZoom(zoom)
-      );
-    } catch (error) {
-      console.error("Reset failed:", error);
-      setIsAnimating(false);
-    }
-  }, [modelRef, isAnimating, zoomController]);
-
-  // Update view state based on zoom level
-  const updateViewState = useCallback((zoom: number) => {
-    if (zoom >= 2.5) {
-      setCurrentViewState("detailed");
-    } else if (zoom >= 2.0) {
-      setCurrentViewState("labeled");
-    } else if (zoom >= 1.5) {
-      setCurrentViewState("slicing");
-    } else {
-      setCurrentViewState("normal");
-    }
-  }, []);
-
-  // Touch Event Handlers for Pinch-to-Zoom
-  const getTouchDistance = (touches: TouchList): number => {
-    if (touches.length < 2) return 0;
-    const touch1 = touches[0];
-    const touch2 = touches[1];
-    return Math.sqrt(
-      Math.pow(touch2.clientX - touch1.clientX, 2) +
-        Math.pow(touch2.clientY - touch1.clientY, 2)
-    );
-  };
-
-  const handleTouchStart = useCallback(
-    (event: TouchEvent) => {
-      if (event.touches.length === 2 && !isAnimating) {
-        event.preventDefault();
-        const distance = getTouchDistance(event.touches);
-        setTouchState({
-          isPinching: true,
-          initialDistance: distance,
-          baseZoom: currentZoom,
-          lastTouchTime: Date.now(),
-        });
-      }
-    },
-    [currentZoom, isAnimating]
-  );
-
-  const handleTouchMove = useCallback(
-    (event: TouchEvent) => {
-      if (touchState.isPinching && event.touches.length === 2 && modelRef) {
-        event.preventDefault();
-        const currentDistance = getTouchDistance(event.touches);
-        const scale = currentDistance / touchState.initialDistance;
-        const newZoom = Math.max(
-          0.5,
-          Math.min(3.0, touchState.baseZoom * scale)
-        );
-
-        // Apply zoom directly to model for immediate feedback
-        if (modelRef.organModel) {
-          modelRef.organModel.scale.setScalar(newZoom);
-          setCurrentZoom(newZoom);
-          updateViewState(newZoom);
-        }
-      }
-    },
-    [touchState, modelRef, updateViewState]
-  );
-
-  const handleTouchEnd = useCallback(
-    (_event: TouchEvent) => {
-      if (touchState.isPinching) {
-        setTouchState({
-          isPinching: false,
-          initialDistance: 0,
-          baseZoom: currentZoom,
-          lastTouchTime: Date.now(),
-        });
-      }
-    },
-    [touchState, currentZoom]
-  );
-
-  // Helper function to get base scale for different organs
-  const getBaseScale = (organId: string): number => {
-    switch (organId) {
-      case "brain":
-        return 0.3;
-      case "heart":
-        return 0.8;
-      case "kidney":
-        return 0.4;
-      case "lungs":
-        return 0.6;
-      case "skin":
-        return 0.5;
-      default:
-        return 0.5;
-    }
-  };
   useEffect(() => {
-    if (!containerRef.current || !organ) return;
+    if (!containerRef.current) return;
 
     // EXACT COPY-CAT of basic-cutout.html script section
     var renderer = new window.THREE.WebGLRenderer({
@@ -244,7 +67,7 @@ const ARScannerPage: React.FC = () => {
               positionY = 0.1;
               break;
             case "heart":
-              scale = 1;
+              scale = 0.8;
               positionY = 0;
               break;
             case "kidney":
@@ -266,20 +89,10 @@ const ARScannerPage: React.FC = () => {
 
           model.scale.set(scale, scale, scale);
           model.position.y = positionY;
-          markerGroup.add(model); // Store model reference for animation
-          (markerGroup as any).organModel = model;
+          markerGroup.add(model);
 
-          // Create model reference for zoom system
-          const modelReference: ModelReference = {
-            markerGroup,
-            organModel: model,
-            renderer,
-            scene,
-            camera,
-            controller: null, // Will be set after controller is available
-            source,
-          };
-          setModelRef(modelReference);
+          // Store model reference for animation
+          (markerGroup as any).organModel = model;
 
           // Model loaded successfully
           setModelLoading(false);
@@ -308,19 +121,7 @@ const ARScannerPage: React.FC = () => {
         markerObject: markerGroup,
       });
 
-      controller.trackMarker(patternMarker);
-
-      // Update model reference with controller
-      if (modelRef) {
-        setModelRef((prev) => (prev ? { ...prev, controller } : null));
-      } // Add touch event listeners for pinch-to-zoom
-      document.addEventListener("touchstart", handleTouchStart, {
-        passive: false,
-      });
-      document.addEventListener("touchmove", handleTouchMove, {
-        passive: false,
-      });
-      document.addEventListener("touchend", handleTouchEnd, { passive: false }); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
+      controller.trackMarker(patternMarker); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
       var lastTimeMsec = 0;
       requestAnimationFrame(function animate(nowMsec: number) {
         // keep looping
@@ -330,25 +131,18 @@ const ARScannerPage: React.FC = () => {
         var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
         lastTimeMsec = nowMsec;
         // call each update function
-        controller.update(source.domElement); // Rotate the 3D model if it's loaded
-        if ((markerGroup as any).organModel) {
-          const model = (markerGroup as any).organModel;
-          model.rotation.y += (deltaMsec / 2000) * Math.PI;
+        controller.update(source.domElement);
 
-          // Apply current zoom level to model
-          const baseScale = getBaseScale(organ.id);
-          model.scale.setScalar(baseScale * currentZoom);
+        // Rotate the 3D model if it's loaded
+        if ((markerGroup as any).organModel) {
+          (markerGroup as any).organModel.rotation.y +=
+            (deltaMsec / 2000) * Math.PI;
         }
 
         renderer.render(scene, camera);
       });
     }); // Cleanup
     return () => {
-      // Remove touch event listeners
-      document.removeEventListener("touchstart", handleTouchStart);
-      document.removeEventListener("touchmove", handleTouchMove);
-      document.removeEventListener("touchend", handleTouchEnd);
-
       // Remove the renderer element from document.body
       const rendererElements = document.querySelectorAll("canvas");
       rendererElements.forEach((canvas) => {
@@ -356,17 +150,8 @@ const ARScannerPage: React.FC = () => {
           document.body.removeChild(canvas);
         }
       });
-      // Clean up zoom controller
-      zoomController.destroy();
     };
-  }, [
-    organ,
-    currentZoom,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
-    zoomController,
-  ]);
+  }, [organ]);
   return (
     <div style={{ margin: "0px", overflow: "hidden", fontFamily: "Monospace" }}>
       {/* Text overlay - EXACT same style as cutout example */}
@@ -381,7 +166,7 @@ const ARScannerPage: React.FC = () => {
       >
         {" "}
         <div>
-          AR Scanner for <strong>{organ!.name}</strong> - Point your camera at
+          AR Scanner for <strong>{organ.name}</strong> - Point your camera at
           the Hiro marker
         </div>
         {modelLoading && (
@@ -394,7 +179,7 @@ const ARScannerPage: React.FC = () => {
               color: "white",
             }}
           >
-            🔄 Loading {organ!.name} 3D model...
+            🔄 Loading {organ.name} 3D model...
           </div>
         )}
         {modelError && (
@@ -409,7 +194,7 @@ const ARScannerPage: React.FC = () => {
           >
             ⚠️ Model loading failed - showing fallback cube
           </div>
-        )}{" "}
+        )}
         <div
           id="button"
           style={{
@@ -420,22 +205,9 @@ const ARScannerPage: React.FC = () => {
           }}
           onClick={() => navigate(-1)}
         >
-          ← Back to Menu [{organ!.name} 3D Model]
+          ← Back to Menu [{organ.name} 3D Model]
         </div>
       </div>
-
-      {/* AR Zoom Controls */}
-      {!modelLoading && !modelError && (
-        <ARControls
-          currentZoom={currentZoom}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onReset={handleReset}
-          isAnimating={isAnimating}
-          currentViewState={currentViewState}
-          disabled={false}
-        />
-      )}
 
       {/* AR container - attached to body like cutout example */}
       <div
