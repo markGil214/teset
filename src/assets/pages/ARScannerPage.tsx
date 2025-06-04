@@ -1,4 +1,3 @@
-// ARScannerPage.tsx - Clean version with sliced heart functionality
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { organs } from "../components/organData";
@@ -21,211 +20,269 @@ const ARScannerPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [modelLoading, setModelLoading] = useState(true);
   const [modelError, setModelError] = useState(false);
-  
+
   // Zoom state
   const [currentZoom, setCurrentZoom] = useState(1.0);
   const [isZoomAnimating, setIsZoomAnimating] = useState(false);
   const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);
+  const zoomControllerRef = useRef<ZoomController | null>(null);
+  const organModelRef = useRef<any>(null);  const markerGroupRef = useRef<any>(null);
+  const baseScaleRef = useRef<number>(0.5);
+
+  // Sliced model state
   const [isSlicedModel, setIsSlicedModel] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-
-  const zoomControllerRef = useRef<ZoomController | null>(null);
-  const organModelRef = useRef<any>(null);
   const slicedModelRef = useRef<any>(null);
-  const markerGroupRef = useRef<any>(null);
-  const baseScaleRef = useRef<number>(0.5);
 
   if (!organ) {
     return <div>Organ not found</div>;
   }
-
   // Get base scale for organ type
   const getBaseScale = useCallback((organId: string): number => {
     switch (organId) {
-      case "brain": return 0.3;
-      case "heart": return 0.8;
-      case "kidney": return 0.4;
-      case "lungs": return 0.6;
-      case "skin": return 0.5;
-      default: return 0.5;
-    }
+      case "brain":
+        return 0.3;
+      case "heart":
+        return 0.8;
+      case "kidney":
+        return 0.4;
+      case "lungs":
+        return 0.6;
+      case "skin":
+        return 0.5;
+      default:
+        return 0.5;    }
   }, []);
 
-  // Load sliced model function
-  const loadSlicedModel = useCallback((markerGroup: any, originalScale: number, positionY: number) => {
-    if (organ.id !== 'heart') return; // Only heart has sliced model for now
-    
-    console.log('Loading sliced heart model...');
-    setIsTransitioning(true);
-    
-    const gltfLoader = new window.THREE.GLTFLoader();
-    gltfLoader.load(
-      '/sliced_organs/heart.glb',
-      (gltf: any) => {
-        const slicedModel = gltf.scene;
-        
-        // Apply same scale and position as original model
-        slicedModel.scale.set(originalScale, originalScale, originalScale);
-        slicedModel.position.y = positionY;
-        
-        // Store reference
-        slicedModelRef.current = slicedModel;
-        
-        // Initially hide the sliced model
-        slicedModel.visible = false;
-        markerGroup.add(slicedModel);
-        
-        console.log('Sliced heart model loaded successfully');
-        
-        // Start transition animation
-        transitionToSlicedModel();
-      },
-      undefined,
-      (error: any) => {
-        console.error('Error loading sliced heart model:', error);
-        setIsTransitioning(false);
-        // Fallback: just show message
-        setShowMaxZoomMessage(true);
+  // Sliced model functions
+  const loadSlicedModel = useCallback(async (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if (organ.id !== "heart") {
+        reject(new Error("Sliced model only available for heart"));
+        return;
       }
-    );
-  }, [organ.id]);
-  
-  // Transition animation between normal and sliced model
-  const transitionToSlicedModel = useCallback(() => {
-    if (!organModelRef.current || !slicedModelRef.current) return;
-    
-    const duration = 1000; // 1 second transition
-    const startTime = Date.now();
-    
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Ease-in-out function
-      const easeInOut = progress < 0.5 
-        ? 2 * progress * progress 
-        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-      
-      // Fade out original model
-      if (organModelRef.current) {
-        organModelRef.current.traverse((child: any) => {
-          if (child.material) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat: any) => {
-                mat.transparent = true;
-                mat.opacity = 1 - easeInOut;
-              });
-            } else {
-              child.material.transparent = true;
-              child.material.opacity = 1 - easeInOut;
-            }
-          }
-        });
-      }
-      
-      // Fade in sliced model
-      if (slicedModelRef.current) {
-        slicedModelRef.current.visible = true;
-        slicedModelRef.current.traverse((child: any) => {
-          if (child.material) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat: any) => {
-                mat.transparent = true;
-                mat.opacity = easeInOut;
-              });
-            } else {
-              child.material.transparent = true;
-              child.material.opacity = easeInOut;
-            }
-          }
-        });
-      }
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        // Transition complete
-        setIsTransitioning(false);
-        setIsSlicedModel(true);
-        console.log('Transition to sliced model complete');
-      }
-    };
-    
-    requestAnimationFrame(animate);
-  }, []);
-  
-  // Transition back to normal model
-  const transitionToNormalModel = useCallback(() => {
-    if (!organModelRef.current || !slicedModelRef.current || !isSlicedModel) return;
-    
-    const duration = 800; // Faster transition back
-    const startTime = Date.now();
-    
-    setIsTransitioning(true);
-    
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      const easeInOut = progress < 0.5 
-        ? 2 * progress * progress 
-        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-      
-      // Fade out sliced model
-      if (slicedModelRef.current) {
-        slicedModelRef.current.traverse((child: any) => {
-          if (child.material) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat: any) => {
-                mat.transparent = true;
-                mat.opacity = 1 - easeInOut;
-              });
-            } else {
-              child.material.transparent = true;
-              child.material.opacity = 1 - easeInOut;
-            }
-          }
-        });
-      }
-      
-      // Fade in original model
-      if (organModelRef.current) {
-        organModelRef.current.traverse((child: any) => {
-          if (child.material) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat: any) => {
-                mat.transparent = true;
-                mat.opacity = easeInOut;
-              });
-            } else {
-              child.material.transparent = true;
-              child.material.opacity = easeInOut;
-            }
-          }
-        });
-      }
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        // Transition complete
-        if (slicedModelRef.current) {
-          slicedModelRef.current.visible = false;
+
+      const gltfLoader = new window.THREE.GLTFLoader();
+      gltfLoader.load(
+        "/sliced_organs/heart.glb",
+        (gltf: any) => {
+          console.log("Sliced heart model loaded successfully");
+          resolve(gltf.scene);
+        },
+        (progress: any) => {
+          console.log("Loading sliced heart model...", progress);
+        },
+        (error: any) => {
+          console.error("Failed to load sliced heart model:", error);
+          reject(error);
         }
-        setIsTransitioning(false);
+      );
+    });
+  }, [organ.id]);
+
+  const transitionToSlicedModel = useCallback(async () => {
+    if (organ.id !== "heart" || isTransitioning || isSlicedModel) {
+      console.log("Cannot transition to sliced model:", {
+        organId: organ.id,
+        isTransitioning,
+        isSlicedModel,
+      });
+      return;
+    }
+
+    setIsTransitioning(true);
+    console.log("Starting transition to sliced heart model...");
+
+    try {
+      // Load sliced model if not already loaded
+      if (!slicedModelRef.current) {
+        slicedModelRef.current = await loadSlicedModel();
+
+        // Apply same positioning as normal model
+        const scale = baseScaleRef.current * currentZoom;
+        slicedModelRef.current.scale.set(scale, scale, scale);
+        slicedModelRef.current.position.copy(organModelRef.current.position);
+
+        // Start with invisible and very small
+        slicedModelRef.current.traverse((child: any) => {
+          if (child.isMesh && child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach((mat: any) => {
+                mat.transparent = true;
+                mat.opacity = 0;
+              });
+            } else {
+              child.material.transparent = true;
+              child.material.opacity = 0;
+            }
+          }
+        });
+        slicedModelRef.current.scale.set(0.01, 0.01, 0.01);
+      }
+
+      // Add sliced model to scene
+      if (markerGroupRef.current && slicedModelRef.current) {
+        markerGroupRef.current.add(slicedModelRef.current);
+      }
+
+      // Phase 1: Shrink normal model (500ms)
+      const shrinkDuration = 500;
+      const shrinkStartTime = Date.now();
+      const originalScale = organModelRef.current.scale.x;
+
+      const shrinkAnimate = () => {
+        const elapsed = Date.now() - shrinkStartTime;
+        const progress = Math.min(elapsed / shrinkDuration, 1);
+
+        // Ease-in animation for shrinking
+        const easeIn = progress * progress;
+        const currentScale = originalScale * (1 - easeIn);
+
+        if (organModelRef.current) {
+          organModelRef.current.scale.set(
+            currentScale,
+            currentScale,
+            currentScale
+          );
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(shrinkAnimate);
+        } else {
+          // Phase 2: Pop up sliced model (700ms)
+          const popDuration = 700;
+          const popStartTime = Date.now();
+          const targetScale = baseScaleRef.current * currentZoom;
+
+          const popAnimate = () => {
+            const elapsed = Date.now() - popStartTime;
+            const progress = Math.min(elapsed / popDuration, 1);
+
+            // Bounce effect for pop-up
+            const bounce =
+              progress < 0.5
+                ? 2 * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+            const currentScale = targetScale * bounce;
+            const opacity = progress;
+
+            if (slicedModelRef.current) {
+              slicedModelRef.current.scale.set(
+                currentScale,
+                currentScale,
+                currentScale
+              );
+              slicedModelRef.current.traverse((child: any) => {
+                if (child.isMesh && child.material) {
+                  if (Array.isArray(child.material)) {
+                    child.material.forEach((mat: any) => {
+                      mat.opacity = opacity;
+                    });
+                  } else {
+                    child.material.opacity = opacity;
+                  }
+                }
+              });
+            }
+
+            if (progress < 1) {
+              requestAnimationFrame(popAnimate);
+            } else {
+              // Hide normal model and complete transition
+              if (organModelRef.current) {
+                organModelRef.current.visible = false;
+              }
+              setIsSlicedModel(true);
+              setIsTransitioning(false);
+              console.log("Transition to sliced heart model complete");
+            }
+          };
+
+          requestAnimationFrame(popAnimate);
+        }
+      };
+
+      requestAnimationFrame(shrinkAnimate);
+    } catch (error) {
+      console.error("Failed to transition to sliced model:", error);
+      setIsTransitioning(false);
+    }
+  }, [
+    organ.id,
+    isTransitioning,
+    isSlicedModel,
+    loadSlicedModel,
+    currentZoom,
+  ]);
+
+  const transitionToNormalModel = useCallback(() => {
+    if (!isSlicedModel || isTransitioning) {
+      return;
+    }
+
+    setIsTransitioning(true);
+    console.log("Starting transition back to normal heart model...");
+
+    const duration = 600;
+    const startTime = Date.now();
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Fade out and shrink sliced model
+      if (slicedModelRef.current) {
+        const scale = (1 - progress) * baseScaleRef.current * currentZoom;
+        const opacity = 1 - progress;
+
+        slicedModelRef.current.scale.set(scale, scale, scale);
+        slicedModelRef.current.traverse((child: any) => {
+          if (child.isMesh && child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach((mat: any) => {
+                mat.opacity = opacity;
+              });
+            } else {
+              child.material.opacity = opacity;
+            }
+          }
+        });
+      }
+
+      // Fade in and grow normal model
+      if (organModelRef.current) {
+        const targetScale = baseScaleRef.current * currentZoom;
+        const scale = progress * targetScale;
+
+        organModelRef.current.visible = true;
+        organModelRef.current.scale.set(scale, scale, scale);
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Remove sliced model from scene
+        if (markerGroupRef.current && slicedModelRef.current) {
+          markerGroupRef.current.remove(slicedModelRef.current);
+        }
+
         setIsSlicedModel(false);
-        console.log('Transition to normal model complete');
+        setIsTransitioning(false);
+        console.log("Transition back to normal heart model complete");
       }
     };
-    
+
     requestAnimationFrame(animate);
-  }, [isSlicedModel]);
+  }, [isSlicedModel, isTransitioning, currentZoom]);
 
   // Initialize zoom controller
   useEffect(() => {
     const baseScale = getBaseScale(organ.id);
     baseScaleRef.current = baseScale;
-    console.log(`Initializing zoom controller for ${organ.name} with base scale ${baseScale}`);
+    console.log(
+      `Initializing zoom controller for ${organ.name} with base scale ${baseScale}`
+    );
 
     zoomControllerRef.current = new ZoomController(1.0, {
       onZoomChange: (zoom: number) => {
@@ -234,79 +291,102 @@ const ARScannerPage: React.FC = () => {
         // Apply zoom to the 3D model
         if (organModelRef.current) {
           const newScale = baseScaleRef.current * zoom;
-          console.log(`ARScannerPage: Applying scale: ${newScale} (base: ${baseScaleRef.current}, zoom: ${zoom})`);
+          console.log(
+            `ARScannerPage: Applying scale: ${newScale} (base: ${baseScaleRef.current}, zoom: ${zoom})`
+          );
           organModelRef.current.scale.set(newScale, newScale, newScale);
         } else {
-          console.log('ARScannerPage: Model not loaded yet - will apply zoom when loaded');
+          console.log(
+            "ARScannerPage: Model not loaded yet - will apply zoom when loaded"
+          );
         }
       },
       onThresholdCrossed: (threshold: string, zoom: number) => {
-        console.log(`ARScannerPage: Zoom threshold crossed: ${threshold} at ${zoom}x`);
+        console.log(
+          `ARScannerPage: Zoom threshold crossed: ${threshold} at ${zoom}x`
+        );
         // Future: Handle threshold crossings for slicing, labels, etc.
-      },
-      onMaxZoomReached: () => {
-        console.log("ARScannerPage: Max zoom reached - loading sliced model");
-        if (organ.id === 'heart' && !isSlicedModel && !isTransitioning) {
-          // Load sliced model for heart
-          if (markerGroupRef.current && organModelRef.current) {
-            const currentScale = organModelRef.current.scale.x;
-            const positionY = organModelRef.current.position.y;
-            loadSlicedModel(markerGroupRef.current, currentScale, positionY);
-          }
+      },      onMaxZoomReached: () => {
+        console.log("ARScannerPage: Max zoom reached");
+        if (organ.id === "heart") {
+          console.log("Triggering sliced heart model transition");
+          transitionToSlicedModel();
         } else {
-          // For other organs, show message
+          console.log("Showing max zoom message for non-heart organ");
           setShowMaxZoomMessage(true);
         }
-      }
+      },
     });
 
-    console.log('Zoom controller initialized successfully');
+    console.log("Zoom controller initialized successfully");
 
     return () => {
-      console.log('Cleaning up zoom controller');
+      console.log("Cleaning up zoom controller");
       zoomControllerRef.current?.destroy();
     };
-  }, [organ.id, getBaseScale, isSlicedModel, isTransitioning, loadSlicedModel]);
-
-  // Zoom control handlers
+  }, [organ.id, getBaseScale, transitionToSlicedModel]); // Zoom control handlers
   const handleZoomIn = useCallback(() => {
-    console.log('=== ARScannerPage: Zoom In button clicked ===');
+    console.log("=== ARScannerPage: Zoom In button clicked ===");
+    console.log("ZoomController exists:", !!zoomControllerRef.current);
+    console.log("Model exists:", !!organModelRef.current);
     if (zoomControllerRef.current) {
+      console.log(
+        "Current zoom before zoomIn:",
+        zoomControllerRef.current.getCurrentZoom()
+      );
       zoomControllerRef.current.zoomIn();
+    } else {
+      console.error("ZoomController not initialized!");
     }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
   }, []);
-
   const handleZoomOut = useCallback(() => {
     console.log("=== ARScannerPage: Zoom Out button clicked ===");
+    console.log("ZoomController exists:", !!zoomControllerRef.current);
+    console.log("Model exists:", !!organModelRef.current);
     
-    // If we're in sliced model state, transition back to normal
-    if (isSlicedModel && !isTransitioning) {
+    // If we're viewing sliced model, transition back to normal first
+    if (isSlicedModel) {
+      console.log("Transitioning back to normal model before zoom out");
       transitionToNormalModel();
     }
     
     if (zoomControllerRef.current) {
+      console.log(
+        "Current zoom before zoomOut:",
+        zoomControllerRef.current.getCurrentZoom()
+      );
       zoomControllerRef.current.zoomOut();
+    } else {
+      console.error("ZoomController not initialized!");
     }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
-  }, [isSlicedModel, isTransitioning, transitionToNormalModel]);
-
+  }, [isSlicedModel, transitionToNormalModel]);
   const handleResetZoom = useCallback(() => {
     console.log("=== ARScannerPage: Reset Zoom button clicked ===");
+    console.log("ZoomController exists:", !!zoomControllerRef.current);
+    console.log("Model exists:", !!organModelRef.current);
     
-    // If we're in sliced model state, transition back to normal
-    if (isSlicedModel && !isTransitioning) {
+    // If we're viewing sliced model, transition back to normal first
+    if (isSlicedModel) {
+      console.log("Transitioning back to normal model before zoom reset");
       transitionToNormalModel();
     }
     
     if (zoomControllerRef.current) {
+      console.log(
+        "Current zoom before reset:",
+        zoomControllerRef.current.getCurrentZoom()
+      );
       zoomControllerRef.current.resetZoom();
+    } else {
+      console.error("ZoomController not initialized!");
     }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
-  }, [isSlicedModel, isTransitioning, transitionToNormalModel]);
+  }, [isSlicedModel, transitionToNormalModel]);
 
   // Touch gesture handlers
   const handleTouchStart = useCallback((e: TouchEvent) => {
@@ -323,12 +403,15 @@ const ARScannerPage: React.FC = () => {
 
   // Prevent body scrolling when AR is active
   useEffect(() => {
+    // Store original overflow values
     const originalBodyOverflow = document.body.style.overflow;
     const originalHtmlOverflow = document.documentElement.style.overflow;
 
+    // Disable scrolling
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
 
+    // Cleanup: restore original overflow values
     return () => {
       document.body.style.overflow = originalBodyOverflow;
       document.documentElement.style.overflow = originalHtmlOverflow;
@@ -344,16 +427,16 @@ const ARScannerPage: React.FC = () => {
 
     // EXACT COPY-CAT of basic-cutout.html script section
     renderer = new window.THREE.WebGLRenderer({
+      // antialias: true,
       alpha: true,
     });
     renderer.setClearColor(new window.THREE.Color("lightgrey"), 0);
+    // renderer.setPixelRatio(2);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0px";
     renderer.domElement.style.left = "0px";
-    document.body.appendChild(renderer.domElement);
-
-    // init scene and camera - EXACT SAME AS BASIC.HTML
+    document.body.appendChild(renderer.domElement); // init scene and camera - EXACT SAME AS BASIC.HTML
     var scene = new window.THREE.Scene();
     var camera = new window.THREE.Camera();
     scene.add(camera);
@@ -368,9 +451,7 @@ const ARScannerPage: React.FC = () => {
 
       var directionalLight = new window.THREE.DirectionalLight(0xffffff, 0.8);
       directionalLight.position.set(1, 1, 1);
-      scene.add(directionalLight);
-
-      // Load the 3D model for this organ
+      scene.add(directionalLight); // Load the 3D model for this organ
       var gltfLoader = new window.THREE.GLTFLoader();
       gltfLoader.load(
         organ.modelPath,
@@ -404,7 +485,6 @@ const ARScannerPage: React.FC = () => {
               scale = 0.5;
               positionY = 0;
           }
-
           model.scale.set(scale, scale, scale);
           model.position.y = positionY;
           markerGroup.add(model);
@@ -419,14 +499,18 @@ const ARScannerPage: React.FC = () => {
             const currentZoomLevel = zoomControllerRef.current.getCurrentZoom();
             if (currentZoomLevel !== 1.0) {
               const newScale = scale * currentZoomLevel;
-              console.log(`Applying initial zoom ${currentZoomLevel}x to loaded model: scale ${newScale}`);
+              console.log(
+                `Applying initial zoom ${currentZoomLevel}x to loaded model: scale ${newScale}`
+              );
               model.scale.set(newScale, newScale, newScale);
             }
           }
 
           // Model loaded successfully
           setModelLoading(false);
-          console.log(`${organ.name} 3D model loaded successfully with scale: ${scale}`);
+          console.log(
+            `${organ.name} 3D model loaded successfully with scale: ${scale}`
+          );
         },
         undefined,
         (error: any) => {
@@ -446,31 +530,29 @@ const ARScannerPage: React.FC = () => {
           markerGroup.add(cube);
         }
       );
-
       var patternMarker = new window.THREEAR.PatternMarker({
         patternUrl: "/data/patt.hiro",
         markerObject: markerGroup,
       });
 
-      controller.trackMarker(patternMarker);
-
-      // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
+      controller.trackMarker(patternMarker); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
       var lastTimeMsec = 0;
       function animate(nowMsec: number) {
+        // keep looping
         animationId = requestAnimationFrame(animate);
+        // measure time
         lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
         var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
         lastTimeMsec = nowMsec;
-        controller.update(source.domElement);
-
-        // Rotate the 3D model if it's loaded
-        if ((markerGroup as any).organModel) {
-          (markerGroup as any).organModel.rotation.y += (deltaMsec / 2000) * Math.PI;
+        // call each update function
+        controller.update(source.domElement);        // Rotate the 3D model if it's loaded and not in sliced mode
+        if ((markerGroup as any).organModel && !isSlicedModel) {
+          (markerGroup as any).organModel.rotation.y +=
+            (deltaMsec / 2000) * Math.PI;
         }
 
         renderer.render(scene, camera);
       }
-
       animationId = requestAnimationFrame(animate);
     });
 
@@ -479,17 +561,22 @@ const ARScannerPage: React.FC = () => {
     const handleTouchMoveEvent = (e: TouchEvent) => handleTouchMove(e);
     const handleTouchEndEvent = (e: TouchEvent) => handleTouchEnd(e);
 
-    document.addEventListener('touchstart', handleTouchStartEvent, { passive: false });
-    document.addEventListener('touchmove', handleTouchMoveEvent, { passive: false });
-    document.addEventListener('touchend', handleTouchEndEvent, { passive: false });
+    document.addEventListener("touchstart", handleTouchStartEvent, {
+      passive: false,
+    });
+    document.addEventListener("touchmove", handleTouchMoveEvent, {
+      passive: false,
+    });
+    document.addEventListener("touchend", handleTouchEndEvent, {
+      passive: false,
+    });
 
     // Cleanup
     return () => {
       // Remove touch event listeners
-      document.removeEventListener('touchstart', handleTouchStartEvent);
-      document.removeEventListener('touchmove', handleTouchMoveEvent);
-      document.removeEventListener('touchend', handleTouchEndEvent);
-      
+      document.removeEventListener("touchstart", handleTouchStartEvent);
+      document.removeEventListener("touchmove", handleTouchMoveEvent);
+      document.removeEventListener("touchend", handleTouchEndEvent);
       // Cancel animation frame
       if (animationId) {
         cancelAnimationFrame(animationId);
@@ -523,8 +610,7 @@ const ARScannerPage: React.FC = () => {
         }
       });
     };
-  }, [organ, handleTouchStart, handleTouchMove, handleTouchEnd]);
-
+  }, [organ, isSlicedModel]);
   return (
     <div
       style={{
@@ -538,7 +624,7 @@ const ARScannerPage: React.FC = () => {
         fontFamily: "Monospace",
       }}
     >
-      {/* Text overlay */}
+      {/* Text overlay - EXACT same style as cutout example */}
       <div
         style={{
           position: "absolute",
@@ -548,10 +634,11 @@ const ARScannerPage: React.FC = () => {
           zIndex: 100,
         }}
       >
+        {" "}
         <div>
-          AR Scanner for <strong>{organ.name}</strong> - Point your camera at the Hiro marker
+          AR Scanner for <strong>{organ.name}</strong> - Point your camera at
+          the Hiro marker
         </div>
-        
         {modelLoading && (
           <div
             style={{
@@ -564,9 +651,7 @@ const ARScannerPage: React.FC = () => {
           >
             🔄 Loading {organ.name} 3D model...
           </div>
-        )}
-        
-        {modelError && (
+        )}        {modelError && (
           <div
             style={{
               backgroundColor: "rgba(255, 193, 7, 0.8)",
@@ -579,21 +664,32 @@ const ARScannerPage: React.FC = () => {
             ⚠️ Model loading failed - showing fallback cube
           </div>
         )}
-        
-        {isSlicedModel && (
+        {isTransitioning && (
           <div
             style={{
-              backgroundColor: "rgba(34, 139, 34, 0.8)",
+              backgroundColor: "rgba(138, 43, 226, 0.8)",
               padding: "8px",
               marginTop: "10px",
               borderRadius: "4px",
               color: "white",
             }}
           >
-            🔬 Viewing Sliced {organ.name} - Zoom out to return to normal view
+            🔄 Transitioning to {isSlicedModel ? "normal" : "sliced"} heart model...
           </div>
         )}
-        
+        {isSlicedModel && !isTransitioning && (
+          <div
+            style={{
+              backgroundColor: "rgba(40, 167, 69, 0.8)",
+              padding: "8px",
+              marginTop: "10px",
+              borderRadius: "4px",
+              color: "white",
+            }}
+          >
+            ✨ Viewing sliced heart model - Zoom out to return to normal view
+          </div>
+        )}
         <div
           id="button"
           style={{
@@ -604,7 +700,7 @@ const ARScannerPage: React.FC = () => {
           }}
           onClick={() => navigate(-1)}
         >
-          ← Back to Menu [{organ.name} 3D Model]
+          ← Back to Menu [{organ.name} 3D Model]{" "}
         </div>
       </div>
 
@@ -620,7 +716,7 @@ const ARScannerPage: React.FC = () => {
         onMaxZoomMessageShown={() => setShowMaxZoomMessage(false)}
       />
 
-      {/* AR container */}
+      {/* AR container - attached to body like cutout example */}
       <div
         ref={containerRef}
         style={{

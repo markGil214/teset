@@ -5,6 +5,7 @@ interface ExtendedZoomControlsProps extends ZoomControlsProps {
   onResetZoom?: () => void;
   showMaxZoomMessage?: boolean;
   onMaxZoomMessageShown?: () => void;
+  organId?: string;
 }
 
 const ARControls: React.FC<ExtendedZoomControlsProps> = ({
@@ -16,6 +17,7 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
   disabled = false,
   showMaxZoomMessage = false,
   onMaxZoomMessageShown,
+  organId,
 }) => {
   const [showMessage, setShowMessage] = useState(false);
 
@@ -87,7 +89,10 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
             WebkitUserSelect: "none",
           }}
         >
-          🔍 You reached full display of 3D!
+          {organId === 'heart' 
+            ? '🔍 Transitioning to sliced heart model...' 
+            : '🔍 You reached full display of 3D!'
+          }
         </div>
       )}
       {/* Zoom In Button */}
