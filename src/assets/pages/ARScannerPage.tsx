@@ -26,9 +26,13 @@ const ARScannerPage: React.FC = () => {
   const [isZoomAnimating, setIsZoomAnimating] = useState(false);
   const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);
   const zoomControllerRef = useRef<ZoomController | null>(null);
-  const organModelRef = useRef<any>(null);
-  const markerGroupRef = useRef<any>(null);
+  const organModelRef = useRef<any>(null);  const markerGroupRef = useRef<any>(null);
   const baseScaleRef = useRef<number>(0.5);
+
+  // Sliced model state
+  const [isSlicedModel, setIsSlicedModel] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const slicedModelRef = useRef<any>(null);
 
   if (!organ) {
     return <div>Organ not found</div>;
@@ -46,10 +50,232 @@ const ARScannerPage: React.FC = () => {
         return 0.6;
       case "skin":
         return 0.5;
-      default:
-        return 0.5;
+      default:        return 0.5;
     }
   }, []);
+
+  // Sliced model functions
+  const loadSlicedModel = useCallback(async (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if (organ.id !== "heart") {
+        reject(new Error("Sliced model only available for heart"));
+        return;
+      }
+
+      const gltfLoader = new window.THREE.GLTFLoader();
+      gltfLoader.load(
+        "/sliced_organs/heart.glb",
+        (gltf: any) => {
+          console.log("Sliced heart model loaded successfully");
+          resolve(gltf.scene);
+        },
+        (progress: any) => {
+          console.log("Loading sliced heart model...", progress);
+        },
+        (error: any) => {
+          console.error("Failed to load sliced heart model:", error);
+          reject(error);
+        }
+      );
+    });
+  }, [organ.id]);
+
+  const transitionToSlicedModel = useCallback(async () => {
+    if (organ.id !== "heart" || isTransitioning || isSlicedModel) {
+      console.log("Cannot transition to sliced model:", {
+        organId: organ.id,
+        isTransitioning,
+        isSlicedModel,
+      });
+      return;
+    }
+
+    setIsTransitioning(true);
+    console.log("Starting transition to sliced heart model...");
+
+    try {
+      // Load sliced model if not already loaded
+      if (!slicedModelRef.current) {
+        slicedModelRef.current = await loadSlicedModel();
+
+        // Apply same positioning as normal model
+        const scale = baseScaleRef.current * currentZoom;
+        slicedModelRef.current.scale.set(scale, scale, scale);
+        slicedModelRef.current.position.copy(organModelRef.current.position);
+
+        // Start with invisible and very small
+        slicedModelRef.current.traverse((child: any) => {
+          if (child.isMesh && child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach((mat: any) => {
+                mat.transparent = true;
+                mat.opacity = 0;
+              });
+            } else {
+              child.material.transparent = true;
+              child.material.opacity = 0;
+            }
+          }
+        });
+        slicedModelRef.current.scale.set(0.01, 0.01, 0.01);
+      }
+
+      // Add sliced model to scene
+      if (markerGroupRef.current && slicedModelRef.current) {
+        markerGroupRef.current.add(slicedModelRef.current);
+      }
+
+      // Phase 1: Shrink normal model (500ms)
+      const shrinkDuration = 500;
+      const shrinkStartTime = Date.now();
+      const originalScale = organModelRef.current.scale.x;
+
+      const shrinkAnimate = () => {
+        const elapsed = Date.now() - shrinkStartTime;
+        const progress = Math.min(elapsed / shrinkDuration, 1);
+
+        // Ease-in animation for shrinking
+        const easeIn = progress * progress;
+        const currentScale = originalScale * (1 - easeIn);
+
+        if (organModelRef.current) {
+          organModelRef.current.scale.set(
+            currentScale,
+            currentScale,
+            currentScale
+          );
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(shrinkAnimate);
+        } else {
+          // Phase 2: Pop up sliced model (700ms)
+          const popDuration = 700;
+          const popStartTime = Date.now();
+          const targetScale = baseScaleRef.current * currentZoom;
+
+          const popAnimate = () => {
+            const elapsed = Date.now() - popStartTime;
+            const progress = Math.min(elapsed / popDuration, 1);
+
+            // Bounce effect for pop-up
+            const bounce =
+              progress < 0.5
+                ? 2 * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+            const currentScale = targetScale * bounce;
+            const opacity = progress;
+
+            if (slicedModelRef.current) {
+              slicedModelRef.current.scale.set(
+                currentScale,
+                currentScale,
+                currentScale
+              );
+              slicedModelRef.current.traverse((child: any) => {
+                if (child.isMesh && child.material) {
+                  if (Array.isArray(child.material)) {
+                    child.material.forEach((mat: any) => {
+                      mat.opacity = opacity;
+                    });
+                  } else {
+                    child.material.opacity = opacity;
+                  }
+                }
+              });
+            }
+
+            if (progress < 1) {
+              requestAnimationFrame(popAnimate);
+            } else {
+              // Hide normal model and complete transition
+              if (organModelRef.current) {
+                organModelRef.current.visible = false;
+              }
+              setIsSlicedModel(true);
+              setIsTransitioning(false);
+              console.log("Transition to sliced heart model complete");
+            }
+          };
+
+          requestAnimationFrame(popAnimate);
+        }
+      };
+
+      requestAnimationFrame(shrinkAnimate);
+    } catch (error) {
+      console.error("Failed to transition to sliced model:", error);
+      setIsTransitioning(false);
+    }
+  }, [
+    organ.id,
+    isTransitioning,
+    isSlicedModel,
+    loadSlicedModel,
+    currentZoom,
+  ]);
+
+  const transitionToNormalModel = useCallback(() => {
+    if (!isSlicedModel || isTransitioning) {
+      return;
+    }
+
+    setIsTransitioning(true);
+    console.log("Starting transition back to normal heart model...");
+
+    const duration = 600;
+    const startTime = Date.now();
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Fade out and shrink sliced model
+      if (slicedModelRef.current) {
+        const scale = (1 - progress) * baseScaleRef.current * currentZoom;
+        const opacity = 1 - progress;
+
+        slicedModelRef.current.scale.set(scale, scale, scale);
+        slicedModelRef.current.traverse((child: any) => {
+          if (child.isMesh && child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach((mat: any) => {
+                mat.opacity = opacity;
+              });
+            } else {
+              child.material.opacity = opacity;
+            }
+          }
+        });
+      }
+
+      // Fade in and grow normal model
+      if (organModelRef.current) {
+        const targetScale = baseScaleRef.current * currentZoom;
+        const scale = progress * targetScale;
+
+        organModelRef.current.visible = true;
+        organModelRef.current.scale.set(scale, scale, scale);
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Remove sliced model from scene
+        if (markerGroupRef.current && slicedModelRef.current) {
+          markerGroupRef.current.remove(slicedModelRef.current);
+        }
+
+        setIsSlicedModel(false);
+        setIsTransitioning(false);
+        console.log("Transition back to normal heart model complete");
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [isSlicedModel, isTransitioning, currentZoom]);
+
   // Initialize zoom controller
   useEffect(() => {
     const baseScale = getBaseScale(organ.id);
@@ -80,20 +306,23 @@ const ARScannerPage: React.FC = () => {
           `ARScannerPage: Zoom threshold crossed: ${threshold} at ${zoom}x`
         );
         // Future: Handle threshold crossings for slicing, labels, etc.
-      },
-      onMaxZoomReached: () => {
-        console.log("ARScannerPage: Max zoom reached - showing message");
-        setShowMaxZoomMessage(true);
+      },      onMaxZoomReached: () => {
+        console.log("ARScannerPage: Max zoom reached");
+        if (organ.id === "heart") {
+          console.log("Triggering sliced heart model transition");
+          transitionToSlicedModel();
+        } else {
+          console.log("Showing max zoom message for non-heart organ");
+          setShowMaxZoomMessage(true);
+        }
       },
     });
 
-    console.log("Zoom controller initialized successfully");
-
-    return () => {
+    console.log("Zoom controller initialized successfully");    return () => {
       console.log("Cleaning up zoom controller");
       zoomControllerRef.current?.destroy();
     };
-  }, [organ.id, getBaseScale]); // Zoom control handlers
+  }, [organ.id, getBaseScale, transitionToSlicedModel]);// Zoom control handlers
   const handleZoomIn = useCallback(() => {
     console.log("=== ARScannerPage: Zoom In button clicked ===");
     console.log("ZoomController exists:", !!zoomControllerRef.current);
@@ -110,11 +339,17 @@ const ARScannerPage: React.FC = () => {
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
   }, []);
-
   const handleZoomOut = useCallback(() => {
     console.log("=== ARScannerPage: Zoom Out button clicked ===");
     console.log("ZoomController exists:", !!zoomControllerRef.current);
     console.log("Model exists:", !!organModelRef.current);
+    
+    // If we're viewing sliced model, transition back to normal first
+    if (isSlicedModel) {
+      console.log("Transitioning back to normal model before zoom out");
+      transitionToNormalModel();
+    }
+    
     if (zoomControllerRef.current) {
       console.log(
         "Current zoom before zoomOut:",
@@ -126,12 +361,18 @@ const ARScannerPage: React.FC = () => {
     }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
-  }, []);
-
+  }, [isSlicedModel, transitionToNormalModel]);
   const handleResetZoom = useCallback(() => {
     console.log("=== ARScannerPage: Reset Zoom button clicked ===");
     console.log("ZoomController exists:", !!zoomControllerRef.current);
     console.log("Model exists:", !!organModelRef.current);
+    
+    // If we're viewing sliced model, transition back to normal first
+    if (isSlicedModel) {
+      console.log("Transitioning back to normal model before zoom reset");
+      transitionToNormalModel();
+    }
+    
     if (zoomControllerRef.current) {
       console.log(
         "Current zoom before reset:",
@@ -143,7 +384,7 @@ const ARScannerPage: React.FC = () => {
     }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
-  }, []);
+  }, [isSlicedModel, transitionToNormalModel]);
 
   // Touch gesture handlers
   const handleTouchStart = useCallback((e: TouchEvent) => {
@@ -302,10 +543,8 @@ const ARScannerPage: React.FC = () => {
         var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
         lastTimeMsec = nowMsec;
         // call each update function
-        controller.update(source.domElement);
-
-        // Rotate the 3D model if it's loaded
-        if ((markerGroup as any).organModel) {
+        controller.update(source.domElement);        // Rotate the 3D model if it's loaded and not in sliced mode
+        if ((markerGroup as any).organModel && !isSlicedModel) {
           (markerGroup as any).organModel.rotation.y +=
             (deltaMsec / 2000) * Math.PI;
         }
@@ -366,10 +605,9 @@ const ARScannerPage: React.FC = () => {
         if (video.parentElement === document.body) {
           video.srcObject = null;
           document.body.removeChild(video);
-        }
-      });
+        }      });
     };
-  }, [organ]);
+  }, [organ, isSlicedModel]);
   return (
     <div
       style={{
@@ -410,8 +648,7 @@ const ARScannerPage: React.FC = () => {
           >
             🔄 Loading {organ.name} 3D model...
           </div>
-        )}
-        {modelError && (
+        )}        {modelError && (
           <div
             style={{
               backgroundColor: "rgba(255, 193, 7, 0.8)",
@@ -422,6 +659,32 @@ const ARScannerPage: React.FC = () => {
             }}
           >
             ⚠️ Model loading failed - showing fallback cube
+          </div>
+        )}
+        {isTransitioning && (
+          <div
+            style={{
+              backgroundColor: "rgba(138, 43, 226, 0.8)",
+              padding: "8px",
+              marginTop: "10px",
+              borderRadius: "4px",
+              color: "white",
+            }}
+          >
+            🔄 Transitioning to {isSlicedModel ? "normal" : "sliced"} heart model...
+          </div>
+        )}
+        {isSlicedModel && !isTransitioning && (
+          <div
+            style={{
+              backgroundColor: "rgba(40, 167, 69, 0.8)",
+              padding: "8px",
+              marginTop: "10px",
+              borderRadius: "4px",
+              color: "white",
+            }}
+          >
+            ✨ Viewing sliced heart model - Zoom out to return to normal view
           </div>
         )}
         <div
