@@ -4,6 +4,7 @@ import { ZoomControlsProps } from '../../types/ZoomTypes';
 interface ExtendedZoomControlsProps extends ZoomControlsProps {
   onResetZoom?: () => void;
   showMaxZoomMessage?: boolean;
+  onMaxZoomMessageShown?: () => void;
 }
 
 const ARControls: React.FC<ExtendedZoomControlsProps> = ({
@@ -13,7 +14,8 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
   onResetZoom,
   isAnimating,
   disabled = false,
-  showMaxZoomMessage = false
+  showMaxZoomMessage = false,
+  onMaxZoomMessageShown
 }) => {
   const [showMessage, setShowMessage] = useState(false);
   
@@ -41,11 +43,13 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
       setShowMessage(true);
       const timer = setTimeout(() => {
         setShowMessage(false);
+        // Reset the parent component's showMaxZoomMessage state
+        onMaxZoomMessageShown?.();
       }, 3000); // Hide after 3 seconds
       
       return () => clearTimeout(timer);
     }
-  }, [showMaxZoomMessage]);
+  }, [showMaxZoomMessage, onMaxZoomMessageShown]);
   
   const canZoomIn = currentZoom < 3.0 && !isAnimating && !disabled;
   const canZoomOut = currentZoom > 0.5 && !isAnimating && !disabled;

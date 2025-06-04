@@ -409,6 +409,7 @@ const ARScannerPage: React.FC = () => {
         isAnimating={isZoomAnimating}
         disabled={modelLoading || modelError}
         showMaxZoomMessage={showMaxZoomMessage}
+        onMaxZoomMessageShown={() => setShowMaxZoomMessage(false)}
       />
 
       {/* AR container - attached to body like cutout example */}
