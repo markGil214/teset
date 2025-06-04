@@ -6,6 +6,7 @@ interface ExtendedZoomControlsProps extends ZoomControlsProps {
   showMaxZoomMessage?: boolean;
   onMaxZoomMessageShown?: () => void;
   organId?: string;
+  showSlicedModel?: boolean;
 }
 
 const ARControls: React.FC<ExtendedZoomControlsProps> = ({
@@ -18,6 +19,7 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
   showMaxZoomMessage = false,
   onMaxZoomMessageShown,
   organId,
+  showSlicedModel = false,
 }) => {
   const [showMessage, setShowMessage] = useState(false);
 
@@ -41,7 +43,7 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
 
   // Show/hide max zoom message
   useEffect(() => {
-    if (showMaxZoomMessage) {
+    if (showMaxZoomMessage && (organId !== 'heart' || !showSlicedModel)) {
       setShowMessage(true);
       const timer = setTimeout(() => {
         setShowMessage(false);
@@ -51,7 +53,7 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [showMaxZoomMessage, onMaxZoomMessageShown]);
+  }, [showMaxZoomMessage, onMaxZoomMessageShown, organId, showSlicedModel]);
 
   const canZoomIn = currentZoom < 3.0 && !isAnimating && !disabled;
   const canZoomOut = currentZoom > 0.5 && !isAnimating && !disabled;
