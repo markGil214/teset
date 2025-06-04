@@ -319,10 +319,13 @@ const ARScannerPage: React.FC = () => {
         // call each update function
         controller.update(source.domElement);
 
-        // Rotate the 3D model if it's loaded
+        // Rotate the 3D model if it's loaded (but not for sliced heart model)
         if ((markerGroup as any).organModel) {
-          (markerGroup as any).organModel.rotation.y +=
-            (deltaMsec / 2000) * Math.PI;
+          // Only rotate if it's not the sliced heart model
+          if (!showSlicedModel) {
+            (markerGroup as any).organModel.rotation.y +=
+              (deltaMsec / 2000) * Math.PI;
+          }
         }
 
         renderer.render(scene, camera);
