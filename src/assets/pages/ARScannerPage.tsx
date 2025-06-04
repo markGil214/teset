@@ -26,6 +26,7 @@ const ARScannerPage: React.FC = () => {
   const [isZoomAnimating, setIsZoomAnimating] = useState(false);
   const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);
   const [showSlicedModel, setShowSlicedModel] = useState(false);
+  const showSlicedModelRef = useRef(false);
   const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
@@ -70,6 +71,7 @@ const ARScannerPage: React.FC = () => {
           console.log("Zoom reduced below max - switching back to original model");
           restoreOriginalModel();
           setShowSlicedModel(false);
+          showSlicedModelRef.current = false;
         }
         
         // Apply zoom to the 3D model
@@ -95,6 +97,7 @@ const ARScannerPage: React.FC = () => {
         if (organ.id === "heart") {
           console.log("ARScannerPage: Max zoom reached - loading sliced heart model");
           setShowSlicedModel(true);
+          showSlicedModelRef.current = true;
         } else {
           console.log("ARScannerPage: Max zoom reached - showing message");
           setShowMaxZoomMessage(true);
@@ -322,7 +325,7 @@ const ARScannerPage: React.FC = () => {
         // Rotate the 3D model if it's loaded (but not for sliced heart model)
         if ((markerGroup as any).organModel) {
           // Only rotate if it's not the sliced heart model
-          if (!showSlicedModel) {
+          if (!showSlicedModelRef.current) {
             (markerGroup as any).organModel.rotation.y +=
               (deltaMsec / 2000) * Math.PI;
           }
