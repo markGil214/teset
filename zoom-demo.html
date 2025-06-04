@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoom Controller Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .demo-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            position: relative;
+            max-width: 500px;
+        }
+
+        .demo-title {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .demo-description {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .zoom-display {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 48px;
+            font-weight: bold;
+            color: #495057;
+            transform-origin: center;
+            transition: transform 0.3s ease;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .zoom-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .zoom-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
+
+        .zoom-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+            transform: none;
+        }
+
+        .zoom-in {
+            background: #28a745;
+            color: white;
+        }
+
+        .zoom-out {
+            background: #dc3545;
+            color: white;
+        }
+
+        .reset-btn {
+            background: #ffc107;
+            color: white;
+            width: 80px;
+            height: 40px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .zoom-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #1976d2;
+        }
+
+        .max-zoom-message {
+            position: absolute;
+            top: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 87, 34, 0.95);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            animation: fadeInOut 3s ease-in-out;
+            z-index: 1000;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.9); }
+            20% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+            80% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.9); }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1 class="demo-title">🔍 Zoom Controller Demo</h1>
+        <p class="demo-description">
+            Test the zoom functionality! When you reach maximum zoom (3.0x), 
+            you'll see the "You reached full display of 3D!" message.
+        </p>
+        
+        <div class="zoom-display" id="zoomDisplay">
+            🎯
+        </div>
+        
+        <div class="zoom-info">
+            Current Zoom: <span id="zoomLevel">1.0x</span>
+        </div>
+        
+        <div class="controls">
+            <button class="zoom-btn zoom-in" id="zoomInBtn">+</button>
+            <button class="zoom-btn reset-btn" id="resetBtn">RESET</button>
+            <button class="zoom-btn zoom-out" id="zoomOutBtn">-</button>
+        </div>
+        
+        <div id="maxZoomMessage" class="max-zoom-message" style="display: none;">
+            🔍 You reached full display of 3D!
+        </div>
+    </div>
+
+    <script>
+        // Simple Zoom Controller Implementation
+        class ZoomController {
+            constructor(initialZoom = 1.0, callbacks = {}) {
+                this.currentZoom = initialZoom;
+                this.isAnimating = false;
+                this.callbacks = callbacks;
+                this.maxZoom = 3.0;
+                this.minZoom = 0.5;
+            }
+
+            setZoom(zoom, animate = true) {
+                const clampedZoom = Math.max(this.minZoom, Math.min(this.maxZoom, zoom));
+                
+                // Check if we hit the maximum zoom limit
+                if (zoom > this.maxZoom && this.callbacks.onMaxZoomReached) {
+                    console.log('Maximum zoom reached - triggering callback');
+                    this.callbacks.onMaxZoomReached();
+                }
+                
+                if (clampedZoom === this.currentZoom) {
+                    return;
+                }
+
+                this.currentZoom = clampedZoom;
+                
+                if (animate) {
+                    this.animateZoom(clampedZoom);
+                } else {
+                    this.callbacks.onZoomChange?.(clampedZoom);
+                }
+            }
+
+            zoomIn(step = 0.2) {
+                if (this.isAnimating) return;
+                const newZoom = this.currentZoom + step;
+                this.setZoom(newZoom);
+            }
+
+            zoomOut(step = 0.2) {
+                if (this.isAnimating) return;
+                const newZoom = this.currentZoom - step;
+                this.setZoom(newZoom);
+            }
+
+            resetZoom() {
+                this.setZoom(1.0);
+            }
+
+            animateZoom(targetZoom) {
+                this.isAnimating = true;
+                const startZoom = this.currentZoom;
+                const duration = 300;
+                const startTime = Date.now();
+
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Easing function (ease-out)
+                    const easeOut = 1 - Math.pow(1 - progress, 3);
+                    const currentZoom = startZoom + (targetZoom - startZoom) * easeOut;
+                    
+                    this.callbacks.onZoomChange?.(currentZoom);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        this.currentZoom = targetZoom;
+                        this.callbacks.onZoomChange?.(targetZoom);
+                        this.isAnimating = false;
+                    }
+                };
+
+                requestAnimationFrame(animate);
+            }
+        }
+
+        // Initialize the demo
+        const zoomDisplay = document.getElementById('zoomDisplay');
+        const zoomLevel = document.getElementById('zoomLevel');
+        const zoomInBtn = document.getElementById('zoomInBtn');
+        const zoomOutBtn = document.getElementById('zoomOutBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const maxZoomMessage = document.getElementById('maxZoomMessage');
+
+        let messageTimeout;
+
+        const zoomController = new ZoomController(1.0, {
+            onZoomChange: (zoom) => {
+                // Update display
+                zoomLevel.textContent = zoom.toFixed(1) + 'x';
+                zoomDisplay.style.transform = `scale(${zoom})`;
+                
+                // Update button states
+                zoomInBtn.disabled = zoom >= 3.0 || zoomController.isAnimating;
+                zoomOutBtn.disabled = zoom <= 0.5 || zoomController.isAnimating;
+                resetBtn.disabled = zoom === 1.0 || zoomController.isAnimating;
+            },
+            onMaxZoomReached: () => {
+                // Show max zoom message
+                maxZoomMessage.style.display = 'block';
+                
+                // Clear any existing timeout
+                if (messageTimeout) {
+                    clearTimeout(messageTimeout);
+                }
+                
+                // Hide message after 3 seconds
+                messageTimeout = setTimeout(() => {
+                    maxZoomMessage.style.display = 'none';
+                }, 3000);
+            }
+        });
+
+        // Event listeners
+        zoomInBtn.addEventListener('click', () => zoomController.zoomIn());
+        zoomOutBtn.addEventListener('click', () => zoomController.zoomOut());
+        resetBtn.addEventListener('click', () => zoomController.resetZoom());
+
+        // Initialize display
+        zoomController.callbacks.onZoomChange(1.0);
+
+        // Add keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '+' || e.key === '=') {
+                e.preventDefault();
+                zoomController.zoomIn();
+            } else if (e.key === '-') {
+                e.preventDefault();
+                zoomController.zoomOut();
+            } else if (e.key === '0') {
+                e.preventDefault();
+                zoomController.resetZoom();
+            }
+        });
+
+        console.log('Zoom Controller Demo loaded! Use +/- keys or buttons to zoom.');
+    </script>
+</body>
+</html>
