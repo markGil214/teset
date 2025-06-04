@@ -23,7 +23,8 @@ const ARScannerPage: React.FC = () => {
   
   // Zoom state
   const [currentZoom, setCurrentZoom] = useState(1.0);
-  const [isZoomAnimating, setIsZoomAnimating] = useState(false);  const zoomControllerRef = useRef<ZoomController | null>(null);
+  const [isZoomAnimating, setIsZoomAnimating] = useState(false);
+  const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);  const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
   const baseScaleRef = useRef<number>(0.5);
@@ -64,6 +65,10 @@ const ARScannerPage: React.FC = () => {
       onThresholdCrossed: (threshold: string, zoom: number) => {
         console.log(`ARScannerPage: Zoom threshold crossed: ${threshold} at ${zoom}x`);
         // Future: Handle threshold crossings for slicing, labels, etc.
+      },
+      onMaxZoomReached: () => {
+        console.log('ARScannerPage: Max zoom reached - showing message');
+        setShowMaxZoomMessage(true);
       }
     });
 
@@ -403,6 +408,7 @@ const ARScannerPage: React.FC = () => {
         onResetZoom={handleResetZoom}
         isAnimating={isZoomAnimating}
         disabled={modelLoading || modelError}
+        showMaxZoomMessage={showMaxZoomMessage}
       />
 
       {/* AR container - attached to body like cutout example */}
