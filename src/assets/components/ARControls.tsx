@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ZoomControlsProps } from '../../types/ZoomTypes';
 
 interface ExtendedZoomControlsProps extends ZoomControlsProps {
   onResetZoom?: () => void;
+  showMaxZoomMessage?: boolean;
 }
 
 const ARControls: React.FC<ExtendedZoomControlsProps> = ({
@@ -11,8 +12,41 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
   onZoomOut,
   onResetZoom,
   isAnimating,
-  disabled = false
+  disabled = false,
+  showMaxZoomMessage = false
 }) => {
+  const [showMessage, setShowMessage] = useState(false);
+  
+  // Add CSS animation styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateY(10px) scale(0.9); }
+        20% { opacity: 1; transform: translateY(0) scale(1); }
+        80% { opacity: 1; transform: translateY(0) scale(1); }
+        100% { opacity: 0; transform: translateY(-10px) scale(0.9); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+  
+  // Show/hide max zoom message
+  useEffect(() => {
+    if (showMaxZoomMessage) {
+      setShowMessage(true);
+      const timer = setTimeout(() => {
+        setShowMessage(false);
+      }, 3000); // Hide after 3 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showMaxZoomMessage]);
+  
   const canZoomIn = currentZoom < 3.0 && !isAnimating && !disabled;
   const canZoomOut = currentZoom > 0.5 && !isAnimating && !disabled;
 
@@ -26,6 +60,29 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
       flexDirection: 'column',
       gap: '10px',
     }}>
+      {/* Max Zoom Message */}
+      {showMessage && (
+        <div style={{
+          position: 'absolute',
+          bottom: '250px',
+          right: '0px',
+          backgroundColor: 'rgba(255, 87, 34, 0.95)',
+          color: 'white',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          textAlign: 'center',
+          minWidth: '200px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+          animation: 'fadeInOut 3s ease-in-out',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+        }}>
+          🔍 You reached full display of 3D!
+        </div>
+      )}
+      
       {/* Zoom In Button */}
       <button
         onClick={onZoomIn}

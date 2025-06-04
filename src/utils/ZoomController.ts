@@ -6,6 +6,7 @@ export class ZoomController {
   private callbacks: {
     onZoomChange?: (zoom: number) => void;
     onThresholdCrossed?: (threshold: keyof ZoomThresholds, zoom: number) => void;
+    onMaxZoomReached?: () => void;
   };
 
   constructor(
@@ -13,6 +14,7 @@ export class ZoomController {
     callbacks: {
       onZoomChange?: (zoom: number) => void;
       onThresholdCrossed?: (threshold: keyof ZoomThresholds, zoom: number) => void;
+      onMaxZoomReached?: () => void;
     } = {}
   ) {
     this.zoomState = {
@@ -46,9 +48,16 @@ export class ZoomController {
     return this.zoomState.isAnimating;
   }  // Set zoom level with validation
   setZoom(zoom: number, animate: boolean = true): void {
-    const clampedZoom = Math.max(0.5, Math.min(3.0, zoom));
+    const maxZoom = 3.0;
+    const clampedZoom = Math.max(0.5, Math.min(maxZoom, zoom));
     
     console.log(`ZoomController.setZoom - requested: ${zoom}, clamped: ${clampedZoom}, current: ${this.zoomState.currentZoom}`);
+    
+    // Check if we hit the maximum zoom limit
+    if (zoom > maxZoom && this.callbacks.onMaxZoomReached) {
+      console.log('Maximum zoom reached - triggering callback');
+      this.callbacks.onMaxZoomReached();
+    }
     
     if (clampedZoom === this.zoomState.currentZoom) {
       console.log('Zoom unchanged, skipping');
