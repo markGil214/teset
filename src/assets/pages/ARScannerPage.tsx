@@ -95,9 +95,8 @@ const ARScannerPage: React.FC = () => {
         // Apply same positioning as normal model
         const scale = baseScaleRef.current * currentZoom;
         slicedModelRef.current.scale.set(scale, scale, scale);
-        slicedModelRef.current.position.copy(organModelRef.current.position);
-
-        // Start with invisible and very small
+        slicedModelRef.current.position.copy(organModelRef.current.position);        // Start with invisible and very small
+        slicedModelRef.current.visible = false;
         slicedModelRef.current.traverse((child: any) => {
           if (child.isMesh && child.material) {
             if (Array.isArray(child.material)) {
@@ -181,11 +180,14 @@ const ARScannerPage: React.FC = () => {
             }
 
             if (progress < 1) {
-              requestAnimationFrame(popAnimate);
-            } else {
+              requestAnimationFrame(popAnimate);            } else {
               // Hide normal model and complete transition
               if (organModelRef.current) {
                 organModelRef.current.visible = false;
+              }
+              // Ensure sliced model is visible
+              if (slicedModelRef.current) {
+                slicedModelRef.current.visible = true;
               }
               setIsSlicedModel(true);
               setIsTransitioning(false);
@@ -247,13 +249,16 @@ const ARScannerPage: React.FC = () => {
         }
 
         if (progress < 1) {
-          requestAnimationFrame(fadeOutAnimate);
-        } else {
-          // Phase 2: Show and scale up normal model (500ms)
-          if (organModelRef.current) {
-            organModelRef.current.visible = true;
-            organModelRef.current.scale.set(0.1, 0.1, 0.1); // Start small
-          }
+          requestAnimationFrame(fadeOutAnimate);          } else {
+            // Phase 2: Show and scale up normal model (500ms)
+            if (organModelRef.current) {
+              organModelRef.current.visible = true;
+              organModelRef.current.scale.set(0.1, 0.1, 0.1); // Start small
+            }
+            // Hide sliced model
+            if (slicedModelRef.current) {
+              slicedModelRef.current.visible = false;
+            }
 
           const scaleUpDuration = 500;
           const scaleUpStartTime = Date.now();
@@ -311,22 +316,27 @@ const ARScannerPage: React.FC = () => {
     zoomControllerRef.current = new ZoomController(1.0, {      onZoomChange: (zoom: number) => {
         console.log(`ARScannerPage: Zoom changed to: ${zoom}x`);
         setCurrentZoom(zoom);
-        // Apply zoom to the appropriate 3D model
-        if (isSlicedModel && slicedModelRef.current) {
+        // Apply zoom to the currently active 3D model
+        // We need to check the current state at the time of zoom, not at initialization
+        if (organModelRef.current) {
+          const newScale = baseScaleRef.current * zoom;
+          console.log(
+            `ARScannerPage: Applying scale: ${newScale} (base: ${baseScaleRef.current}, zoom: ${zoom})`
+          );
+          organModelRef.current.scale.set(newScale, newScale, newScale);
+        }
+        // Also apply to sliced model if it exists and is visible
+        if (slicedModelRef.current && slicedModelRef.current.visible) {
           const newScale = baseScaleRef.current * zoom;
           console.log(
             `ARScannerPage: Applying scale to sliced model: ${newScale} (base: ${baseScaleRef.current}, zoom: ${zoom})`
           );
           slicedModelRef.current.scale.set(newScale, newScale, newScale);
-        } else if (organModelRef.current) {
-          const newScale = baseScaleRef.current * zoom;
+        }
+        
+        if (!organModelRef.current && !slicedModelRef.current) {
           console.log(
-            `ARScannerPage: Applying scale to normal model: ${newScale} (base: ${baseScaleRef.current}, zoom: ${zoom})`
-          );
-          organModelRef.current.scale.set(newScale, newScale, newScale);
-        } else {
-          console.log(
-            "ARScannerPage: Model not loaded yet - will apply zoom when loaded"
+            "ARScannerPage: No models loaded yet - will apply zoom when loaded"
           );
         }
       },
@@ -351,7 +361,7 @@ const ARScannerPage: React.FC = () => {
       console.log("Cleaning up zoom controller");
       zoomControllerRef.current?.destroy();
     };
-  }, [organ.id, getBaseScale, transitionToSlicedModel, isSlicedModel]);// Zoom control handlers
+  }, [organ.id, getBaseScale, transitionToSlicedModel]);// Zoom control handlers
   const handleZoomIn = useCallback(() => {
     console.log("=== ARScannerPage: Zoom In button clicked ===");
     console.log("ZoomController exists:", !!zoomControllerRef.current);
