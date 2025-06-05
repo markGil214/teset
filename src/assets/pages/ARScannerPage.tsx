@@ -233,28 +233,14 @@ const ARScannerPage: React.FC = () => {
     setTimeout(() => setIsZoomAnimating(false), 300);
   }, []);
 
-  // Touch gesture handlers with proper event delegation
+  // Touch gesture handlers - now only called from AR canvas
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       // Don't handle touch events if confirmation dialog is shown
       if (showConfirmation) {
         return;
       }
-
-      // Check if the touch started on a UI button or interactive element
-      const target = e.target as HTMLElement;
-      if (target && (
-        target.tagName === 'BUTTON' ||
-        target.closest('button') ||
-        target.hasAttribute('data-ui-element') ||
-        target.closest('[data-ui-element]') ||
-        target.style.cursor === 'pointer' ||
-        target.closest('[style*="cursor: pointer"]')
-      )) {
-        // Don't prevent default for UI elements - let them handle their own events
-        return;
-      }
-
+      // Since this is only called from canvas, we can handle all touch events
       zoomControllerRef.current?.handleTouchStart(e);
     },
     [showConfirmation]
@@ -266,18 +252,7 @@ const ARScannerPage: React.FC = () => {
       if (showConfirmation) {
         return;
       }
-
-      // Check if we're in the middle of a UI interaction
-      const target = e.target as HTMLElement;
-      if (target && (
-        target.tagName === 'BUTTON' ||
-        target.closest('button') ||
-        target.hasAttribute('data-ui-element') ||
-        target.closest('[data-ui-element]')
-      )) {
-        return;
-      }
-
+      // Since this is only called from canvas, we can handle all touch events
       zoomControllerRef.current?.handleTouchMove(e);
     },
     [showConfirmation]
@@ -289,18 +264,7 @@ const ARScannerPage: React.FC = () => {
       if (showConfirmation) {
         return;
       }
-
-      // Check if this was a UI interaction
-      const target = e.target as HTMLElement;
-      if (target && (
-        target.tagName === 'BUTTON' ||
-        target.closest('button') ||
-        target.hasAttribute('data-ui-element') ||
-        target.closest('[data-ui-element]')
-      )) {
-        return;
-      }
-
+      // Since this is only called from canvas, we can handle all touch events
       zoomControllerRef.current?.handleTouchEnd(e);
     },
     [showConfirmation]
@@ -478,27 +442,46 @@ const ARScannerPage: React.FC = () => {
       animationId = requestAnimationFrame(animate);
     });
 
-    // Add touch event listeners for pinch-to-zoom
+    // Add touch event listeners for pinch-to-zoom ONLY to the renderer canvas
+    let canvasElement: HTMLCanvasElement | null = null;
+    
+    // Create event handler references
     const handleTouchStartEvent = (e: TouchEvent) => handleTouchStart(e);
     const handleTouchMoveEvent = (e: TouchEvent) => handleTouchMove(e);
     const handleTouchEndEvent = (e: TouchEvent) => handleTouchEnd(e);
-
-    document.addEventListener("touchstart", handleTouchStartEvent, {
-      passive: false,
-    });
-    document.addEventListener("touchmove", handleTouchMoveEvent, {
-      passive: false,
-    });
-    document.addEventListener("touchend", handleTouchEndEvent, {
-      passive: false,
-    });
+    
+    // Wait for canvas to be created and then attach touch events to it specifically
+    const attachTouchEvents = () => {
+      canvasElement = renderer.domElement as HTMLCanvasElement;
+      if (canvasElement) {
+        console.log("Attaching touch events to AR canvas only");
+        
+        canvasElement.addEventListener("touchstart", handleTouchStartEvent, {
+          passive: false,
+        });
+        canvasElement.addEventListener("touchmove", handleTouchMoveEvent, {
+          passive: false,
+        });
+        canvasElement.addEventListener("touchend", handleTouchEndEvent, {
+          passive: false,
+        });
+        
+        // Prevent default touch behaviors on canvas only
+        canvasElement.style.touchAction = "none";
+      }
+    };
+    
+    // Attach events after a short delay to ensure canvas is ready
+    setTimeout(attachTouchEvents, 100);
 
     // Cleanup
     return () => {
-      // Remove touch event listeners
-      document.removeEventListener("touchstart", handleTouchStartEvent);
-      document.removeEventListener("touchmove", handleTouchMoveEvent);
-      document.removeEventListener("touchend", handleTouchEndEvent);
+      // Remove touch event listeners from canvas only
+      if (canvasElement) {
+        canvasElement.removeEventListener("touchstart", handleTouchStartEvent);
+        canvasElement.removeEventListener("touchmove", handleTouchMoveEvent);
+        canvasElement.removeEventListener("touchend", handleTouchEndEvent);
+      }
       // Cancel animation frame
       if (animationId) {
         cancelAnimationFrame(animationId);
@@ -719,8 +702,14 @@ const ARScannerPage: React.FC = () => {
             padding: "8px",
             marginTop: "10px",
             cursor: "pointer",
+            touchAction: "manipulation",
           }}
           onClick={() => navigate(-1)}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            navigate(-1);
+          }}
         >
           ← Back to Menu [{organ.name} 3D Model]{" "}
         </div>
@@ -746,6 +735,11 @@ const ARScannerPage: React.FC = () => {
           {/* Labels Toggle Button */}
           <button
             onClick={toggleLabels}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleLabels();
+            }}
             data-ui-element="true"
             style={{
               position: "absolute",
@@ -765,6 +759,7 @@ const ARScannerPage: React.FC = () => {
               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
               backdropFilter: "blur(10px)",
               transition: "all 0.3s ease",
+              touchAction: "manipulation",
             }}
           >
             {showLabels ? "🏷️ Hide Labels" : "🏷️ Show Labels"}
@@ -774,6 +769,11 @@ const ARScannerPage: React.FC = () => {
           {showLabels && (
             <button
               onClick={toggleLanguage}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleLanguage();
+              }}
               data-ui-element="true"
               style={{
                 position: "absolute",
@@ -791,6 +791,7 @@ const ARScannerPage: React.FC = () => {
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
                 backdropFilter: "blur(10px)",
                 transition: "all 0.3s ease",
+                touchAction: "manipulation",
               }}
             >
               🌐 {language === "en" ? "Filipino" : "English"}

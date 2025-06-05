@@ -26,6 +26,11 @@ const ARLabel: React.FC<ARLabelProps> = ({
     <>      {/* Main Label */}
       <div
         onClick={onClick}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onClick();
+        }}
         data-ui-element="true"
         style={{
           position: "absolute",
@@ -52,6 +57,7 @@ const ARLabel: React.FC<ARLabelProps> = ({
           display: "flex",
           alignItems: "center",
           gap: "6px",
+          touchAction: "manipulation",
         }}
       >
         {/* Arrow pointing to anatomical part */}
@@ -71,10 +77,14 @@ const ARLabel: React.FC<ARLabelProps> = ({
           }}
         />
         
-        <span>{point.title[language]}</span>
-          {/* Info icon */}
+        <span>{point.title[language]}</span>        {/* Info icon */}
         <span
           onClick={(e) => {
+            e.stopPropagation();
+            setShowDetailed(true);
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             setShowDetailed(true);
           }}
@@ -89,6 +99,7 @@ const ARLabel: React.FC<ARLabelProps> = ({
             justifyContent: "center",
             fontSize: "12px",
             cursor: "pointer",
+            touchAction: "manipulation",
           }}
         >
           ℹ️

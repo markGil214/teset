@@ -12,6 +12,26 @@ a {
   z-index: 20; /* Higher than background elements */
 }
 
+/* Touch handling for UI elements */
+[data-ui-element="true"],
+button,
+[role="button"] {
+  touch-action: manipulation !important;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  pointer-events: auto !important;
+  z-index: 100 !important;
+}
+
+/* Prevent touch scroll/zoom on AR canvas */
+canvas {
+  touch-action: none;
+}
+
 /* For debugging - uncomment to see z-index layers
 .z-0 { background-color: rgba(255, 0, 0, 0.1); }
 .z-10 { background-color: rgba(0, 255, 0, 0.1); }
