@@ -5,6 +5,82 @@ import { ZoomController } from "../../utils/ZoomController";
 import ARControls from "../components/ARControls";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 
+// Heart parts data for labeling system
+interface HeartPart {
+  id: string;
+  name: string;
+  description: string;
+  position: [number, number, number];
+  color: string;
+}
+
+const heartParts: HeartPart[] = [
+  {
+    id: "1",
+    name: "Aorta",
+    description:
+      "The main artery that carries oxygenated blood from the left ventricle to the rest of the body.",
+    position: [0, 1, 0.5],
+    color: "#e74c3c",
+  },
+  {
+    id: "2",
+    name: "Superior Vena Cava",
+    description:
+      "Large vein that carries deoxygenated blood from the upper body back to the right atrium of the heart.",
+    position: [-0.5, 0.4, 0.2],
+    color: "#3498db",
+  },
+  {
+    id: "3",
+    name: "Pulmonary Artery",
+    description:
+      "Carries deoxygenated blood from the right ventricle to the lungs for oxygenation.",
+    position: [1.0, 0.3, 0.2],
+    color: "#9b59b6",
+  },
+  {
+    id: "4",
+    name: "Right Atrium",
+    description:
+      "Upper right chamber of the heart that receives deoxygenated blood from the body via the vena cavae.",
+    position: [0.2, 0.1, 0.4],
+    color: "#2ecc71",
+  },
+  {
+    id: "5",
+    name: "Left Atrium",
+    description:
+      "Upper left chamber of the heart that receives oxygenated blood from the lungs via the pulmonary veins.",
+    position: [1.2, 0.0, 0.2],
+    color: "#f39c12",
+  },
+  {
+    id: "6",
+    name: "Right Ventricle",
+    description:
+      "Lower right chamber of the heart that pumps deoxygenated blood to the lungs through the pulmonary artery.",
+    position: [0.1, -0.4, 0.4],
+    color: "#8e44ad",
+  },
+  {
+    id: "7",
+    name: "Left Ventricle",
+    description:
+      "Lower left chamber of the heart that pumps oxygenated blood to the body through the aorta. It has the thickest muscular wall.",
+    position: [1.0, -0.2, 0.2],
+    color: "#c0392b",
+  },
+  {
+    id: "8",
+    name: "Inferior Vena Cava",
+    description:
+      "Large vein that carries deoxygenated blood from the lower body back to the right atrium of the heart.",
+    position: [0.1, -0.7, 0.3],
+    color: "#34495e",
+  },
+];
+
 // Declare global variables for the libraries
 declare global {
   interface Window {
@@ -28,12 +104,16 @@ const ARScannerPage: React.FC = () => {
   const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);
   const [showSlicedModel, setShowSlicedModel] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedPart, setSelectedPart] = useState<string | null>(null);
   const showSlicedModelRef = useRef(false);
   const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
   const baseScaleRef = useRef<number>(0.5);
   const originalModelRef = useRef<any>(null);
+  const labelGroupRef = useRef<any>(null);
+  const raycasterRef = useRef<any>(null);
+  const mouseRef = useRef<any>(null);
 
   if (!organ) {
     return <div>Organ not found</div>;
@@ -276,6 +356,7 @@ const ARScannerPage: React.FC = () => {
     let animationId: number;
     let renderer: any;
     let source: any;
+    let clickHandler: ((event: MouseEvent) => void) | null = null;
 
     // EXACT COPY-CAT of basic-cutout.html script section
     renderer = new window.THREE.WebGLRenderer({
@@ -297,6 +378,10 @@ const ARScannerPage: React.FC = () => {
 
     source = new window.THREEAR.Source({ renderer, camera });
     window.THREEAR.initialize({ source: source }).then((controller: any) => {
+      // Initialize raycaster and mouse for label interaction
+      raycasterRef.current = new window.THREE.Raycaster();
+      mouseRef.current = new window.THREE.Vector2();
+
       // Add lighting for better 3D model visibility
       var ambientLight = new window.THREE.AmbientLight(0x404040, 0.6);
       scene.add(ambientLight);
@@ -387,7 +472,11 @@ const ARScannerPage: React.FC = () => {
         markerObject: markerGroup,
       });
 
-      controller.trackMarker(patternMarker); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
+      controller.trackMarker(patternMarker);
+
+      // Add click event listener for label interaction
+      clickHandler = (event: MouseEvent) => handleCanvasClick(event, camera, renderer);
+      renderer.domElement.addEventListener('click', clickHandler); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
       var lastTimeMsec = 0;
       function animate(nowMsec: number) {
         // keep looping
@@ -434,6 +523,12 @@ const ARScannerPage: React.FC = () => {
       document.removeEventListener("touchstart", handleTouchStartEvent);
       document.removeEventListener("touchmove", handleTouchMoveEvent);
       document.removeEventListener("touchend", handleTouchEndEvent);
+      
+      // Remove click event listener
+      if (renderer && renderer.domElement && clickHandler) {
+        renderer.domElement.removeEventListener('click', clickHandler);
+      }
+
       // Cancel animation frame
       if (animationId) {
         cancelAnimationFrame(animationId);
@@ -469,11 +564,82 @@ const ARScannerPage: React.FC = () => {
     };
   }, [organ]);
 
-  // Function to load sliced heart model
+  // Function to create heart part labels
+  const createHeartLabels = useCallback(() => {
+    if (!markerGroupRef.current) return;
+
+    console.log("Creating heart part labels...");
+
+    // Create a group for all labels
+    const labelGroup = new window.THREE.Group();
+    labelGroupRef.current = labelGroup;
+
+    heartParts.forEach((part) => {
+      // Create a sphere for the label point
+      const geometry = new window.THREE.SphereGeometry(0.02, 16, 16);
+      const material = new window.THREE.MeshBasicMaterial({
+        color: part.color,
+        transparent: true,
+        opacity: 0.8,
+      });
+      const sphere = new window.THREE.Mesh(geometry, material);
+      
+      // Position the label
+      sphere.position.set(part.position[0], part.position[1], part.position[2]);
+      
+      // Add click functionality
+      sphere.userData = { partId: part.id, partName: part.name };
+      
+      labelGroup.add(sphere);
+
+      // Create text label
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (context) {
+        canvas.width = 64;
+        canvas.height = 64;
+        context.fillStyle = 'white';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = 'black';
+        context.font = 'Bold 20px Arial';
+        context.textAlign = 'center';
+        context.fillText(part.id, canvas.width / 2, canvas.height / 2 + 7);
+        
+        const texture = new window.THREE.CanvasTexture(canvas);
+        const spriteMaterial = new window.THREE.SpriteMaterial({ map: texture, transparent: true });
+        const sprite = new window.THREE.Sprite(spriteMaterial);
+        sprite.position.set(part.position[0] + 0.1, part.position[1] + 0.1, part.position[2]);
+        sprite.scale.set(0.1, 0.1, 0.1);
+        
+        labelGroup.add(sprite);
+      }
+    });
+
+    // Add label group to marker group
+    markerGroupRef.current.add(labelGroup);
+    console.log("Heart part labels created successfully");
+  }, []);
+
+  // Function to remove heart labels
+  const removeHeartLabels = useCallback(() => {
+    if (labelGroupRef.current && markerGroupRef.current) {
+      markerGroupRef.current.remove(labelGroupRef.current);
+      labelGroupRef.current = null;
+      console.log("Heart part labels removed");
+    }
+  }, []);
+
+  // Function to handle part selection
+  const handlePartClick = useCallback((partId: string) => {
+    setSelectedPart(partId === selectedPart ? null : partId);
+    console.log(`Selected heart part: ${partId}`);
+  }, [selectedPart]);
+
+  // Function to load sliced heart model with labels
   const loadSlicedHeartModel = useCallback(() => {
     if (!markerGroupRef.current || !organModelRef.current) return;
 
-    console.log("Loading sliced heart model...");
+    console.log("Loading sliced heart model with labels...");
 
     // Store reference to original model
     originalModelRef.current = organModelRef.current;
@@ -504,7 +670,10 @@ const ARScannerPage: React.FC = () => {
         organModelRef.current = slicedModel;
         (markerGroupRef.current as any).organModel = slicedModel;
 
-        console.log("Sliced heart model loaded successfully");
+        // Create heart part labels
+        createHeartLabels();
+
+        console.log("Sliced heart model with labels loaded successfully");
       },
       undefined,
       (error: any) => {
@@ -516,7 +685,26 @@ const ARScannerPage: React.FC = () => {
         }
       }
     );
-  }, []);
+  }, [createHeartLabels]);
+
+  // Handle canvas click for label interaction
+  const handleCanvasClick = useCallback((event: MouseEvent, camera: any, renderer: any) => {
+    if (!showSlicedModel || !labelGroupRef.current || !raycasterRef.current) return;
+
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycasterRef.current.setFromCamera(mouseRef.current, camera);
+    const intersects = raycasterRef.current.intersectObjects(labelGroupRef.current.children, true);
+
+    if (intersects.length > 0) {
+      const clickedObject = intersects[0].object;
+      if (clickedObject.userData && clickedObject.userData.partId) {
+        handlePartClick(clickedObject.userData.partId);
+      }
+    }
+  }, [showSlicedModel, handlePartClick]);
 
   // Function to restore original model
   const restoreOriginalModel = useCallback(() => {
@@ -529,6 +717,9 @@ const ARScannerPage: React.FC = () => {
       markerGroupRef.current.remove(organModelRef.current);
     }
 
+    // Remove heart labels
+    removeHeartLabels();
+
     // Add original model back to scene
     markerGroupRef.current.add(originalModelRef.current);
 
@@ -537,7 +728,7 @@ const ARScannerPage: React.FC = () => {
     (markerGroupRef.current as any).organModel = originalModelRef.current;
 
     console.log("Original heart model restored successfully");
-  }, []);
+  }, [removeHeartLabels]);
 
   useEffect(() => {
     if (showSlicedModel) {
@@ -672,6 +863,56 @@ const ARScannerPage: React.FC = () => {
         onConfirm={handleConfirmViewSlicedHeart}
         onCancel={handleCancelViewSlicedHeart}
       />
+
+      {/* Heart Part Information Panel */}
+      {selectedPart && showSlicedModel && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "20px",
+            left: "20px",
+            right: "20px",
+            backgroundColor: "rgba(44, 62, 80, 0.95)",
+            color: "white",
+            padding: "15px",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            backdropFilter: "blur(10px)",
+            zIndex: 200,
+            maxWidth: "400px",
+            margin: "0 auto",
+          }}
+        >
+          {(() => {
+            const selectedPartData = heartParts.find((part) => part.id === selectedPart);
+            return selectedPartData ? (
+              <>
+                <h3 style={{ margin: "0 0 10px 0", color: "#f39c12" }}>
+                  {selectedPartData.name}
+                </h3>
+                <p style={{ margin: 0, fontSize: "14px", lineHeight: "1.4" }}>
+                  {selectedPartData.description}
+                </p>
+                <button
+                  onClick={() => setSelectedPart(null)}
+                  style={{
+                    marginTop: "10px",
+                    padding: "5px 10px",
+                    backgroundColor: "#e74c3c",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                  }}
+                >
+                  Close
+                </button>
+              </>
+            ) : null;
+          })()}
+        </div>
+      )}
     </div>
   );
 };
