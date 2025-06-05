@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-// Heart part interface for interactive labeling system
+// Heart Part Interface and Data - copied from sample/App.tsx
 interface HeartPart {
   id: string;
   name: string;
@@ -22,7 +22,6 @@ interface HeartPart {
   color: string;
 }
 
-// Heart parts data for interactive labels
 const heartParts: HeartPart[] = [
   {
     id: "1",
