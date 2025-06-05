@@ -82,13 +82,69 @@ const heartParts: HeartPart[] = [
 ];
 
 function SlicedHeartModel({ onPartClick }: { onPartClick: (id: string) => void }) {
-  const { scene } = useGLTF("/sliced_organs/heart.glb");
+  const gltf = useGLTF("/sliced_organs/heart.glb");
   const meshRef = useRef<Object3D>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  // Clone the scene to avoid issues with reusing the same object
+  const clonedScene = React.useMemo(() => {
+    try {
+      if (gltf?.scene) {
+        return gltf.scene.clone();
+      }
+      return null;
+    } catch (err) {
+      console.error("Error cloning scene:", err);
+      setError(err as Error);
+      return null;
+    }
+  }, [gltf]);
+
+  React.useEffect(() => {
+    if (gltf?.scene) {
+      console.log("Sliced heart model loaded successfully:", gltf.scene);
+    }
+  }, [gltf]);
+
+  if (error) {
+    console.error("Error with sliced heart model:", error);
+    return (
+      <Html center>
+        <div style={{ 
+          color: "red", 
+          fontSize: "16px", 
+          textAlign: "center",
+          padding: "15px",
+          backgroundColor: "rgba(0,0,0,0.8)",
+          borderRadius: "8px"
+        }}>
+          Failed to load sliced heart model
+        </div>
+      </Html>
+    );
+  }
+
+  if (!clonedScene) {
+    return (
+      <Html center>
+        <div style={{ 
+          color: "white", 
+          fontSize: "16px", 
+          textAlign: "center",
+          padding: "15px",
+          backgroundColor: "rgba(0,0,0,0.8)",
+          borderRadius: "8px"
+        }}>
+          Loading sliced heart model...
+        </div>
+      </Html>
+    );
+  }
 
   return (
     <primitive
       ref={meshRef}
-      object={scene}
+      object={clonedScene}
       scale={2.5}
       position={[0, -0.5, 0]}
       onClick={(e: ThreeEvent<MouseEvent>) => {
@@ -98,6 +154,9 @@ function SlicedHeartModel({ onPartClick }: { onPartClick: (id: string) => void }
     />
   );
 }
+
+// Preload the model
+useGLTF.preload("/sliced_organs/heart.glb");
 
 function PartLabel({
   part,
@@ -199,9 +258,7 @@ function Scene() {
             onClick={() => handlePartClick(part.id)}
           />
         ))}
-      </Suspense>
-
-      <OrbitControls
+      </Suspense>      <OrbitControls
         enablePan={true}
         enableZoom={true}
         enableRotate={true}
@@ -209,6 +266,17 @@ function Scene() {
         maxDistance={12}
         autoRotate={false}
         autoRotateSpeed={0.5}
+        target={[0, 0, 0]}
+        enableDamping={true}
+        dampingFactor={0.05}
+        screenSpacePanning={false}
+        maxPolarAngle={Math.PI}
+        ref={(controls) => {
+          if (controls) {
+            // Reset to default position when controls are created
+            controls.reset();
+          }
+        }}
       />
 
       {selectedPartData && (
@@ -271,6 +339,14 @@ function Scene() {
 
 const SlicedHeartPage: React.FC = () => {
   const navigate = useNavigate();
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      // Clean up any lingering Three.js resources
+      console.log("Cleaning up SlicedHeartPage resources");
+    };
+  }, []);
 
   return (
     <div
@@ -358,13 +434,35 @@ const SlicedHeartPage: React.FC = () => {
         <div>• Click numbered labels to view part details</div>
         <div>• Drag to rotate • Scroll to zoom</div>
         <div>• Right-click drag to pan</div>
-      </div>
-
-      <Canvas
-        camera={{ position: [0, 0, 8], fov: 45 }}
+      </div>      <Canvas
+        camera={{ 
+          position: [0, 0, 8], 
+          fov: 45,
+          near: 0.1,
+          far: 1000 
+        }}
         style={{
           width: "100%",
           height: "100%",
+        }}
+        onCreated={({ gl, camera, scene }) => {
+          console.log("Canvas created successfully");
+          console.log("Camera position:", camera.position);
+          console.log("Scene:", scene);
+          
+          // Ensure proper camera setup
+          camera.position.set(0, 0, 8);
+          camera.lookAt(0, 0, 0);
+          camera.updateProjectionMatrix();
+          
+          // Configure renderer
+          gl.setClearColor(0x000000, 0);
+          gl.setSize(window.innerWidth, window.innerHeight);
+        }}
+        gl={{ 
+          antialias: true, 
+          alpha: true,
+          preserveDrawingBuffer: true 
         }}
       >
         <Scene />
