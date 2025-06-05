@@ -26,6 +26,7 @@ const ARScannerPage: React.FC = () => {
   const [isZoomAnimating, setIsZoomAnimating] = useState(false);
   const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);
   const [showSlicedModel, setShowSlicedModel] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const showSlicedModelRef = useRef(false);
   const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
@@ -65,15 +66,17 @@ const ARScannerPage: React.FC = () => {
       onZoomChange: (zoom: number) => {
         console.log(`ARScannerPage: Zoom changed to: ${zoom}x`);
         setCurrentZoom(zoom);
-        
+
         // Check if we should switch back to original model when zooming out
         if (showSlicedModel && zoom < 3.0 && organ.id === "heart") {
-          console.log("Zoom reduced below max - switching back to original model");
+          console.log(
+            "Zoom reduced below max - switching back to original model"
+          );
           restoreOriginalModel();
           setShowSlicedModel(false);
           showSlicedModelRef.current = false;
         }
-        
+
         // Apply zoom to the 3D model
         if (organModelRef.current) {
           const newScale = baseScaleRef.current * zoom;
@@ -95,9 +98,10 @@ const ARScannerPage: React.FC = () => {
       },
       onMaxZoomReached: () => {
         if (organ.id === "heart") {
-          console.log("ARScannerPage: Max zoom reached - loading sliced heart model");
-          setShowSlicedModel(true);
-          showSlicedModelRef.current = true;
+          console.log(
+            "ARScannerPage: Max zoom reached - showing sliced heart confirmation"
+          );
+          setShowConfirmation(true);
         } else {
           console.log("ARScannerPage: Max zoom reached - showing message");
           setShowMaxZoomMessage(true);
@@ -397,10 +401,10 @@ const ARScannerPage: React.FC = () => {
     if (!markerGroupRef.current || !organModelRef.current) return;
 
     console.log("Loading sliced heart model...");
-    
+
     // Store reference to original model
     originalModelRef.current = organModelRef.current;
-    
+
     // Remove current model from scene
     markerGroupRef.current.remove(organModelRef.current);
 
@@ -410,22 +414,23 @@ const ARScannerPage: React.FC = () => {
       "/sliced_organs/heart.glb",
       (gltf: any) => {
         const slicedModel = gltf.scene;
-        
+
         // Apply same scale and position as heart
         const scale = 0.8;
-        const currentZoomLevel = zoomControllerRef.current?.getCurrentZoom() || 1.0;
+        const currentZoomLevel =
+          zoomControllerRef.current?.getCurrentZoom() || 1.0;
         const finalScale = scale * currentZoomLevel;
-        
+
         slicedModel.scale.set(finalScale, finalScale, finalScale);
         slicedModel.position.y = 0;
-        
+
         // Add sliced model to scene
         markerGroupRef.current.add(slicedModel);
-        
+
         // Update model reference
         organModelRef.current = slicedModel;
         (markerGroupRef.current as any).organModel = slicedModel;
-        
+
         console.log("Sliced heart model loaded successfully");
       },
       undefined,
@@ -445,19 +450,19 @@ const ARScannerPage: React.FC = () => {
     if (!markerGroupRef.current || !originalModelRef.current) return;
 
     console.log("Restoring original heart model...");
-    
+
     // Remove current sliced model from scene
     if (organModelRef.current) {
       markerGroupRef.current.remove(organModelRef.current);
     }
-    
+
     // Add original model back to scene
     markerGroupRef.current.add(originalModelRef.current);
-    
+
     // Update model reference
     organModelRef.current = originalModelRef.current;
     (markerGroupRef.current as any).organModel = originalModelRef.current;
-    
+
     console.log("Original heart model restored successfully");
   }, []);
 
@@ -466,6 +471,23 @@ const ARScannerPage: React.FC = () => {
       loadSlicedHeartModel();
     }
   }, [showSlicedModel, loadSlicedHeartModel]);
+
+  // Handle confirmation dialog actions
+  const handleConfirmViewSlicedHeart = useCallback(() => {
+    console.log("User confirmed to view sliced heart model");
+    setShowConfirmation(false);
+    setShowSlicedModel(true);
+    showSlicedModelRef.current = true;
+  }, []);
+
+  const handleCancelViewSlicedHeart = useCallback(() => {
+    console.log("User cancelled viewing sliced heart model");
+    setShowConfirmation(false);
+    // Zoom out slightly to prevent triggering the max zoom again immediately
+    if (zoomControllerRef.current) {
+      zoomControllerRef.current.zoomOut();
+    }
+  }, []);
 
   return (
     <div
@@ -558,6 +580,77 @@ const ARScannerPage: React.FC = () => {
           height: "100vh",
         }}
       />
+
+      {/* Confirmation Dialog for Sliced Heart Model */}
+      {showConfirmation && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "20px",
+              borderRadius: "10px",
+              maxWidth: "90%",
+              width: "350px",
+              textAlign: "center",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>
+              View Sliced Heart Model
+            </h3>
+            <p style={{ margin: "0 0 20px 0", color: "#666" }}>
+              You've reached maximum zoom level. Would you like to view the 
+              sliced model of the heart to see its internal structure?
+            </p>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <button
+                onClick={handleCancelViewSlicedHeart}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "5px",
+                  border: "none",
+                  backgroundColor: "#ccc",
+                  color: "#333",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  flex: 1,
+                  marginRight: "10px",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmViewSlicedHeart}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "5px",
+                  border: "none",
+                  backgroundColor: "#4CAF50",
+                  color: "white",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  flex: 1,
+                }}
+              >
+                View Sliced Model
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
