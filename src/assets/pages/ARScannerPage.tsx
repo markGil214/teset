@@ -4,13 +4,6 @@ import { organs } from "../components/organData";
 import { ZoomController } from "../../utils/ZoomController";
 import ARControls from "../components/ARControls";
 import ConfirmationDialog from "../components/ConfirmationDialog";
-import ARLabel from "../components/ARLabel";
-import AudioNarration from "../components/AudioNarration";
-import EducationalOverlay from "../components/EducationalOverlay";
-import AdvancedModes from "../components/AdvancedModes";
-import PerformanceMonitor from "../components/PerformanceMonitor";
-import HelpGuide from "../components/HelpGuide";
-import { anatomicalData, Language, AnatomicalPart } from "../data/anatomicalData";
 
 // Declare global variables for the libraries
 declare global {
@@ -35,19 +28,6 @@ const ARScannerPage: React.FC = () => {
   const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);
   const [showSlicedModel, setShowSlicedModel] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  
-  // AR Labels state
-  const [currentLanguage, setCurrentLanguage] = useState<Language>('en');
-  const [showLabels, setShowLabels] = useState(false);
-  const [selectedPartId, setSelectedPartId] = useState<string | null>(null);
-  const [showEducationalOverlay, setShowEducationalOverlay] = useState(false);
-  const [cutawayEnabled, setCutawayEnabled] = useState(false);
-  const [xrayEnabled, setXrayEnabled] = useState(false);
-  const [cameraPosition, setCameraPosition] = useState({ x: 0, y: 0, z: 5 });
-  const [modelPosition, setModelPosition] = useState({ x: 0, y: 0, z: 0 });
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
-  const [showHelpGuide, setShowHelpGuide] = useState(false);
-  
   const showSlicedModelRef = useRef(false);
   const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
@@ -110,24 +90,13 @@ const ARScannerPage: React.FC = () => {
             "ARScannerPage: Model not loaded yet - will apply zoom when loaded"
           );
         }
-      },          onThresholdCrossed: (threshold: string, zoom: number) => {
-            console.log(
-              `ARScannerPage: Zoom threshold crossed: ${threshold} at ${zoom}x`
-            );
-            
-            // Show labels when zooming in beyond 2x
-            if (threshold === 'medium' && zoom >= 2.0 && !showLabels) {
-              console.log("Activating AR labels at medium zoom level");
-              setShowLabels(true);
-            }
-            
-            // Hide labels when zooming out below 2x
-            if (zoom < 2.0 && showLabels) {
-              console.log("Deactivating AR labels below medium zoom level");
-              setShowLabels(false);
-              setSelectedPartId(null);
-            }
-          },
+      },
+      onThresholdCrossed: (threshold: string, zoom: number) => {
+        console.log(
+          `ARScannerPage: Zoom threshold crossed: ${threshold} at ${zoom}x`
+        );
+        // Future: Handle threshold crossings for slicing, labels, etc.
+      },
       onMaxZoomReached: () => {
         if (organ.id === "heart") {
           console.log(
@@ -205,89 +174,6 @@ const ARScannerPage: React.FC = () => {
     }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
-  }, []);
-
-  // AR Label control handlers
-  const handleToggleLabels = useCallback(() => {
-    setShowLabels(!showLabels);
-    if (!showLabels) {
-      setSelectedPartId(null);
-    }
-    console.log(`AR Labels ${!showLabels ? 'enabled' : 'disabled'}`);
-  }, [showLabels]);
-
-  const handleToggleLanguage = useCallback(() => {
-    const newLanguage = currentLanguage === 'en' ? 'fil' : 'en';
-    setCurrentLanguage(newLanguage);
-    console.log(`Language switched to: ${newLanguage}`);
-  }, [currentLanguage]);
-
-  const handleTogglePartDetails = useCallback((partId: string) => {
-    setSelectedPartId(selectedPartId === partId ? null : partId);
-    console.log(`Part details toggled for: ${partId}`);
-  }, [selectedPartId]);
-
-  const handleToggleEducationalOverlay = useCallback(() => {
-    setShowEducationalOverlay(!showEducationalOverlay);
-    console.log(`Educational overlay ${!showEducationalOverlay ? 'opened' : 'closed'}`);
-  }, [showEducationalOverlay]);
-
-  const handleToggleHelpGuide = useCallback(() => {
-    setShowHelpGuide(!showHelpGuide);
-    console.log(`Help guide ${!showHelpGuide ? 'opened' : 'closed'}`);
-  }, [showHelpGuide]);
-
-  // Advanced modes handlers
-  const handleCutawayToggle = useCallback((enabled: boolean) => {
-    setCutawayEnabled(enabled);
-    console.log(`Cutaway mode ${enabled ? 'enabled' : 'disabled'}`);
-    
-    // Apply cutaway effect to 3D model
-    if (organModelRef.current) {
-      organModelRef.current.traverse((child: any) => {
-        if (child.isMesh) {
-          if (enabled) {
-            // Enable cutaway effect
-            child.material.side = window.THREE.DoubleSide;
-            child.material.transparent = true;
-            child.material.opacity = 0.7;
-            child.material.needsUpdate = true;
-          } else {
-            // Disable cutaway effect
-            child.material.side = window.THREE.FrontSide;
-            child.material.transparent = false;
-            child.material.opacity = 1.0;
-            child.material.needsUpdate = true;
-          }
-        }
-      });
-    }
-  }, []);
-
-  const handleXrayToggle = useCallback((enabled: boolean) => {
-    setXrayEnabled(enabled);
-    console.log(`X-ray mode ${enabled ? 'enabled' : 'disabled'}`);
-    
-    // Apply x-ray effect to 3D model
-    if (organModelRef.current) {
-      organModelRef.current.traverse((child: any) => {
-        if (child.isMesh) {
-          if (enabled) {
-            // Enable x-ray effect
-            child.material.transparent = true;
-            child.material.opacity = 0.3;
-            child.material.wireframe = true;
-            child.material.needsUpdate = true;
-          } else {
-            // Disable x-ray effect
-            child.material.transparent = false;
-            child.material.opacity = 1.0;
-            child.material.wireframe = false;
-            child.material.needsUpdate = true;
-          }
-        }
-      });
-    }
   }, []);
 
   // Touch gesture handlers - Following PHASE3 pattern for UI element detection
@@ -402,10 +288,7 @@ const ARScannerPage: React.FC = () => {
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0px";
     renderer.domElement.style.left = "0px";
-    document.body.appendChild(renderer.domElement);
-    
-    // Update canvas size for AR labels
-    setCanvasSize({ width: window.innerWidth, height: window.innerHeight }); // init scene and camera - EXACT SAME AS BASIC.HTML
+    document.body.appendChild(renderer.domElement); // init scene and camera - EXACT SAME AS BASIC.HTML
     var scene = new window.THREE.Scene();
     var camera = new window.THREE.Camera();
     scene.add(camera);
@@ -515,21 +398,6 @@ const ARScannerPage: React.FC = () => {
         lastTimeMsec = nowMsec;
         // call each update function
         controller.update(source.domElement);
-        
-        // Update camera and model positions for AR labels
-        if (showLabels && camera && markerGroup) {
-          setCameraPosition({
-            x: camera.position.x,
-            y: camera.position.y,
-            z: camera.position.z
-          });
-          
-          setModelPosition({
-            x: markerGroup.position.x,
-            y: markerGroup.position.y,
-            z: markerGroup.position.z
-          });
-        }
 
         // Rotate the 3D model if it's loaded (but not for sliced heart model)
         if ((markerGroup as any).organModel) {
@@ -787,179 +655,6 @@ const ARScannerPage: React.FC = () => {
         organId={organ.id}
         onMaxZoomMessageShown={() => setShowMaxZoomMessage(false)}
       />
-
-      {/* Educational Controls - Only show when zoom >= 2x */}
-      {currentZoom >= 2.0 && (
-        <div
-          style={{
-            position: "absolute",
-            top: "10px",
-            right: "10px",
-            zIndex: 200,
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-          }}
-        >
-          {/* Language Toggle */}
-          <button
-            onClick={handleToggleLanguage}
-            data-ui-element="true"
-            style={{
-              backgroundColor: "rgba(33, 150, 243, 0.9)",
-              color: "white",
-              border: "none",
-              padding: "8px 12px",
-              borderRadius: "6px",
-              fontSize: "12px",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            {currentLanguage === 'en' ? 'EN' : 'FIL'}
-          </button>
-
-          {/* Labels Toggle */}
-          <button
-            onClick={handleToggleLabels}
-            data-ui-element="true"
-            style={{
-              backgroundColor: showLabels 
-                ? "rgba(76, 175, 80, 0.9)" 
-                : "rgba(158, 158, 158, 0.9)",
-              color: "white",
-              border: "none",
-              padding: "8px 12px",
-              borderRadius: "6px",
-              fontSize: "12px",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            {showLabels ? "🏷️ ON" : "🏷️ OFF"}
-          </button>
-
-          {/* Educational Overlay Toggle - Only show when zoom >= 3x */}
-          {currentZoom >= 3.0 && (
-            <button
-              onClick={handleToggleEducationalOverlay}
-              data-ui-element="true"
-              style={{
-                backgroundColor: showEducationalOverlay 
-                  ? "rgba(156, 39, 176, 0.9)" 
-                  : "rgba(96, 125, 139, 0.9)",
-                color: "white",
-                border: "none",
-                padding: "8px 12px",
-                borderRadius: "6px",
-                fontSize: "12px",
-                cursor: "pointer",
-                fontWeight: "bold",
-              }}
-            >
-              {showEducationalOverlay ? "📚 CLOSE" : "📚 LEARN"}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* AR Labels */}
-      {showLabels && anatomicalData[organ.id] && (
-        <>
-          {anatomicalData[organ.id].parts.map((part: AnatomicalPart) => (
-            <ARLabel
-              key={part.id}
-              part={part}
-              language={currentLanguage}
-              isVisible={showLabels}
-              onToggleDetails={handleTogglePartDetails}
-              showDetails={selectedPartId === part.id}
-              cameraPosition={cameraPosition}
-              modelPosition={modelPosition}
-              canvasWidth={canvasSize.width}
-              canvasHeight={canvasSize.height}
-            />
-          ))}
-        </>
-      )}
-
-      {/* Audio Narration */}
-      <AudioNarration
-        organId={organ.id}
-        language={currentLanguage}
-        isVisible={currentZoom >= 2.0}
-        currentZoom={currentZoom}
-      />
-
-      {/* Educational Overlay */}
-      <EducationalOverlay
-        organId={organ.id}
-        language={currentLanguage}
-        isVisible={showEducationalOverlay}
-        currentZoom={currentZoom}
-        onClose={() => setShowEducationalOverlay(false)}
-      />
-
-      {/* Advanced Interaction Modes */}
-      <AdvancedModes
-        organId={organ.id}
-        language={currentLanguage}
-        isVisible={currentZoom >= 4.0}
-        currentZoom={currentZoom}
-        onCutawayToggle={handleCutawayToggle}
-        onXrayToggle={handleXrayToggle}
-        cutawayEnabled={cutawayEnabled}
-        xrayEnabled={xrayEnabled}
-      />
-
-      {/* Performance Monitor */}
-      <PerformanceMonitor
-        isVisible={true}
-        isDevelopment={process.env.NODE_ENV === 'development'}
-      />
-
-      {/* Help Guide */}
-      <HelpGuide
-        isVisible={showHelpGuide}
-        language={currentLanguage}
-        onClose={() => setShowHelpGuide(false)}
-      />
-
-      {/* Floating Help Button */}
-      <button
-        onClick={handleToggleHelpGuide}
-        data-ui-element="true"
-        style={{
-          position: "fixed",
-          top: "20px",
-          right: "20px",
-          zIndex: 1000,
-          backgroundColor: "rgba(33, 150, 243, 0.9)",
-          color: "white",
-          border: "none",
-          borderRadius: "50%",
-          width: "48px",
-          height: "48px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          fontSize: "20px",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
-          transition: "all 0.2s ease",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(33, 150, 243, 1)";
-          e.currentTarget.style.transform = "scale(1.1)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(33, 150, 243, 0.9)";
-          e.currentTarget.style.transform = "scale(1)";
-        }}
-        title={currentLanguage === 'en' ? 'Help & Guide' : 'Tulong at Gabay'}
-      >
-        ❓
-      </button>
 
       {/* AR container - attached to body like cutout example */}
       <div
