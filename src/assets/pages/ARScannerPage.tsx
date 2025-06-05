@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { organs } from "../components/organData";
 import { ZoomController } from "../../utils/ZoomController";
 import ARControls from "../components/ARControls";
+import ConfirmationDialog from "../components/ConfirmationDialog";
 
 // Declare global variables for the libraries
 declare global {
@@ -609,111 +610,12 @@ const ARScannerPage: React.FC = () => {
         }}
       />
 
-      {/* Confirmation Dialog for Sliced Heart Model */}
-      {showConfirmation && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 9999,
-            pointerEvents: "auto",
-          }}
-          onClick={(e) => {
-            // Close dialog if clicking on backdrop
-            if (e.target === e.currentTarget) {
-              handleCancelViewSlicedHeart();
-            }
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "white",
-              padding: "20px",
-              borderRadius: "10px",
-              maxWidth: "90%",
-              width: "350px",
-              textAlign: "center",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
-              pointerEvents: "auto",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>
-              View Sliced Heart Model
-            </h3>
-            <p style={{ margin: "0 0 20px 0", color: "#666" }}>
-              You've reached maximum zoom level. Would you like to view the 
-              sliced model of the heart to see its internal structure?
-            </p>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log("Cancel button clicked");
-                  handleCancelViewSlicedHeart();
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log("Cancel button touched");
-                  handleCancelViewSlicedHeart();
-                }}
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: "5px",
-                  border: "none",
-                  backgroundColor: "#ccc",
-                  color: "#333",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  flex: 1,
-                  marginRight: "10px",
-                  pointerEvents: "auto",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log("View Sliced Model button clicked");
-                  handleConfirmViewSlicedHeart();
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log("View Sliced Model button touched");
-                  handleConfirmViewSlicedHeart();
-                }}
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: "5px",
-                  border: "none",
-                  backgroundColor: "#4CAF50",
-                  color: "white",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  flex: 1,
-                  pointerEvents: "auto",
-                }}
-              >
-                View Sliced Model
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Portal-based Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showConfirmation}
+        onConfirm={handleConfirmViewSlicedHeart}
+        onCancel={handleCancelViewSlicedHeart}
+      />
     </div>
   );
 };
