@@ -3,7 +3,6 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { organs } from "../components/organData";
 import { ZoomController } from "../../utils/ZoomController";
 import ARControls from "../components/ARControls";
-import ConfirmationDialog from "../components/ConfirmationDialog";
 
 // Declare global variables for the libraries
 declare global {
@@ -27,7 +26,6 @@ const ARScannerPage: React.FC = () => {
   const [isZoomAnimating, setIsZoomAnimating] = useState(false);
   const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);
   const [showSlicedModel, setShowSlicedModel] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const showSlicedModelRef = useRef(false);
   const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
@@ -67,17 +65,15 @@ const ARScannerPage: React.FC = () => {
       onZoomChange: (zoom: number) => {
         console.log(`ARScannerPage: Zoom changed to: ${zoom}x`);
         setCurrentZoom(zoom);
-
+        
         // Check if we should switch back to original model when zooming out
         if (showSlicedModel && zoom < 3.0 && organ.id === "heart") {
-          console.log(
-            "Zoom reduced below max - switching back to original model"
-          );
+          console.log("Zoom reduced below max - switching back to original model");
           restoreOriginalModel();
           setShowSlicedModel(false);
           showSlicedModelRef.current = false;
         }
-
+        
         // Apply zoom to the 3D model
         if (organModelRef.current) {
           const newScale = baseScaleRef.current * zoom;
@@ -99,18 +95,9 @@ const ARScannerPage: React.FC = () => {
       },
       onMaxZoomReached: () => {
         if (organ.id === "heart") {
-          console.log(
-            "ARScannerPage: Max zoom reached - showing sliced heart confirmation"
-          );
-          setShowConfirmation(true);
-          
-          // Hide the original model when showing the confirmation dialog
-          if (organModelRef.current && markerGroupRef.current) {
-            // Store the current model before hiding it
-            originalModelRef.current = organModelRef.current;
-            // Hide the model
-            markerGroupRef.current.remove(organModelRef.current);
-          }
+          console.log("ARScannerPage: Max zoom reached - loading sliced heart model");
+          setShowSlicedModel(true);
+          showSlicedModelRef.current = true;
         } else {
           console.log("ARScannerPage: Max zoom reached - showing message");
           setShowMaxZoomMessage(true);
@@ -178,28 +165,16 @@ const ARScannerPage: React.FC = () => {
 
   // Touch gesture handlers
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    // Don't handle touch events if confirmation dialog is shown
-    if (showConfirmation) {
-      return;
-    }
     zoomControllerRef.current?.handleTouchStart(e);
-  }, [showConfirmation]);
+  }, []);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    // Don't handle touch events if confirmation dialog is shown
-    if (showConfirmation) {
-      return;
-    }
     zoomControllerRef.current?.handleTouchMove(e);
-  }, [showConfirmation]);
+  }, []);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
-    // Don't handle touch events if confirmation dialog is shown
-    if (showConfirmation) {
-      return;
-    }
     zoomControllerRef.current?.handleTouchEnd(e);
-  }, [showConfirmation]);
+  }, []);
 
   // Prevent body scrolling when AR is active
   useEffect(() => {
@@ -422,10 +397,10 @@ const ARScannerPage: React.FC = () => {
     if (!markerGroupRef.current || !organModelRef.current) return;
 
     console.log("Loading sliced heart model...");
-
+    
     // Store reference to original model
     originalModelRef.current = organModelRef.current;
-
+    
     // Remove current model from scene
     markerGroupRef.current.remove(organModelRef.current);
 
@@ -435,23 +410,22 @@ const ARScannerPage: React.FC = () => {
       "/sliced_organs/heart.glb",
       (gltf: any) => {
         const slicedModel = gltf.scene;
-
+        
         // Apply same scale and position as heart
         const scale = 0.8;
-        const currentZoomLevel =
-          zoomControllerRef.current?.getCurrentZoom() || 1.0;
+        const currentZoomLevel = zoomControllerRef.current?.getCurrentZoom() || 1.0;
         const finalScale = scale * currentZoomLevel;
-
+        
         slicedModel.scale.set(finalScale, finalScale, finalScale);
         slicedModel.position.y = 0;
-
+        
         // Add sliced model to scene
         markerGroupRef.current.add(slicedModel);
-
+        
         // Update model reference
         organModelRef.current = slicedModel;
         (markerGroupRef.current as any).organModel = slicedModel;
-
+        
         console.log("Sliced heart model loaded successfully");
       },
       undefined,
@@ -471,19 +445,19 @@ const ARScannerPage: React.FC = () => {
     if (!markerGroupRef.current || !originalModelRef.current) return;
 
     console.log("Restoring original heart model...");
-
+    
     // Remove current sliced model from scene
     if (organModelRef.current) {
       markerGroupRef.current.remove(organModelRef.current);
     }
-
+    
     // Add original model back to scene
     markerGroupRef.current.add(originalModelRef.current);
-
+    
     // Update model reference
     organModelRef.current = originalModelRef.current;
     (markerGroupRef.current as any).organModel = originalModelRef.current;
-
+    
     console.log("Original heart model restored successfully");
   }, []);
 
@@ -492,31 +466,6 @@ const ARScannerPage: React.FC = () => {
       loadSlicedHeartModel();
     }
   }, [showSlicedModel, loadSlicedHeartModel]);
-
-  // Handle confirmation dialog actions
-  const handleConfirmViewSlicedHeart = useCallback(() => {
-    console.log("User confirmed to view sliced heart model");
-    setShowConfirmation(false);
-    setShowSlicedModel(true);
-    showSlicedModelRef.current = true;
-  }, []);
-
-  const handleCancelViewSlicedHeart = useCallback(() => {
-    console.log("User cancelled viewing sliced heart model");
-    setShowConfirmation(false);
-    // Zoom out slightly to prevent triggering the max zoom again immediately
-    if (zoomControllerRef.current) {
-      zoomControllerRef.current.zoomOut();
-    }
-    
-    // Restore the original model
-    if (originalModelRef.current && markerGroupRef.current) {
-      markerGroupRef.current.add(originalModelRef.current);
-      organModelRef.current = originalModelRef.current;
-      (markerGroupRef.current as any).organModel = originalModelRef.current;
-      console.log("Original model restored after cancellation");
-    }
-  }, []);
 
   return (
     <div
@@ -608,13 +557,6 @@ const ARScannerPage: React.FC = () => {
           width: "100vw",
           height: "100vh",
         }}
-      />
-
-      {/* Portal-based Confirmation Dialog */}
-      <ConfirmationDialog
-        isOpen={showConfirmation}
-        onConfirm={handleConfirmViewSlicedHeart}
-        onCancel={handleCancelViewSlicedHeart}
       />
     </div>
   );

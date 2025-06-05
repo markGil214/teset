@@ -43,7 +43,7 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
 
   // Show/hide max zoom message
   useEffect(() => {
-    if (showMaxZoomMessage && (organId !== "heart" || !showSlicedModel)) {
+    if (showMaxZoomMessage && (organId !== 'heart' || !showSlicedModel)) {
       setShowMessage(true);
       const timer = setTimeout(() => {
         setShowMessage(false);
@@ -91,9 +91,10 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
             WebkitUserSelect: "none",
           }}
         >
-          {organId === "heart"
-            ? "🔍 Transitioning to sliced heart model..."
-            : "🔍 You reached full display of 3D!"}
+          {organId === 'heart' 
+            ? '🔍 Transitioning to sliced heart model...' 
+            : '🔍 You reached full display of 3D!'
+          }
         </div>
       )}
       {/* Zoom In Button */}
