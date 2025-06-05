@@ -102,6 +102,14 @@ const ARScannerPage: React.FC = () => {
             "ARScannerPage: Max zoom reached - showing sliced heart confirmation"
           );
           setShowConfirmation(true);
+          
+          // Hide the original model when showing the confirmation dialog
+          if (organModelRef.current && markerGroupRef.current) {
+            // Store the current model before hiding it
+            originalModelRef.current = organModelRef.current;
+            // Hide the model
+            markerGroupRef.current.remove(organModelRef.current);
+          }
         } else {
           console.log("ARScannerPage: Max zoom reached - showing message");
           setShowMaxZoomMessage(true);
@@ -487,6 +495,14 @@ const ARScannerPage: React.FC = () => {
     if (zoomControllerRef.current) {
       zoomControllerRef.current.zoomOut();
     }
+    
+    // Restore the original model
+    if (originalModelRef.current && markerGroupRef.current) {
+      markerGroupRef.current.add(originalModelRef.current);
+      organModelRef.current = originalModelRef.current;
+      (markerGroupRef.current as any).organModel = originalModelRef.current;
+      console.log("Original model restored after cancellation");
+    }
   }, []);
 
   return (
@@ -596,6 +612,7 @@ const ARScannerPage: React.FC = () => {
             alignItems: "center",
             zIndex: 1000,
           }}
+          onClick={(e) => e.stopPropagation()}
         >
           <div
             style={{
@@ -607,6 +624,7 @@ const ARScannerPage: React.FC = () => {
               textAlign: "center",
               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>
               View Sliced Heart Model
@@ -628,6 +646,7 @@ const ARScannerPage: React.FC = () => {
                   cursor: "pointer",
                   flex: 1,
                   marginRight: "10px",
+                  zIndex: 1001,
                 }}
               >
                 Cancel
@@ -643,6 +662,7 @@ const ARScannerPage: React.FC = () => {
                   fontWeight: "bold",
                   cursor: "pointer",
                   flex: 1,
+                  zIndex: 1001,
                 }}
               >
                 View Sliced Model
