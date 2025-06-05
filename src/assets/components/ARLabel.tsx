@@ -23,10 +23,10 @@ const ARLabel: React.FC<ARLabelProps> = ({
   if (!isVisible) return null;
 
   return (
-    <>
-      {/* Main Label */}
+    <>      {/* Main Label */}
       <div
         onClick={onClick}
+        data-ui-element="true"
         style={{
           position: "absolute",
           left: `${screenPosition.x}px`,
@@ -72,13 +72,13 @@ const ARLabel: React.FC<ARLabelProps> = ({
         />
         
         <span>{point.title[language]}</span>
-        
-        {/* Info icon */}
+          {/* Info icon */}
         <span
           onClick={(e) => {
             e.stopPropagation();
             setShowDetailed(true);
           }}
+          data-ui-element="true"
           style={{
             backgroundColor: "rgba(255, 255, 255, 0.2)",
             borderRadius: "50%",
@@ -131,8 +131,7 @@ const ARLabel: React.FC<ARLabelProps> = ({
       )}
 
       {/* Detailed Information Modal */}
-      {showDetailed && (
-        <div
+      {showDetailed && (        <div
           style={{
             position: "fixed",
             top: 0,
@@ -146,10 +145,12 @@ const ARLabel: React.FC<ARLabelProps> = ({
             zIndex: 200,
             padding: "20px",
           }}
+          data-ui-element="true"
           onClick={() => setShowDetailed(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            data-ui-element="true"
             style={{
               backgroundColor: "white",
               borderRadius: "16px",
@@ -180,9 +181,9 @@ const ARLabel: React.FC<ARLabelProps> = ({
                 }}
               >
                 {point.title[language]}
-              </h3>
-              <button
+              </h3>              <button
                 onClick={() => setShowDetailed(false)}
+                data-ui-element="true"
                 style={{
                   backgroundColor: "#e74c3c",
                   color: "white",

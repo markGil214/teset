@@ -101,6 +101,7 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
       <button
         onClick={onZoomIn}
         disabled={!canZoomIn}
+        data-ui-element="true"
         style={{
           width: "60px",
           height: "60px",
@@ -149,6 +150,7 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
       <button
         onClick={onZoomOut}
         disabled={!canZoomOut}
+        data-ui-element="true"
         style={{
           width: "60px",
           height: "60px",
@@ -180,6 +182,7 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
       <button
         onClick={onResetZoom}
         disabled={currentZoom === 1.0 || isAnimating || disabled}
+        data-ui-element="true"
         style={{
           width: "60px",
           height: "30px",

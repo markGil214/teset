@@ -233,13 +233,28 @@ const ARScannerPage: React.FC = () => {
     setTimeout(() => setIsZoomAnimating(false), 300);
   }, []);
 
-  // Touch gesture handlers
+  // Touch gesture handlers with proper event delegation
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       // Don't handle touch events if confirmation dialog is shown
       if (showConfirmation) {
         return;
       }
+
+      // Check if the touch started on a UI button or interactive element
+      const target = e.target as HTMLElement;
+      if (target && (
+        target.tagName === 'BUTTON' ||
+        target.closest('button') ||
+        target.hasAttribute('data-ui-element') ||
+        target.closest('[data-ui-element]') ||
+        target.style.cursor === 'pointer' ||
+        target.closest('[style*="cursor: pointer"]')
+      )) {
+        // Don't prevent default for UI elements - let them handle their own events
+        return;
+      }
+
       zoomControllerRef.current?.handleTouchStart(e);
     },
     [showConfirmation]
@@ -251,6 +266,18 @@ const ARScannerPage: React.FC = () => {
       if (showConfirmation) {
         return;
       }
+
+      // Check if we're in the middle of a UI interaction
+      const target = e.target as HTMLElement;
+      if (target && (
+        target.tagName === 'BUTTON' ||
+        target.closest('button') ||
+        target.hasAttribute('data-ui-element') ||
+        target.closest('[data-ui-element]')
+      )) {
+        return;
+      }
+
       zoomControllerRef.current?.handleTouchMove(e);
     },
     [showConfirmation]
@@ -262,6 +289,18 @@ const ARScannerPage: React.FC = () => {
       if (showConfirmation) {
         return;
       }
+
+      // Check if this was a UI interaction
+      const target = e.target as HTMLElement;
+      if (target && (
+        target.tagName === 'BUTTON' ||
+        target.closest('button') ||
+        target.hasAttribute('data-ui-element') ||
+        target.closest('[data-ui-element]')
+      )) {
+        return;
+      }
+
       zoomControllerRef.current?.handleTouchEnd(e);
     },
     [showConfirmation]
@@ -674,6 +713,7 @@ const ARScannerPage: React.FC = () => {
         )}
         <div
           id="button"
+          data-ui-element="true"
           style={{
             backgroundColor: "rgba(201, 76, 76, 0.3)",
             padding: "8px",
@@ -706,6 +746,7 @@ const ARScannerPage: React.FC = () => {
           {/* Labels Toggle Button */}
           <button
             onClick={toggleLabels}
+            data-ui-element="true"
             style={{
               position: "absolute",
               top: "120px",
@@ -733,6 +774,7 @@ const ARScannerPage: React.FC = () => {
           {showLabels && (
             <button
               onClick={toggleLanguage}
+              data-ui-element="true"
               style={{
                 position: "absolute",
                 top: "175px",

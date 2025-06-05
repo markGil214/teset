@@ -133,6 +133,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           <button
             ref={cancelButtonRef}
             type="button"
+            data-ui-element="true"
             style={{
               padding: "12px 25px",
               borderRadius: "8px",
@@ -161,6 +162,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           <button
             ref={confirmButtonRef}
             type="button"
+            data-ui-element="true"
             style={{
               padding: "12px 25px",
               borderRadius: "8px",
