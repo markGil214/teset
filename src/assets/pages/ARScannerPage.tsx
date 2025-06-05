@@ -5,7 +5,15 @@ import { ZoomController } from "../../utils/ZoomController";
 import ARControls from "../components/ARControls";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 
-// Heart parts data for labeling system
+// Declare global variables for the libraries
+declare global {
+  interface Window {
+    THREE: any;
+    THREEAR: any;
+  }
+}
+
+// Heart part interface for interactive labeling system
 interface HeartPart {
   id: string;
   name: string;
@@ -14,6 +22,7 @@ interface HeartPart {
   color: string;
 }
 
+// Heart parts data for interactive labels
 const heartParts: HeartPart[] = [
   {
     id: "1",
@@ -81,14 +90,6 @@ const heartParts: HeartPart[] = [
   },
 ];
 
-// Declare global variables for the libraries
-declare global {
-  interface Window {
-    THREE: any;
-    THREEAR: any;
-  }
-}
-
 const ARScannerPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -104,13 +105,17 @@ const ARScannerPage: React.FC = () => {
   const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);
   const [showSlicedModel, setShowSlicedModel] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [selectedPart, setSelectedPart] = useState<string | null>(null);
+  const [selectedPart, setSelectedPart] = useState<HeartPart | null>(null);
+  
+  // Refs for 3D scene management
   const showSlicedModelRef = useRef(false);
   const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
   const baseScaleRef = useRef<number>(0.5);
   const originalModelRef = useRef<any>(null);
+  
+  // Refs for interactive heart labeling
   const labelGroupRef = useRef<any>(null);
   const raycasterRef = useRef<any>(null);
   const mouseRef = useRef<any>(null);
@@ -124,7 +129,7 @@ const ARScannerPage: React.FC = () => {
       case "brain":
         return 0.3;
       case "heart":
-        return 0.5; // Updated to match the model loading scale
+        return 0.8;
       case "kidney":
         return 0.4;
       case "lungs":
@@ -137,6 +142,22 @@ const ARScannerPage: React.FC = () => {
   }, []);
   // Initialize zoom controller
   useEffect(() => {
+    // Add CSS animation for heart part panel
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
     const baseScale = getBaseScale(organ.id);
     baseScaleRef.current = baseScale;
     console.log(
@@ -203,6 +224,14 @@ const ARScannerPage: React.FC = () => {
     return () => {
       console.log("Cleaning up zoom controller");
       zoomControllerRef.current?.destroy();
+      
+      // Remove the CSS style
+      const existingStyles = document.querySelectorAll('style');
+      existingStyles.forEach((styleEl) => {
+        if (styleEl.textContent?.includes('@keyframes slideUp')) {
+          document.head.removeChild(styleEl);
+        }
+      });
     };
   }, [organ.id, getBaseScale]); // Zoom control handlers
   const handleZoomIn = useCallback(() => {
@@ -353,105 +382,62 @@ const ARScannerPage: React.FC = () => {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Check viewport meta tag for proper AR setup
-    const viewport = document.querySelector('meta[name="viewport"]');
-    if (viewport) {
-      console.log('Viewport meta tag:', viewport.getAttribute('content'));
-    } else {
-      console.warn('No viewport meta tag found - this may affect AR quality');
-    }
-
     let animationId: number;
     let renderer: any;
     let source: any;
-    let clickHandler: ((event: MouseEvent) => void) | null = null;
 
-    // EXACT COPY-CAT of basic-cutout.html script section
+    // THREEAR WebGL Renderer configuration - following basic.html pattern
     renderer = new window.THREE.WebGLRenderer({
-      antialias: true, // Enable antialiasing for better quality
+      antialias: true,  // Enable antialiasing for better quality
       alpha: true,
+      preserveDrawingBuffer: true  // Helps with quality on mobile devices
     });
     renderer.setClearColor(new window.THREE.Color("lightgrey"), 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio at 2 for performance
+    renderer.setPixelRatio(window.devicePixelRatio);  // Use device pixel ratio for crisp rendering
     renderer.setSize(window.innerWidth, window.innerHeight);
-    console.log(`Renderer initialized with pixel ratio: ${Math.min(window.devicePixelRatio, 2)}, size: ${window.innerWidth}x${window.innerHeight}`);
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0px";
     renderer.domElement.style.left = "0px";
-    document.body.appendChild(renderer.domElement); // init scene and camera - EXACT SAME AS BASIC.HTML
+    document.body.appendChild(renderer.domElement); 
+    
+    // init scene and camera - EXACT SAME AS BASIC.HTML
     var scene = new window.THREE.Scene();
     var camera = new window.THREE.Camera();
     scene.add(camera);
     var markerGroup = new window.THREE.Group();
     scene.add(markerGroup);
 
-    source = new window.THREEAR.Source({ 
-      renderer, 
-      camera,
-      sourceWidth: 1280,
-      sourceHeight: 720,
-      displayWidth: 1280,
-      displayHeight: 720,
-      // Add video constraints for better quality
-      videoConstraints: {
-        facingMode: 'environment',
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 30 }
-      }
-    });
+    source = new window.THREEAR.Source({ renderer, camera });
     
+    // Initialize with performance optimizations like basic-performance.html
     window.THREEAR.initialize({ 
       source: source,
-      canvasWidth: 80 * 4, // Increased for better quality
+      canvasWidth: 80 * 4,   // Higher resolution for better tracking
       canvasHeight: 60 * 4,
-      maxDetectionRate: 60 // Higher detection rate
+      maxDetectionRate: 60   // Max detection rate for smooth tracking
     }).then((controller: any) => {
-      // Initialize raycaster and mouse for label interaction
-      raycasterRef.current = new window.THREE.Raycaster();
-      mouseRef.current = new window.THREE.Vector2();
-
-      // Add lighting for better 3D model visibility
-      var ambientLight = new window.THREE.AmbientLight(0x404040, 0.8); // Increased intensity
+      // Add enhanced lighting for better 3D model visibility
+      var ambientLight = new window.THREE.AmbientLight(0x404040, 0.8);  // Increased intensity
       scene.add(ambientLight);
 
-      var directionalLight = new window.THREE.DirectionalLight(0xffffff, 1.0); // Increased intensity
-      directionalLight.position.set(1, 1, 1);
-      scene.add(directionalLight);
+      // Add multiple directional lights for better illumination
+      var directionalLight1 = new window.THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight1.position.set(1, 1, 1);
+      scene.add(directionalLight1);
       
-      // Add additional directional light for better illumination
-      var directionalLight2 = new window.THREE.DirectionalLight(0xffffff, 0.6);
+      var directionalLight2 = new window.THREE.DirectionalLight(0xffffff, 0.4);
       directionalLight2.position.set(-1, -1, -1);
-      scene.add(directionalLight2);      // Load the 3D model for this organ
-      console.log(`Loading heart model from: ${organ.modelPath}`);
+      scene.add(directionalLight2);
+      
+      // Add point light for additional illumination
+      var pointLight = new window.THREE.PointLight(0xffffff, 0.5, 100);
+      pointLight.position.set(0, 2, 2);
+      scene.add(pointLight); // Load the 3D model for this organ
       var gltfLoader = new window.THREE.GLTFLoader();
       gltfLoader.load(
         organ.modelPath,
         (gltf: any) => {
-          console.log("Heart model loaded successfully:", gltf);
           var model = gltf.scene;
-
-          // Enhance model materials for better clarity
-          model.traverse((child: any) => {
-            if (child.isMesh) {
-              // Improve material properties
-              if (child.material) {
-                child.material.transparent = false;
-                child.material.alphaTest = 0.1;
-                // Improve material quality
-                child.material.minFilter = window.THREE.LinearFilter;
-                child.material.magFilter = window.THREE.LinearFilter;
-                child.material.needsUpdate = true;
-                // Enable shadows if supported
-                child.castShadow = true;
-                child.receiveShadow = true;
-              }
-            }
-          });
-
-          // Log model details for debugging
-          console.log(`Model bounding box:`, model.userData);
-          console.log(`Model children count:`, model.children.length);
 
           // Scale and position the model appropriately for AR based on organ type
           let scale, positionY;
@@ -461,7 +447,7 @@ const ARScannerPage: React.FC = () => {
               positionY = 0.1;
               break;
             case "heart":
-              scale = 0.5; // Reduced scale for better clarity
+              scale = 0.8;
               positionY = 0;
               break;
             case "kidney":
@@ -507,13 +493,9 @@ const ARScannerPage: React.FC = () => {
             `${organ.name} 3D model loaded successfully with scale: ${scale}`
           );
         },
-        (progress: any) => {
-          // Log loading progress
-          console.log('Heart model loading progress:', (progress.loaded / progress.total * 100) + '%');
-        },
+        undefined,
         (error: any) => {
           console.error("Error loading 3D model:", error);
-          console.error("Model path attempted:", organ.modelPath);
           setModelLoading(false);
           setModelError(true);
 
@@ -532,27 +514,9 @@ const ARScannerPage: React.FC = () => {
       var patternMarker = new window.THREEAR.PatternMarker({
         patternUrl: "/data/patt.hiro",
         markerObject: markerGroup,
-        minConfidence: 0.6, // Improved confidence threshold
-        smooth: true, // Enable smoothing for better tracking
-        smoothCount: 5, // Number of frames to smooth over
-        smoothTolerance: 0.01, // Tolerance for smoothing
-        smoothThreshold: 2 // Threshold for smoothing
       });
 
-      controller.trackMarker(patternMarker);
-
-      // Add click event listener for label interaction
-      clickHandler = (event: MouseEvent) => handleCanvasClick(event, camera, renderer);
-      renderer.domElement.addEventListener('click', clickHandler);
-
-      // Debug: Log when marker is found/lost
-      patternMarker.addEventListener('getMarker', () => {
-        console.log('Marker detected - model should be visible');
-      });
-
-      patternMarker.addEventListener('lostMarker', () => {
-        console.log('Marker lost - model hidden');
-      }); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
+      controller.trackMarker(patternMarker); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
       var lastTimeMsec = 0;
       function animate(nowMsec: number) {
         // keep looping
@@ -593,6 +557,32 @@ const ARScannerPage: React.FC = () => {
       passive: false,
     });
 
+    // Add canvas click event listener for heart part interaction
+    const handleCanvasClick = (event: MouseEvent) => {
+      if (!raycasterRef.current || !mouseRef.current || !labelGroupRef.current) return;
+
+      // Calculate mouse position in normalized device coordinates
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      // Update the picking ray with the camera and mouse position
+      raycasterRef.current.setFromCamera(mouseRef.current, camera);
+
+      // Calculate objects intersecting the picking ray
+      const intersects = raycasterRef.current.intersectObjects(labelGroupRef.current.children, true);
+
+      if (intersects.length > 0) {
+        const clickedObject = intersects[0].object;
+        if (clickedObject.userData && clickedObject.userData.heartPart) {
+          handlePartClick(clickedObject.userData.heartPart);
+        }
+      }
+    };
+
+    // Add click event listener to renderer canvas
+    renderer.domElement.addEventListener('click', handleCanvasClick);
+
     // Cleanup
     return () => {
       // Remove touch event listeners
@@ -600,11 +590,10 @@ const ARScannerPage: React.FC = () => {
       document.removeEventListener("touchmove", handleTouchMoveEvent);
       document.removeEventListener("touchend", handleTouchEndEvent);
       
-      // Remove click event listener
-      if (renderer && renderer.domElement && clickHandler) {
-        renderer.domElement.removeEventListener('click', clickHandler);
+      // Remove canvas click event listener
+      if (renderer && renderer.domElement) {
+        renderer.domElement.removeEventListener('click', handleCanvasClick);
       }
-
       // Cancel animation frame
       if (animationId) {
         cancelAnimationFrame(animationId);
@@ -640,82 +629,75 @@ const ARScannerPage: React.FC = () => {
     };
   }, [organ]);
 
-  // Function to create heart part labels
+  // Interactive Heart Labeling Functions
   const createHeartLabels = useCallback(() => {
     if (!markerGroupRef.current) return;
 
-    console.log("Creating heart part labels...");
+    console.log("Creating heart labels...");
 
-    // Create a group for all labels
-    const labelGroup = new window.THREE.Group();
-    labelGroupRef.current = labelGroup;
+    // Create label group
+    labelGroupRef.current = new window.THREE.Group();
+    markerGroupRef.current.add(labelGroupRef.current);
+
+    // Initialize raycaster and mouse for interaction
+    raycasterRef.current = new window.THREE.Raycaster();
+    mouseRef.current = new window.THREE.Vector2();
 
     heartParts.forEach((part) => {
-      // Create a sphere for the label point
-      const geometry = new window.THREE.SphereGeometry(0.02, 16, 16);
-      const material = new window.THREE.MeshBasicMaterial({
+      // Create label sphere
+      const sphereGeometry = new window.THREE.SphereGeometry(0.05, 8, 6);
+      const sphereMaterial = new window.THREE.MeshBasicMaterial({
         color: part.color,
         transparent: true,
         opacity: 0.8,
       });
-      const sphere = new window.THREE.Mesh(geometry, material);
-      
-      // Position the label
-      sphere.position.set(part.position[0], part.position[1], part.position[2]);
-      
-      // Add click functionality
-      sphere.userData = { partId: part.id, partName: part.name };
-      
-      labelGroup.add(sphere);
+      const sphere = new window.THREE.Mesh(sphereGeometry, sphereMaterial);
+      sphere.position.set(...part.position);
+      sphere.userData = { heartPart: part };
+      labelGroupRef.current.add(sphere);
 
-      // Create text label
+      // Create text sprite for label
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       if (context) {
-        canvas.width = 64;
+        canvas.width = 256;
         canvas.height = 64;
-        context.fillStyle = 'white';
+        context.fillStyle = part.color;
         context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = 'black';
-        context.font = 'Bold 20px Arial';
+        context.fillStyle = 'white';
+        context.font = '20px Arial';
         context.textAlign = 'center';
-        context.fillText(part.id, canvas.width / 2, canvas.height / 2 + 7);
-        
-        const texture = new window.THREE.CanvasTexture(canvas);
-        const spriteMaterial = new window.THREE.SpriteMaterial({ map: texture, transparent: true });
-        const sprite = new window.THREE.Sprite(spriteMaterial);
-        sprite.position.set(part.position[0] + 0.1, part.position[1] + 0.1, part.position[2]);
-        sprite.scale.set(0.1, 0.1, 0.1);
-        
-        labelGroup.add(sprite);
+        context.fillText(part.name, canvas.width / 2, canvas.height / 2 + 7);
       }
-    });
 
-    // Add label group to marker group
-    markerGroupRef.current.add(labelGroup);
-    console.log("Heart part labels created successfully");
+      const texture = new window.THREE.CanvasTexture(canvas);
+      const spriteMaterial = new window.THREE.SpriteMaterial({ map: texture });
+      const sprite = new window.THREE.Sprite(spriteMaterial);
+      sprite.position.set(part.position[0], part.position[1] + 0.2, part.position[2]);
+      sprite.scale.set(0.5, 0.125, 1);
+      labelGroupRef.current.add(sprite);
+    });
   }, []);
 
-  // Function to remove heart labels
   const removeHeartLabels = useCallback(() => {
     if (labelGroupRef.current && markerGroupRef.current) {
+      console.log("Removing heart labels...");
       markerGroupRef.current.remove(labelGroupRef.current);
       labelGroupRef.current = null;
-      console.log("Heart part labels removed");
     }
+    setSelectedPart(null);
   }, []);
 
-  // Function to handle part selection
-  const handlePartClick = useCallback((partId: string) => {
-    setSelectedPart(partId === selectedPart ? null : partId);
-    console.log(`Selected heart part: ${partId}`);
-  }, [selectedPart]);
+  const handlePartClick = useCallback((part: HeartPart) => {
+    console.log("Heart part clicked:", part.name);
+    setSelectedPart(part);
+  }, []);
 
-  // Function to load sliced heart model with labels
+  // Function to load sliced heart model
   const loadSlicedHeartModel = useCallback(() => {
     if (!markerGroupRef.current || !organModelRef.current) return;
 
-    console.log("Loading sliced heart model with labels...");
+    console.log("Loading sliced heart model...");
 
     // Store reference to original model
     originalModelRef.current = organModelRef.current;
@@ -731,7 +713,7 @@ const ARScannerPage: React.FC = () => {
         const slicedModel = gltf.scene;
 
         // Apply same scale and position as heart
-        const scale = 0.5; // Updated to match the regular heart scale
+        const scale = 0.8;
         const currentZoomLevel =
           zoomControllerRef.current?.getCurrentZoom() || 1.0;
         const finalScale = scale * currentZoomLevel;
@@ -746,10 +728,10 @@ const ARScannerPage: React.FC = () => {
         organModelRef.current = slicedModel;
         (markerGroupRef.current as any).organModel = slicedModel;
 
-        // Create heart part labels
+        // Add interactive heart labels for sliced model
         createHeartLabels();
 
-        console.log("Sliced heart model with labels loaded successfully");
+        console.log("Sliced heart model loaded successfully with interactive labels");
       },
       undefined,
       (error: any) => {
@@ -761,26 +743,7 @@ const ARScannerPage: React.FC = () => {
         }
       }
     );
-  }, [createHeartLabels]);
-
-  // Handle canvas click for label interaction
-  const handleCanvasClick = useCallback((event: MouseEvent, camera: any, renderer: any) => {
-    if (!showSlicedModel || !labelGroupRef.current || !raycasterRef.current) return;
-
-    const rect = renderer.domElement.getBoundingClientRect();
-    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-    raycasterRef.current.setFromCamera(mouseRef.current, camera);
-    const intersects = raycasterRef.current.intersectObjects(labelGroupRef.current.children, true);
-
-    if (intersects.length > 0) {
-      const clickedObject = intersects[0].object;
-      if (clickedObject.userData && clickedObject.userData.partId) {
-        handlePartClick(clickedObject.userData.partId);
-      }
-    }
-  }, [showSlicedModel, handlePartClick]);
+  }, []);
 
   // Function to restore original model
   const restoreOriginalModel = useCallback(() => {
@@ -788,13 +751,13 @@ const ARScannerPage: React.FC = () => {
 
     console.log("Restoring original heart model...");
 
+    // Remove interactive heart labels
+    removeHeartLabels();
+
     // Remove current sliced model from scene
     if (organModelRef.current) {
       markerGroupRef.current.remove(organModelRef.current);
     }
-
-    // Remove heart labels
-    removeHeartLabels();
 
     // Add original model back to scene
     markerGroupRef.current.add(originalModelRef.current);
@@ -941,52 +904,47 @@ const ARScannerPage: React.FC = () => {
       />
 
       {/* Heart Part Information Panel */}
-      {selectedPart && showSlicedModel && (
+      {selectedPart && (
         <div
           style={{
-            position: "absolute",
-            bottom: "20px",
-            left: "20px",
-            right: "20px",
-            backgroundColor: "rgba(44, 62, 80, 0.95)",
-            color: "white",
-            padding: "15px",
-            borderRadius: "8px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-            backdropFilter: "blur(10px)",
-            zIndex: 200,
-            maxWidth: "400px",
-            margin: "0 auto",
+            position: 'fixed',
+            bottom: '20px',
+            left: '20px',
+            right: '20px',
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            color: 'white',
+            padding: '20px',
+            borderRadius: '10px',
+            border: `3px solid ${selectedPart.color}`,
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            zIndex: 1000,
+            maxHeight: '40vh',
+            overflowY: 'auto',
+            animation: 'slideUp 0.3s ease-out',
           }}
         >
-          {(() => {
-            const selectedPartData = heartParts.find((part) => part.id === selectedPart);
-            return selectedPartData ? (
-              <>
-                <h3 style={{ margin: "0 0 10px 0", color: "#f39c12" }}>
-                  {selectedPartData.name}
-                </h3>
-                <p style={{ margin: 0, fontSize: "14px", lineHeight: "1.4" }}>
-                  {selectedPartData.description}
-                </p>
-                <button
-                  onClick={() => setSelectedPart(null)}
-                  style={{
-                    marginTop: "10px",
-                    padding: "5px 10px",
-                    backgroundColor: "#e74c3c",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                  }}
-                >
-                  Close
-                </button>
-              </>
-            ) : null;
-          })()}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+            <h3 style={{ margin: '0', color: selectedPart.color, fontSize: '18px' }}>
+              {selectedPart.name}
+            </h3>
+            <button
+              onClick={() => setSelectedPart(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'white',
+                fontSize: '20px',
+                cursor: 'pointer',
+                padding: '0',
+                lineHeight: '1',
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <p style={{ margin: '0', fontSize: '14px', lineHeight: '1.4' }}>
+            {selectedPart.description}
+          </p>
         </div>
       )}
     </div>
