@@ -628,11 +628,11 @@ const ARScannerPage: React.FC = () => {
     };
   }, [organ]);
 
-  // Interactive Heart Labeling Functions
+  // Interactive Heart Labeling Functions - Styled like sample App.tsx
   const createHeartLabels = useCallback(() => {
     if (!markerGroupRef.current) return;
 
-    console.log("Creating heart labels...");
+    console.log("Creating heart labels with modern styling...");
 
     // Create label group
     labelGroupRef.current = new window.THREE.Group();
@@ -643,38 +643,62 @@ const ARScannerPage: React.FC = () => {
     mouseRef.current = new window.THREE.Vector2();
 
     heartParts.forEach((part) => {
-      // Create label sphere
-      const sphereGeometry = new window.THREE.SphereGeometry(0.05, 8, 6);
-      const sphereMaterial = new window.THREE.MeshBasicMaterial({
+      // Create clickable label point (circular) - styled like sample
+      const pointGeometry = new window.THREE.CircleGeometry(0.08, 16);
+      const pointMaterial = new window.THREE.MeshBasicMaterial({
         color: part.color,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.9,
+        side: window.THREE.DoubleSide,
       });
-      const sphere = new window.THREE.Mesh(sphereGeometry, sphereMaterial);
-      sphere.position.set(...part.position);
-      sphere.userData = { heartPart: part };
-      labelGroupRef.current.add(sphere);
+      const labelPoint = new window.THREE.Mesh(pointGeometry, pointMaterial);
+      labelPoint.position.set(...part.position);
+      labelPoint.userData = { heartPart: part };
+      
+      // Make the label point always face the camera
+      labelPoint.lookAt(0, 0, 1);
+      
+      labelGroupRef.current.add(labelPoint);
 
-      // Create text sprite for label
+      // Create number text on the label point
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       if (context) {
-        canvas.width = 256;
-        canvas.height = 64;
-        context.fillStyle = part.color;
-        context.fillRect(0, 0, canvas.width, canvas.height);
+        canvas.width = 128;
+        canvas.height = 128;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw white border circle
+        context.beginPath();
+        context.arc(64, 64, 60, 0, 2 * Math.PI);
         context.fillStyle = 'white';
-        context.font = '20px Arial';
+        context.fill();
+        
+        // Draw main colored circle
+        context.beginPath();
+        context.arc(64, 64, 55, 0, 2 * Math.PI);
+        context.fillStyle = part.color;
+        context.fill();
+        
+        // Add number text
+        context.fillStyle = 'white';
+        context.font = 'bold 48px Arial';
         context.textAlign = 'center';
-        context.fillText(part.name, canvas.width / 2, canvas.height / 2 + 7);
+        context.textBaseline = 'middle';
+        context.fillText(part.id, 64, 64);
       }
 
-      const texture = new window.THREE.CanvasTexture(canvas);
-      const spriteMaterial = new window.THREE.SpriteMaterial({ map: texture });
-      const sprite = new window.THREE.Sprite(spriteMaterial);
-      sprite.position.set(part.position[0], part.position[1] + 0.2, part.position[2]);
-      sprite.scale.set(0.5, 0.125, 1);
-      labelGroupRef.current.add(sprite);
+      const numberTexture = new window.THREE.CanvasTexture(canvas);
+      const numberMaterial = new window.THREE.SpriteMaterial({ 
+        map: numberTexture,
+        transparent: true,
+        alphaTest: 0.1
+      });
+      const numberSprite = new window.THREE.Sprite(numberMaterial);
+      numberSprite.position.set(...part.position);
+      numberSprite.scale.set(0.15, 0.15, 1);
+      numberSprite.userData = { heartPart: part };
+      labelGroupRef.current.add(numberSprite);
     });
   }, []);
 
@@ -902,48 +926,102 @@ const ARScannerPage: React.FC = () => {
         onCancel={handleCancelViewSlicedHeart}
       />
 
-      {/* Heart Part Information Panel */}
+      {/* Heart Part Information Panel - Styled like sample App.tsx */}
       {selectedPart && (
         <div
           style={{
-            position: 'fixed',
-            bottom: '20px',
-            left: '20px',
-            right: '20px',
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            color: 'white',
-            padding: '20px',
-            borderRadius: '10px',
-            border: `3px solid ${selectedPart.color}`,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            position: "fixed",
+            bottom: "20px",
+            left: "20px",
+            right: "20px",
+            backgroundColor: "rgba(44, 62, 80, 0.95)",
+            color: "white",
+            padding: "20px",
+            borderRadius: "12px",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+            backdropFilter: "blur(15px)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
             zIndex: 1000,
-            maxHeight: '40vh',
-            overflowY: 'auto',
-            animation: 'slideUp 0.3s ease-out',
+            animation: "slideUp 0.3s ease-out",
+            maxWidth: "500px",
+            margin: "0 auto",
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-            <h3 style={{ margin: '0', color: selectedPart.color, fontSize: '18px' }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              marginBottom: "15px",
+            }}
+          >
+            <h3
+              style={{
+                margin: "0",
+                color: "#f39c12",
+                fontSize: "20px",
+                fontWeight: "600",
+              }}
+            >
               {selectedPart.name}
             </h3>
             <button
               onClick={() => setSelectedPart(null)}
               style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'white',
-                fontSize: '20px',
-                cursor: 'pointer',
-                padding: '0',
-                lineHeight: '1',
+                background: "none",
+                border: "none",
+                color: "#bdc3c7",
+                fontSize: "24px",
+                cursor: "pointer",
+                padding: "0",
+                width: "30px",
+                height: "30px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                e.currentTarget.style.color = "white";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.color = "#bdc3c7";
               }}
             >
               ×
             </button>
           </div>
-          <p style={{ margin: '0', fontSize: '14px', lineHeight: '1.4' }}>
+          <p
+            style={{
+              margin: "0",
+              fontSize: "16px",
+              lineHeight: "1.5",
+              color: "#ecf0f1",
+            }}
+          >
             {selectedPart.description}
           </p>
+          <div
+            style={{
+              marginTop: "15px",
+              padding: "10px",
+              backgroundColor: "rgba(0, 0, 0, 0.2)",
+              borderRadius: "8px",
+              borderLeft: `4px solid ${selectedPart.color}`,
+            }}
+          >
+            <small
+              style={{
+                color: "#95a5a6",
+                fontSize: "14px",
+              }}
+            >
+              Click on other numbered parts to explore different areas of the heart
+            </small>
+          </div>
         </div>
       )}
     </div>
