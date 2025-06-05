@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-// Heart Part Interface and Data - copied from sample/App.tsx
+// Heart Part Interface and Data
 interface HeartPart {
   id: string;
   name: string;
