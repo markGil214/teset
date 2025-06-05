@@ -644,38 +644,95 @@ const ARScannerPage: React.FC = () => {
     mouseRef.current = new window.THREE.Vector2();
 
     heartParts.forEach((part) => {
-      // Create label sphere
-      const sphereGeometry = new window.THREE.SphereGeometry(0.05, 8, 6);
-      const sphereMaterial = new window.THREE.MeshBasicMaterial({
-        color: part.color,
-        transparent: true,
-        opacity: 0.8,
-      });
-      const sphere = new window.THREE.Mesh(sphereGeometry, sphereMaterial);
-      sphere.position.set(...part.position);
-      sphere.userData = { heartPart: part };
-      labelGroupRef.current.add(sphere);
-
-      // Create text sprite for label
+      // Create circular label point like sample App.tsx
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
+      const size = 48; // Larger canvas for better quality
+      
       if (context) {
-        canvas.width = 256;
-        canvas.height = 64;
+        canvas.width = size;
+        canvas.height = size;
+        
+        // Clear canvas
+        context.clearRect(0, 0, size, size);
+        
+        // Draw circular background with border (like sample App.tsx)
+        context.beginPath();
+        context.arc(size/2, size/2, size/2 - 4, 0, 2 * Math.PI);
         context.fillStyle = part.color;
-        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fill();
+        
+        // White border
+        context.lineWidth = 4;
+        context.strokeStyle = 'white';
+        context.stroke();
+        
+        // Add part ID number (like sample App.tsx)
         context.fillStyle = 'white';
-        context.font = '20px Arial';
+        context.font = 'bold 16px Arial';
         context.textAlign = 'center';
-        context.fillText(part.name, canvas.width / 2, canvas.height / 2 + 7);
+        context.textBaseline = 'middle';
+        context.fillText(part.id, size/2, size/2);
       }
 
+      // Create sprite with the label design
       const texture = new window.THREE.CanvasTexture(canvas);
-      const spriteMaterial = new window.THREE.SpriteMaterial({ map: texture });
+      const spriteMaterial = new window.THREE.SpriteMaterial({ 
+        map: texture,
+        transparent: true,
+        alphaTest: 0.001
+      });
       const sprite = new window.THREE.Sprite(spriteMaterial);
-      sprite.position.set(part.position[0], part.position[1] + 0.2, part.position[2]);
-      sprite.scale.set(0.5, 0.125, 1);
+      
+      // Position the label point at the heart part location
+      sprite.position.set(...part.position);
+      sprite.scale.set(0.2, 0.2, 1); // Smaller, more precise labels
+      sprite.userData = { heartPart: part, isLabel: true };
+      
       labelGroupRef.current.add(sprite);
+
+      // Create name label that appears offset from the point
+      const nameCanvas = document.createElement('canvas');
+      const nameContext = nameCanvas.getContext('2d');
+      
+      if (nameContext) {
+        // Measure text to size canvas appropriately
+        nameContext.font = '14px Arial';
+        const textMetrics = nameContext.measureText(part.name);
+        const textWidth = textMetrics.width;
+        
+        nameCanvas.width = textWidth + 20;
+        nameCanvas.height = 30;
+        
+        // Draw background with rounded corners (like sample App.tsx info panel)
+        nameContext.fillStyle = 'rgba(44, 62, 80, 0.95)';
+        nameContext.fillRect(0, 0, nameCanvas.width, nameCanvas.height);
+        
+        // Draw text
+        nameContext.fillStyle = 'white';
+        nameContext.font = '14px Arial';
+        nameContext.textAlign = 'center';
+        nameContext.textBaseline = 'middle';
+        nameContext.fillText(part.name, nameCanvas.width/2, nameCanvas.height/2);
+      }
+
+      const nameTexture = new window.THREE.CanvasTexture(nameCanvas);
+      const nameSpriteMaterial = new window.THREE.SpriteMaterial({ 
+        map: nameTexture,
+        transparent: true,
+        alphaTest: 0.001
+      });
+      const nameSprite = new window.THREE.Sprite(nameSpriteMaterial);
+      
+      // Position name label offset from the point
+      nameSprite.position.set(
+        part.position[0] + 0.5, 
+        part.position[1] + 0.1, 
+        part.position[2]
+      );
+      nameSprite.scale.set(0.3, 0.075, 1);
+      
+      labelGroupRef.current.add(nameSprite);
     });
   }, []);
 
@@ -690,8 +747,66 @@ const ARScannerPage: React.FC = () => {
 
   const handlePartClick = useCallback((part: HeartPart) => {
     console.log("Heart part clicked:", part.name);
-    setSelectedPart(part);
-  }, []);
+    
+    // Toggle selection - if same part is clicked, deselect it
+    if (selectedPart && selectedPart.id === part.id) {
+      setSelectedPart(null);
+    } else {
+      setSelectedPart(part);
+    }
+    
+    // Visual feedback - update label appearance when selected
+    if (labelGroupRef.current) {
+      labelGroupRef.current.children.forEach((child: any) => {
+        if (child.userData && child.userData.heartPart && child.userData.isLabel) {
+          // Create new canvas for updated appearance
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          const size = 48;
+          const heartPart = child.userData.heartPart;
+          const isSelected = heartPart.id === part.id;
+          
+          if (context) {
+            canvas.width = size;
+            canvas.height = size;
+            
+            // Clear canvas
+            context.clearRect(0, 0, size, size);
+            
+            // Draw circular background - use orange for selected, original color for unselected
+            context.beginPath();
+            context.arc(size/2, size/2, size/2 - 4, 0, 2 * Math.PI);
+            context.fillStyle = isSelected ? '#f39c12' : heartPart.color;
+            context.fill();
+            
+            // White border - thicker for selected
+            context.lineWidth = isSelected ? 6 : 4;
+            context.strokeStyle = 'white';
+            context.stroke();
+            
+            // Add part ID number
+            context.fillStyle = 'white';
+            context.font = isSelected ? 'bold 18px Arial' : 'bold 16px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(heartPart.id, size/2, size/2);
+          }
+          
+          // Update sprite texture
+          const texture = new window.THREE.CanvasTexture(canvas);
+          child.material.map = texture;
+          child.material.needsUpdate = true;
+          
+          // Scale animation for selected item
+          if (isSelected) {
+            child.scale.set(0.25, 0.25, 1); // Slightly larger when selected
+          } else {
+            child.scale.set(0.2, 0.2, 1); // Normal size
+          }
+        }
+      });
+    }
+  }, [selectedPart]);
 
   // Function to load sliced heart model
   const loadSlicedHeartModel = useCallback(() => {
@@ -911,12 +1026,12 @@ const ARScannerPage: React.FC = () => {
             bottom: '20px',
             left: '20px',
             right: '20px',
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            backgroundColor: 'rgba(44, 62, 80, 0.95)',
             color: 'white',
-            padding: '20px',
-            borderRadius: '10px',
-            border: `3px solid ${selectedPart.color}`,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            padding: '15px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            backdropFilter: 'blur(10px)',
             zIndex: 1000,
             maxHeight: '40vh',
             overflowY: 'auto',
@@ -924,7 +1039,7 @@ const ARScannerPage: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-            <h3 style={{ margin: '0', color: selectedPart.color, fontSize: '18px' }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#f39c12', fontSize: '18px' }}>
               {selectedPart.name}
             </h3>
             <button
