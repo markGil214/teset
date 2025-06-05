@@ -305,7 +305,16 @@ const ARScannerPage: React.FC = () => {
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0px";
     renderer.domElement.style.left = "0px";
-    document.body.appendChild(renderer.domElement); 
+    renderer.domElement.style.zIndex = "10";
+    renderer.domElement.style.pointerEvents = "none"; // Start with blocked pointer events
+    
+    // Attach canvas to our container instead of body
+    if (containerRef.current) {
+      containerRef.current.appendChild(renderer.domElement);
+    } else {
+      // Fallback to body if container not ready
+      document.body.appendChild(renderer.domElement);
+    } 
     
     // init scene and camera - EXACT SAME AS BASIC.HTML
     var scene = new window.THREE.Scene();
@@ -456,18 +465,32 @@ const ARScannerPage: React.FC = () => {
       if (canvasElement) {
         console.log("Attaching touch events to AR canvas only");
         
-        canvasElement.addEventListener("touchstart", handleTouchStartEvent, {
-          passive: false,
-        });
+        // Canvas should only respond to touch gestures, not clicks
+        canvasElement.style.touchAction = "none";
+        canvasElement.style.pointerEvents = "none"; // Block all pointer events initially
+        canvasElement.style.zIndex = "10";
+        
+        // Enable pointer events only for touch gestures
+        canvasElement.addEventListener("touchstart", (e) => {
+          if (canvasElement) {
+            canvasElement.style.pointerEvents = "auto";
+          }
+          handleTouchStartEvent(e);
+        }, { passive: false });
+        
         canvasElement.addEventListener("touchmove", handleTouchMoveEvent, {
           passive: false,
         });
-        canvasElement.addEventListener("touchend", handleTouchEndEvent, {
-          passive: false,
-        });
         
-        // Prevent default touch behaviors on canvas only
-        canvasElement.style.touchAction = "none";
+        canvasElement.addEventListener("touchend", (e) => {
+          handleTouchEndEvent(e);
+          // Disable pointer events after touch ends to allow UI clicks
+          setTimeout(() => {
+            if (canvasElement) {
+              canvasElement.style.pointerEvents = "none";
+            }
+          }, 100);
+        }, { passive: false });
       }
     };
     
@@ -478,9 +501,9 @@ const ARScannerPage: React.FC = () => {
     return () => {
       // Remove touch event listeners from canvas only
       if (canvasElement) {
-        canvasElement.removeEventListener("touchstart", handleTouchStartEvent);
+        // Remove the original event listeners (touchmove and basic touchend)
         canvasElement.removeEventListener("touchmove", handleTouchMoveEvent);
-        canvasElement.removeEventListener("touchend", handleTouchEndEvent);
+        // Note: touchstart and touchend have custom handlers, so they'll be cleaned up automatically
       }
       // Cancel animation frame
       if (animationId) {
@@ -495,16 +518,12 @@ const ARScannerPage: React.FC = () => {
 
       // Dispose of renderer
       if (renderer) {
+        // Remove canvas from container or body
+        if (renderer.domElement && renderer.domElement.parentElement) {
+          renderer.domElement.parentElement.removeChild(renderer.domElement);
+        }
         renderer.dispose();
       }
-
-      // Remove the renderer element from document.body
-      const rendererElements = document.querySelectorAll("canvas");
-      rendererElements.forEach((canvas) => {
-        if (canvas.parentElement === document.body) {
-          document.body.removeChild(canvas);
-        }
-      });
 
       // Remove video elements that might be created by AR
       const videoElements = document.querySelectorAll("video");
@@ -821,13 +840,17 @@ const ARScannerPage: React.FC = () => {
             />
           ))}
 
-      {/* AR container - attached to body like cutout example */}
+      {/* AR container - contains canvas but allows UI events to pass through */}
       <div
         ref={containerRef}
         style={{
-          position: "relative",
+          position: "absolute",
+          top: 0,
+          left: 0,
           width: "100vw",
           height: "100vh",
+          pointerEvents: "none", // Container blocks nothing
+          zIndex: 1, // Keep AR content behind UI elements
         }}
       />
 

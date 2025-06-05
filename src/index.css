@@ -1,39 +1,22 @@
-/* Add these rules to ensure pointer events work correctly */
-.pointer-events-fix {
-  pointer-events: auto !important;
-}
+/* Simple and direct approach - no conflicts */
 
-/* Ensure forms and inputs are always clickable */
-input,
-select,
+/* UI Elements always clickable */
 button,
-a {
-  position: relative;
-  z-index: 20; /* Higher than background elements */
-}
-
-/* Touch handling for UI elements */
 [data-ui-element="true"],
-button,
 [role="button"] {
-  touch-action: manipulation !important;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
   pointer-events: auto !important;
-  z-index: 100 !important;
+  position: relative !important;
+  z-index: 1000 !important;
+  touch-action: manipulation !important;
 }
 
-/* Prevent touch scroll/zoom on AR canvas */
+/* Canvas starts blocked, enabled only during touch */
 canvas {
-  touch-action: none;
+  pointer-events: none !important;
+  touch-action: none !important;
 }
 
 /* For debugging - uncomment to see z-index layers
-.z-0 { background-color: rgba(255, 0, 0, 0.1); }
-.z-10 { background-color: rgba(0, 255, 0, 0.1); }
-.z-20 { background-color: rgba(0, 0, 255, 0.1); }
+button { background-color: rgba(0, 255, 0, 0.2) !important; }
+canvas { background-color: rgba(255, 0, 0, 0.2) !important; }
 */
