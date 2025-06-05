@@ -4,9 +4,6 @@ import { organs } from "../components/organData";
 import { ZoomController } from "../../utils/ZoomController";
 import ARControls from "../components/ARControls";
 import ConfirmationDialog from "../components/ConfirmationDialog";
-import HeartLabel from "../components/HeartLabel";
-import HeartInfoPanel from "../components/HeartInfoPanel";
-import { heartParts, labelSettings } from "../data/heartPartsData";
 
 // Declare global variables for the libraries
 declare global {
@@ -37,13 +34,6 @@ const ARScannerPage: React.FC = () => {
   const markerGroupRef = useRef<any>(null);
   const baseScaleRef = useRef<number>(0.5);
   const originalModelRef = useRef<any>(null);
-
-  // Heart label state (inspired by sample/App.tsx)
-  const [showLabels, setShowLabels] = useState(false);
-  const [selectedLabelId, setSelectedLabelId] = useState<string | null>(null);
-  const [labelPositions, setLabelPositions] = useState<{
-    [key: string]: { x: number; y: number };
-  }>({});
 
   if (!organ) {
     return <div>Organ not found</div>;
@@ -77,17 +67,6 @@ const ARScannerPage: React.FC = () => {
       onZoomChange: (zoom: number) => {
         console.log(`ARScannerPage: Zoom changed to: ${zoom}x`);
         setCurrentZoom(zoom);
-
-        // Show/hide labels based on zoom level (heart only)
-        if (organ.id === "heart") {
-          const shouldShowLabels = zoom >= labelSettings.visibilityZoom.show;
-          if (shouldShowLabels !== showLabels) {
-            setShowLabels(shouldShowLabels);
-            if (!shouldShowLabels) {
-              setSelectedLabelId(null); // Clear selection when hiding labels
-            }
-          }
-        }
 
         // Check if we should switch back to original model when zooming out
         if (showSlicedModel && zoom < 3.0 && organ.id === "heart") {
@@ -145,44 +124,7 @@ const ARScannerPage: React.FC = () => {
       console.log("Cleaning up zoom controller");
       zoomControllerRef.current?.destroy();
     };
-  }, [organ.id, getBaseScale]);
-
-  // Function to update label positions (inspired by sample approach)
-  const updateLabelPositions = useCallback((camera: any, renderer: any) => {
-    if (!markerGroupRef.current || !organModelRef.current || !showLabels || organ.id !== "heart") {
-      return;
-    }
-
-    const newPositions: { [key: string]: { x: number; y: number } } = {};
-
-    heartParts.forEach((part) => {
-      // Create a 3D vector at the heart part position
-      const vector = new window.THREE.Vector3(
-        part.position[0],
-        part.position[1], 
-        part.position[2]
-      );
-
-      // Apply the marker group's transform matrix
-      vector.applyMatrix4(markerGroupRef.current.matrixWorld);
-
-      // Project to screen coordinates
-      vector.project(camera);
-
-      // Convert to screen pixels
-      const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-      const y = (vector.y * -0.5 + 0.5) * renderer.domElement.clientHeight;
-
-      // Only show labels that are in front of the camera
-      if (vector.z < 1) {
-        newPositions[part.id] = { x, y };
-      }
-    });
-
-    setLabelPositions(newPositions);
-  }, [showLabels, organ.id]);
-
-  // Zoom control handlers
+  }, [organ.id, getBaseScale]); // Zoom control handlers
   const handleZoomIn = useCallback(() => {
     console.log("=== ARScannerPage: Zoom In button clicked ===");
     console.log("ZoomController exists:", !!zoomControllerRef.current);
@@ -232,15 +174,6 @@ const ARScannerPage: React.FC = () => {
     }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
-  }, []);
-
-  // Heart label click handlers (inspired by sample/App.tsx)
-  const handleLabelClick = useCallback((labelId: string) => {
-    setSelectedLabelId(selectedLabelId === labelId ? null : labelId);
-  }, [selectedLabelId]);
-
-  const handleInfoPanelClose = useCallback(() => {
-    setSelectedLabelId(null);
   }, []);
 
   // Touch gesture handlers - Following PHASE3 pattern for UI element detection
@@ -465,9 +398,6 @@ const ARScannerPage: React.FC = () => {
         lastTimeMsec = nowMsec;
         // call each update function
         controller.update(source.domElement);
-
-        // Update label positions (for heart only when labels are visible)
-        updateLabelPositions(camera, renderer);
 
         // Rotate the 3D model if it's loaded (but not for sliced heart model)
         if ((markerGroup as any).organModel) {
@@ -735,35 +665,6 @@ const ARScannerPage: React.FC = () => {
           height: "100vh",
         }}
       />
-
-      {/* Heart Labels - DOM overlay positioned over AR scene */}
-      {showLabels && organ.id === "heart" && (
-        <>
-          {heartParts.map((part) => {
-            const position = labelPositions[part.id];
-            if (!position) return null;
-            
-            return (
-              <HeartLabel
-                key={part.id}
-                part={part}
-                screenPosition={position}
-                isVisible={true}
-                isSelected={selectedLabelId === part.id}
-                onClick={() => handleLabelClick(part.id)}
-              />
-            );
-          })}
-        </>
-      )}
-
-      {/* Heart Info Panel */}
-      {selectedLabelId && (
-        <HeartInfoPanel
-          selectedPart={heartParts.find(p => p.id === selectedLabelId) || null}
-          onClose={handleInfoPanelClose}
-        />
-      )}
 
       {/* Portal-based Confirmation Dialog */}
       <ConfirmationDialog
