@@ -104,7 +104,7 @@ const ARScannerPage: React.FC = () => {
   const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);
   const [showSlicedModel, setShowSlicedModel] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [selectedPart, setSelectedPart] = useState<HeartPart | null>(null);
+  const [selectedPart, setSelectedPart] = useState<string | null>(null);
   
   // Refs for 3D scene management
   const showSlicedModelRef = useRef(false);
@@ -116,8 +116,6 @@ const ARScannerPage: React.FC = () => {
   
   // Refs for interactive heart labeling
   const labelGroupRef = useRef<any>(null);
-  const raycasterRef = useRef<any>(null);
-  const mouseRef = useRef<any>(null);
 
   if (!organ) {
     return <div>Organ not found</div>;
@@ -600,53 +598,21 @@ const ARScannerPage: React.FC = () => {
     };
   }, [organ]);
 
-  // Handle heart part click interactions
-  const handlePartClick = useCallback((part: HeartPart) => {
-    console.log("Heart part clicked:", part.name);
-    
-    // Update selected part
-    setSelectedPart(selectedPart?.id === part.id ? null : part);
-
-    // Update label styling for selection
-    const labelsContainer = document.getElementById('heart-labels-container');
-    if (labelsContainer) {
-      const labels = labelsContainer.querySelectorAll('.heart-label-point');
-      labels.forEach((label: any) => {
-        if (label.dataset.partId === part.id) {
-          if (selectedPart?.id === part.id) {
-            // Deselecting
-            label.style.backgroundColor = part.color;
-            label.style.transform = 'translate(-50%, -50%) scale(1)';
-          } else {
-            // Selecting
-            label.style.backgroundColor = '#f39c12';
-            label.style.transform = 'translate(-50%, -50%) scale(1.2)';
-          }
-        } else {
-          // Reset other labels
-          const otherPart = heartParts.find(p => p.id === label.dataset.partId);
-          if (otherPart) {
-            label.style.backgroundColor = otherPart.color;
-            label.style.transform = 'translate(-50%, -50%) scale(1)';
-          }
-        }
-      });
-    }
+  // Handle heart part click interactions - Clean version from sample App.tsx
+  const handlePartClick = useCallback((partId: string) => {
+    console.log("Heart part clicked:", partId);
+    setSelectedPart(selectedPart === partId ? null : partId);
   }, [selectedPart]);
 
-  // Interactive Heart Labeling Functions - Styled like sample App.tsx with DOM elements
+  // Clean Heart Labeling Functions - Based on sample App.tsx
   const createHeartLabels = useCallback(() => {
     if (!markerGroupRef.current) return;
 
-    console.log("Creating heart labels with modern styling...");
+    console.log("Creating clean heart labels...");
 
     // Create label group for 3D objects
     labelGroupRef.current = new window.THREE.Group();
     markerGroupRef.current.add(labelGroupRef.current);
-
-    // Initialize raycaster and mouse for interaction
-    raycasterRef.current = new window.THREE.Raycaster();
-    mouseRef.current = new window.THREE.Vector2();
 
     // Create DOM container for labels
     const labelsContainer = document.createElement('div');
@@ -674,7 +640,7 @@ const ARScannerPage: React.FC = () => {
       marker.userData = { heartPart: part };
       labelGroupRef.current.add(marker);
 
-      // Create DOM label element styled like sample App.tsx
+      // Create clean label element - exact style from sample App.tsx
       const labelElement = document.createElement('div');
       labelElement.className = 'heart-label-point';
       labelElement.style.cssText = `
@@ -700,23 +666,10 @@ const ARScannerPage: React.FC = () => {
       labelElement.textContent = part.id;
       labelElement.dataset.partId = part.id;
 
-      // Add hover effects
-      labelElement.addEventListener('mouseenter', () => {
-        labelElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
-        labelElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
-      });
-
-      labelElement.addEventListener('mouseleave', () => {
-        if (selectedPart?.id !== part.id) {
-          labelElement.style.transform = 'translate(-50%, -50%) scale(1)';
-          labelElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-        }
-      });
-
       // Add click handler
       labelElement.addEventListener('click', (e) => {
         e.stopPropagation();
-        handlePartClick(part);
+        handlePartClick(part.id);
       });
 
       labelsContainer.appendChild(labelElement);
@@ -760,6 +713,11 @@ const ARScannerPage: React.FC = () => {
         labelElement.style.left = `${x}px`;
         labelElement.style.top = `${y}px`;
 
+        // Update selection styling
+        const isSelected = selectedPart === marker.userData.heartPart.id;
+        labelElement.style.backgroundColor = isSelected ? '#f39c12' : marker.userData.heartPart.color;
+        labelElement.style.transform = isSelected ? 'translate(-50%, -50%) scale(1.2)' : 'translate(-50%, -50%) scale(1)';
+
         // Hide labels that are behind the camera or too far
         if (vector.z > 1) {
           labelElement.style.display = 'none';
@@ -768,7 +726,7 @@ const ARScannerPage: React.FC = () => {
         }
       }
     });
-  }, []);
+  }, [selectedPart]);
 
   // Function to load sliced heart model
   const loadSlicedHeartModel = useCallback(() => {
@@ -980,104 +938,106 @@ const ARScannerPage: React.FC = () => {
         onCancel={handleCancelViewSlicedHeart}
       />
 
-      {/* Heart Part Information Panel - Styled like sample App.tsx */}
-      {selectedPart && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "20px",
-            left: "20px",
-            right: "20px",
-            backgroundColor: "rgba(44, 62, 80, 0.95)",
-            color: "white",
-            padding: "20px",
-            borderRadius: "12px",
-            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
-            backdropFilter: "blur(15px)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            zIndex: 1000,
-            animation: "slideUp 0.3s ease-out",
-            maxWidth: "500px",
-            margin: "0 auto",
-          }}
-        >
+      {/* Heart Part Information Panel - Clean like sample App.tsx without blur */}
+      {selectedPart && (() => {
+        const selectedPartData = heartParts.find(part => part.id === selectedPart);
+        return selectedPartData ? (
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              marginBottom: "15px",
+              position: "fixed",
+              bottom: "20px",
+              left: "20px",
+              right: "20px",
+              backgroundColor: "rgba(44, 62, 80, 0.95)",
+              color: "white",
+              padding: "20px",
+              borderRadius: "12px",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              zIndex: 1000,
+              animation: "slideUp 0.3s ease-out",
+              maxWidth: "500px",
+              margin: "0 auto",
             }}
           >
-            <h3
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                marginBottom: "15px",
+              }}
+            >
+              <h3
+                style={{
+                  margin: "0",
+                  color: "#f39c12",
+                  fontSize: "20px",
+                  fontWeight: "600",
+                }}
+              >
+                {selectedPartData.name}
+              </h3>
+              <button
+                onClick={() => setSelectedPart(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#bdc3c7",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  padding: "0",
+                  width: "30px",
+                  height: "30px",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                  e.currentTarget.style.color = "white";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.color = "#bdc3c7";
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <p
               style={{
                 margin: "0",
-                color: "#f39c12",
-                fontSize: "20px",
-                fontWeight: "600",
+                fontSize: "16px",
+                lineHeight: "1.5",
+                color: "#ecf0f1",
               }}
             >
-              {selectedPart.name}
-            </h3>
-            <button
-              onClick={() => setSelectedPart(null)}
+              {selectedPartData.description}
+            </p>
+            <div
               style={{
-                background: "none",
-                border: "none",
-                color: "#bdc3c7",
-                fontSize: "24px",
-                cursor: "pointer",
-                padding: "0",
-                width: "30px",
-                height: "30px",
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-                e.currentTarget.style.color = "white";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = "#bdc3c7";
+                marginTop: "15px",
+                padding: "10px",
+                backgroundColor: "rgba(0, 0, 0, 0.2)",
+                borderRadius: "8px",
+                borderLeft: `4px solid ${selectedPartData.color}`,
               }}
             >
-              ×
-            </button>
+              <small
+                style={{
+                  color: "#95a5a6",
+                  fontSize: "14px",
+                }}
+              >
+                Click on other numbered parts to explore different areas of the heart
+              </small>
+            </div>
           </div>
-          <p
-            style={{
-              margin: "0",
-              fontSize: "16px",
-              lineHeight: "1.5",
-              color: "#ecf0f1",
-            }}
-          >
-            {selectedPart.description}
-          </p>
-          <div
-            style={{
-              marginTop: "15px",
-              padding: "10px",
-              backgroundColor: "rgba(0, 0, 0, 0.2)",
-              borderRadius: "8px",
-              borderLeft: `4px solid ${selectedPart.color}`,
-            }}
-          >
-            <small
-              style={{
-                color: "#95a5a6",
-                fontSize: "14px",
-              }}
-            >
-              Click on other numbered parts to explore different areas of the heart
-            </small>
-          </div>
-        </div>
-      )}
+        ) : null;
+      })()}
     </div>
   );
 };
