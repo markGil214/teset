@@ -601,18 +601,18 @@ const ARScannerPage: React.FC = () => {
       {showConfirmation && (
         <div
           style={{
-            position: "absolute",
+            position: "fixed",
             top: 0,
             left: 0,
-            width: "100vw",
-            height: "100vh",
+            width: "100%",
+            height: "100%",
             backgroundColor: "rgba(0, 0, 0, 0.7)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            zIndex: 1000,
+            zIndex: 9999,
+            pointerEvents: "auto",
           }}
-          onClick={(e) => e.stopPropagation()}
         >
           <div
             style={{
@@ -623,8 +623,8 @@ const ARScannerPage: React.FC = () => {
               width: "350px",
               textAlign: "center",
               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
+              pointerEvents: "auto",
             }}
-            onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>
               View Sliced Heart Model
@@ -635,7 +635,11 @@ const ARScannerPage: React.FC = () => {
             </p>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <button
-                onClick={handleCancelViewSlicedHeart}
+                type="button"
+                onClick={() => {
+                  console.log("Cancel button clicked");
+                  handleCancelViewSlicedHeart();
+                }}
                 style={{
                   padding: "10px 20px",
                   borderRadius: "5px",
@@ -646,13 +650,17 @@ const ARScannerPage: React.FC = () => {
                   cursor: "pointer",
                   flex: 1,
                   marginRight: "10px",
-                  zIndex: 1001,
+                  pointerEvents: "auto",
                 }}
               >
                 Cancel
               </button>
               <button
-                onClick={handleConfirmViewSlicedHeart}
+                type="button"
+                onClick={() => {
+                  console.log("View Sliced Model button clicked");
+                  handleConfirmViewSlicedHeart();
+                }}
                 style={{
                   padding: "10px 20px",
                   borderRadius: "5px",
@@ -662,7 +670,7 @@ const ARScannerPage: React.FC = () => {
                   fontWeight: "bold",
                   cursor: "pointer",
                   flex: 1,
-                  zIndex: 1001,
+                  pointerEvents: "auto",
                 }}
               >
                 View Sliced Model
