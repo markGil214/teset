@@ -276,6 +276,7 @@ const ARScannerPage: React.FC = () => {
     let animationId: number;
     let renderer: any;
     let source: any;
+    let clock: any;
 
     // EXACT COPY-CAT of basic-cutout.html script section
     renderer = new window.THREE.WebGLRenderer({
@@ -290,8 +291,8 @@ const ARScannerPage: React.FC = () => {
     renderer.domElement.style.left = "0px";
     document.body.appendChild(renderer.domElement); 
     
-    // Add clock for consistent timing like basic-cutout.html
-    var clock = new window.THREE.Clock();
+    // Add clock like basic-cutout.html
+    clock = new window.THREE.Clock();
     
     // init scene and camera - EXACT SAME AS BASIC.HTML
     var scene = new window.THREE.Scene();
@@ -302,7 +303,7 @@ const ARScannerPage: React.FC = () => {
 
     source = new window.THREEAR.Source({ renderer, camera });
     window.THREEAR.initialize({ source: source }).then((controller: any) => {
-      // Use same lighting as basic-cutout.html for consistent rendering
+      // Add lighting exactly like basic-cutout.html
       var ambientLight = new window.THREE.AmbientLight(0xcccccc, 1.0);
       scene.add(ambientLight); // Load the 3D model for this organ
       var gltfLoader = new window.THREE.GLTFLoader();
@@ -312,12 +313,11 @@ const ARScannerPage: React.FC = () => {
           var model = gltf.scene;
 
           // Scale and position the model appropriately for AR based on organ type
-          // Following basic-cutout.html pattern for positioning
           let scale, positionY;
           switch (organ.id) {
             case "brain":
               scale = 0.3;
-              positionY = -scale / 2; // Position like basic-cutout.html
+              positionY = -scale / 2;
               break;
             case "heart":
               scale = 0.8;
@@ -372,15 +372,15 @@ const ARScannerPage: React.FC = () => {
           setModelLoading(false);
           setModelError(true);
 
-          // Fallback: add a simple cube if model fails to load - matching basic-cutout.html
+          // Fallback: add a simple cube if model fails to load
           var geometry = new window.THREE.CubeGeometry(1, 1, 1);
-          var material = new window.THREE.MeshLambertMaterial({
-            color: 0x00ff00,
+          var material = new window.THREE.MeshBasicMaterial({
+            color: 0xff0000,
             transparent: true,
-            opacity: 0.7,
+            opacity: 0.5,
           });
           var cube = new window.THREE.Mesh(geometry, material);
-          cube.position.y = -geometry.parameters.height / 2; // Match basic-cutout.html pattern
+          cube.position.y = -geometry.parameters.height / 2;
           markerGroup.add(cube);
         }
       );
@@ -389,9 +389,9 @@ const ARScannerPage: React.FC = () => {
         markerObject: markerGroup,
       });
 
-      controller.trackMarker(patternMarker); 
-      
-      // Use exact same animation loop pattern as basic-cutout.html
+      controller.trackMarker(patternMarker);
+
+      // Use EXACT SAME animation loop as basic-cutout.html - THIS IS KEY!
       function animate() {
         animationId = requestAnimationFrame(animate);
         var delta = clock.getDelta();
@@ -485,14 +485,14 @@ const ARScannerPage: React.FC = () => {
       (gltf: any) => {
         const slicedModel = gltf.scene;
 
-        // Apply same scale and position as heart - following basic-cutout.html pattern
+        // Apply same scale and position as heart
         const scale = 0.8;
         const currentZoomLevel =
           zoomControllerRef.current?.getCurrentZoom() || 1.0;
         const finalScale = scale * currentZoomLevel;
 
         slicedModel.scale.set(finalScale, finalScale, finalScale);
-        slicedModel.position.y = -scale / 2; // Match positioning pattern
+        slicedModel.position.y = -scale / 2;
 
         // Add sliced model to scene
         markerGroupRef.current.add(slicedModel);
