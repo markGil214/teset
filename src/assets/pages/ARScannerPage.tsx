@@ -547,11 +547,12 @@ const ARScannerPage: React.FC = () => {
 
   // Handle confirmation dialog actions
   const handleConfirmViewSlicedHeart = useCallback(() => {
-    console.log("User confirmed to view sliced heart model");
+    console.log("User confirmed to view sliced heart model - navigating to SlicedHeartPage");
     setShowConfirmation(false);
-    setShowSlicedModel(true);
-    showSlicedModelRef.current = true;
-  }, []);
+    
+    // Navigate to the new SlicedHeartPage instead of switching models in AR
+    navigate('/sliced-heart');
+  }, [navigate]);
 
   const handleCancelViewSlicedHeart = useCallback(() => {
     console.log("User cancelled viewing sliced heart model");

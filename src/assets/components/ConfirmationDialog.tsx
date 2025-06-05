@@ -114,7 +114,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           fontSize: "20px",
           fontWeight: "bold"
         }}>
-          View Sliced Heart Model
+          Explore Interactive Heart Anatomy
         </h3>
         <p style={{ 
           margin: "0 0 30px 0", 
@@ -122,8 +122,8 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           lineHeight: "1.5",
           fontSize: "16px"
         }}>
-          You've reached maximum zoom level. Would you like to view the 
-          sliced model of the heart to see its internal structure?
+          You've reached maximum zoom level! Would you like to explore the 
+          interactive sliced heart anatomy with detailed 3D labels and information panels?
         </p>
         <div style={{ 
           display: "flex", 
@@ -184,7 +184,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
               e.currentTarget.style.backgroundColor = "#28a745";
             }}
           >
-            View Sliced Model
+            Explore Interactive Anatomy
           </button>
         </div>
       </div>
