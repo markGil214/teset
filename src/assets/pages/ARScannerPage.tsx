@@ -177,16 +177,28 @@ const ARScannerPage: React.FC = () => {
 
   // Touch gesture handlers
   const handleTouchStart = useCallback((e: TouchEvent) => {
+    // Don't handle touch events if confirmation dialog is shown
+    if (showConfirmation) {
+      return;
+    }
     zoomControllerRef.current?.handleTouchStart(e);
-  }, []);
+  }, [showConfirmation]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
+    // Don't handle touch events if confirmation dialog is shown
+    if (showConfirmation) {
+      return;
+    }
     zoomControllerRef.current?.handleTouchMove(e);
-  }, []);
+  }, [showConfirmation]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
+    // Don't handle touch events if confirmation dialog is shown
+    if (showConfirmation) {
+      return;
+    }
     zoomControllerRef.current?.handleTouchEnd(e);
-  }, []);
+  }, [showConfirmation]);
 
   // Prevent body scrolling when AR is active
   useEffect(() => {
@@ -613,6 +625,12 @@ const ARScannerPage: React.FC = () => {
             zIndex: 9999,
             pointerEvents: "auto",
           }}
+          onClick={(e) => {
+            // Close dialog if clicking on backdrop
+            if (e.target === e.currentTarget) {
+              handleCancelViewSlicedHeart();
+            }
+          }}
         >
           <div
             style={{
@@ -625,6 +643,7 @@ const ARScannerPage: React.FC = () => {
               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
               pointerEvents: "auto",
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>
               View Sliced Heart Model
@@ -636,8 +655,16 @@ const ARScannerPage: React.FC = () => {
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   console.log("Cancel button clicked");
+                  handleCancelViewSlicedHeart();
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log("Cancel button touched");
                   handleCancelViewSlicedHeart();
                 }}
                 style={{
@@ -657,8 +684,16 @@ const ARScannerPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   console.log("View Sliced Model button clicked");
+                  handleConfirmViewSlicedHeart();
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log("View Sliced Model button touched");
                   handleConfirmViewSlicedHeart();
                 }}
                 style={{
