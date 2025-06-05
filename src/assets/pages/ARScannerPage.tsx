@@ -3,6 +3,10 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { organs } from "../components/organData";
 import { ZoomController } from "../../utils/ZoomController";
 import ARControls from "../components/ARControls";
+import ConfirmationDialog from "../components/ConfirmationDialog";
+import ARLabel from "../components/ARLabel";
+import { anatomicalEducationalData } from "../data/anatomicalData";
+import { HeartLabelManager } from "../../utils/HeartLabelManager";
 
 // Declare global variables for the libraries
 declare global {
@@ -26,12 +30,24 @@ const ARScannerPage: React.FC = () => {
   const [isZoomAnimating, setIsZoomAnimating] = useState(false);
   const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);
   const [showSlicedModel, setShowSlicedModel] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const showSlicedModelRef = useRef(false);
   const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
   const baseScaleRef = useRef<number>(0.5);
   const originalModelRef = useRef<any>(null);
+
+  // Phase 3: Anatomical Labeling System state
+  const [showLabels, setShowLabels] = useState(false);
+  const [selectedLabelId, setSelectedLabelId] = useState<string | null>(null);
+  const [language, setLanguage] = useState<"en" | "fil">("en");
+  const [labelPositions, setLabelPositions] = useState<{
+    [key: string]: { x: number; y: number };
+  }>({});
+  const heartLabelManagerRef = useRef<HeartLabelManager | null>(null);
+  const cameraRef = useRef<any>(null);
+  const rendererRef = useRef<any>(null);
 
   if (!organ) {
     return <div>Organ not found</div>;
@@ -65,15 +81,17 @@ const ARScannerPage: React.FC = () => {
       onZoomChange: (zoom: number) => {
         console.log(`ARScannerPage: Zoom changed to: ${zoom}x`);
         setCurrentZoom(zoom);
-        
+
         // Check if we should switch back to original model when zooming out
         if (showSlicedModel && zoom < 3.0 && organ.id === "heart") {
-          console.log("Zoom reduced below max - switching back to original model");
+          console.log(
+            "Zoom reduced below max - switching back to original model"
+          );
           restoreOriginalModel();
           setShowSlicedModel(false);
           showSlicedModelRef.current = false;
         }
-        
+
         // Apply zoom to the 3D model
         if (organModelRef.current) {
           const newScale = baseScaleRef.current * zoom;
@@ -95,9 +113,18 @@ const ARScannerPage: React.FC = () => {
       },
       onMaxZoomReached: () => {
         if (organ.id === "heart") {
-          console.log("ARScannerPage: Max zoom reached - loading sliced heart model");
-          setShowSlicedModel(true);
-          showSlicedModelRef.current = true;
+          console.log(
+            "ARScannerPage: Max zoom reached - showing sliced heart confirmation"
+          );
+          setShowConfirmation(true);
+
+          // Hide the original model when showing the confirmation dialog
+          if (organModelRef.current && markerGroupRef.current) {
+            // Store the current model before hiding it
+            originalModelRef.current = organModelRef.current;
+            // Hide the model
+            markerGroupRef.current.remove(organModelRef.current);
+          }
         } else {
           console.log("ARScannerPage: Max zoom reached - showing message");
           setShowMaxZoomMessage(true);
@@ -111,7 +138,50 @@ const ARScannerPage: React.FC = () => {
       console.log("Cleaning up zoom controller");
       zoomControllerRef.current?.destroy();
     };
-  }, [organ.id, getBaseScale]); // Zoom control handlers
+  }, [organ.id, getBaseScale]); 
+
+  // Initialize Heart Label Manager for Phase 3
+  useEffect(() => {
+    if (organ.id === "heart") {
+      heartLabelManagerRef.current = new HeartLabelManager();
+      console.log("HeartLabelManager initialized for heart organ");
+
+      return () => {
+        console.log("Cleaning up HeartLabelManager");
+        heartLabelManagerRef.current?.destroy();
+      };
+    }
+  }, [organ.id]);
+
+  // Function to update label positions
+  const updateLabelPositions = useCallback(() => {
+    if (
+      !heartLabelManagerRef.current ||
+      !markerGroupRef.current ||
+      !cameraRef.current ||
+      !rendererRef.current ||
+      organ.id !== "heart"
+    ) {
+      return;
+    }
+
+    const currentOrganData = anatomicalEducationalData.find(
+      (data) => data.organId === organ.id
+    );
+
+    if (!currentOrganData) return;
+
+    const newPositions = heartLabelManagerRef.current.updateLabelPositions(
+      markerGroupRef.current,
+      cameraRef.current,
+      rendererRef.current,
+      currentOrganData.anatomicalPoints
+    );
+
+    setLabelPositions(newPositions);
+  }, [organ.id]);
+
+  // Zoom control handlers
   const handleZoomIn = useCallback(() => {
     console.log("=== ARScannerPage: Zoom In button clicked ===");
     console.log("ZoomController exists:", !!zoomControllerRef.current);
@@ -164,17 +234,38 @@ const ARScannerPage: React.FC = () => {
   }, []);
 
   // Touch gesture handlers
-  const handleTouchStart = useCallback((e: TouchEvent) => {
-    zoomControllerRef.current?.handleTouchStart(e);
-  }, []);
+  const handleTouchStart = useCallback(
+    (e: TouchEvent) => {
+      // Don't handle touch events if confirmation dialog is shown
+      if (showConfirmation) {
+        return;
+      }
+      zoomControllerRef.current?.handleTouchStart(e);
+    },
+    [showConfirmation]
+  );
 
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    zoomControllerRef.current?.handleTouchMove(e);
-  }, []);
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      // Don't handle touch events if confirmation dialog is shown
+      if (showConfirmation) {
+        return;
+      }
+      zoomControllerRef.current?.handleTouchMove(e);
+    },
+    [showConfirmation]
+  );
 
-  const handleTouchEnd = useCallback((e: TouchEvent) => {
-    zoomControllerRef.current?.handleTouchEnd(e);
-  }, []);
+  const handleTouchEnd = useCallback(
+    (e: TouchEvent) => {
+      // Don't handle touch events if confirmation dialog is shown
+      if (showConfirmation) {
+        return;
+      }
+      zoomControllerRef.current?.handleTouchEnd(e);
+    },
+    [showConfirmation]
+  );
 
   // Prevent body scrolling when AR is active
   useEffect(() => {
@@ -211,12 +302,19 @@ const ARScannerPage: React.FC = () => {
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0px";
     renderer.domElement.style.left = "0px";
-    document.body.appendChild(renderer.domElement); // init scene and camera - EXACT SAME AS BASIC.HTML
+    document.body.appendChild(renderer.domElement); 
+    
+    // init scene and camera - EXACT SAME AS BASIC.HTML
     var scene = new window.THREE.Scene();
     var camera = new window.THREE.Camera();
     scene.add(camera);
     var markerGroup = new window.THREE.Group();
     scene.add(markerGroup);
+
+    // Store references for label system
+    rendererRef.current = renderer;
+    cameraRef.current = camera;
+    markerGroupRef.current = markerGroup;
 
     source = new window.THREEAR.Source({ renderer, camera });
     window.THREEAR.initialize({ source: source }).then((controller: any) => {
@@ -322,6 +420,11 @@ const ARScannerPage: React.FC = () => {
         // call each update function
         controller.update(source.domElement);
 
+        // Update label positions for Phase 3 (only for heart organ)
+        if (organ?.id === "heart" && showLabels) {
+          updateLabelPositions();
+        }
+
         // Rotate the 3D model if it's loaded (but not for sliced heart model)
         if ((markerGroup as any).organModel) {
           // Only rotate if it's not the sliced heart model
@@ -390,17 +493,39 @@ const ARScannerPage: React.FC = () => {
         }
       });
     };
-  }, [organ]);
+  }, [organ, updateLabelPositions]);
+
+  // Phase 3: Label control functions
+  const toggleLabels = useCallback(() => {
+    const newShowLabels = !showLabels;
+    setShowLabels(newShowLabels);
+    
+    if (heartLabelManagerRef.current) {
+      heartLabelManagerRef.current.setLabelsVisible(newShowLabels);
+    }
+    
+    // Clear selected label when hiding labels
+    if (!newShowLabels) {
+      setSelectedLabelId(null);
+    }
+    
+    console.log(`Labels ${newShowLabels ? 'shown' : 'hidden'} for ${organ.name}`);
+  }, [showLabels, organ.name]);
+
+  const toggleLanguage = useCallback(() => {
+    setLanguage(language === "en" ? "fil" : "en");
+    console.log(`Language switched to ${language === "en" ? 'Filipino' : 'English'}`);
+  }, [language]);
 
   // Function to load sliced heart model
   const loadSlicedHeartModel = useCallback(() => {
     if (!markerGroupRef.current || !organModelRef.current) return;
 
     console.log("Loading sliced heart model...");
-    
+
     // Store reference to original model
     originalModelRef.current = organModelRef.current;
-    
+
     // Remove current model from scene
     markerGroupRef.current.remove(organModelRef.current);
 
@@ -410,22 +535,23 @@ const ARScannerPage: React.FC = () => {
       "/sliced_organs/heart.glb",
       (gltf: any) => {
         const slicedModel = gltf.scene;
-        
+
         // Apply same scale and position as heart
         const scale = 0.8;
-        const currentZoomLevel = zoomControllerRef.current?.getCurrentZoom() || 1.0;
+        const currentZoomLevel =
+          zoomControllerRef.current?.getCurrentZoom() || 1.0;
         const finalScale = scale * currentZoomLevel;
-        
+
         slicedModel.scale.set(finalScale, finalScale, finalScale);
         slicedModel.position.y = 0;
-        
+
         // Add sliced model to scene
         markerGroupRef.current.add(slicedModel);
-        
+
         // Update model reference
         organModelRef.current = slicedModel;
         (markerGroupRef.current as any).organModel = slicedModel;
-        
+
         console.log("Sliced heart model loaded successfully");
       },
       undefined,
@@ -445,19 +571,19 @@ const ARScannerPage: React.FC = () => {
     if (!markerGroupRef.current || !originalModelRef.current) return;
 
     console.log("Restoring original heart model...");
-    
+
     // Remove current sliced model from scene
     if (organModelRef.current) {
       markerGroupRef.current.remove(organModelRef.current);
     }
-    
+
     // Add original model back to scene
     markerGroupRef.current.add(originalModelRef.current);
-    
+
     // Update model reference
     organModelRef.current = originalModelRef.current;
     (markerGroupRef.current as any).organModel = originalModelRef.current;
-    
+
     console.log("Original heart model restored successfully");
   }, []);
 
@@ -466,6 +592,31 @@ const ARScannerPage: React.FC = () => {
       loadSlicedHeartModel();
     }
   }, [showSlicedModel, loadSlicedHeartModel]);
+
+  // Handle confirmation dialog actions
+  const handleConfirmViewSlicedHeart = useCallback(() => {
+    console.log("User confirmed to view sliced heart model");
+    setShowConfirmation(false);
+    setShowSlicedModel(true);
+    showSlicedModelRef.current = true;
+  }, []);
+
+  const handleCancelViewSlicedHeart = useCallback(() => {
+    console.log("User cancelled viewing sliced heart model");
+    setShowConfirmation(false);
+    // Zoom out slightly to prevent triggering the max zoom again immediately
+    if (zoomControllerRef.current) {
+      zoomControllerRef.current.zoomOut();
+    }
+
+    // Restore the original model
+    if (originalModelRef.current && markerGroupRef.current) {
+      markerGroupRef.current.add(originalModelRef.current);
+      organModelRef.current = originalModelRef.current;
+      (markerGroupRef.current as any).organModel = originalModelRef.current;
+      console.log("Original model restored after cancellation");
+    }
+  }, []);
 
   return (
     <div
@@ -549,6 +700,84 @@ const ARScannerPage: React.FC = () => {
         onMaxZoomMessageShown={() => setShowMaxZoomMessage(false)}
       />
 
+      {/* Phase 3: Label Controls (only show for heart organ) */}
+      {organ.id === "heart" && !modelLoading && !modelError && (
+        <>
+          {/* Labels Toggle Button */}
+          <button
+            onClick={toggleLabels}
+            style={{
+              position: "absolute",
+              top: "120px",
+              right: "10px",
+              padding: "10px 15px",
+              backgroundColor: showLabels
+                ? "rgba(40, 167, 69, 0.9)"
+                : "rgba(108, 117, 125, 0.8)",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              zIndex: 101,
+              fontSize: "14px",
+              fontWeight: "600",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+              backdropFilter: "blur(10px)",
+              transition: "all 0.3s ease",
+            }}
+          >
+            {showLabels ? "🏷️ Hide Labels" : "🏷️ Show Labels"}
+          </button>
+
+          {/* Language Toggle Button */}
+          {showLabels && (
+            <button
+              onClick={toggleLanguage}
+              style={{
+                position: "absolute",
+                top: "175px",
+                right: "10px",
+                padding: "8px 12px",
+                backgroundColor: "rgba(52, 152, 219, 0.9)",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                zIndex: 101,
+                fontSize: "12px",
+                fontWeight: "500",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                backdropFilter: "blur(10px)",
+                transition: "all 0.3s ease",
+              }}
+            >
+              🌐 {language === "en" ? "Filipino" : "English"}
+            </button>
+          )}
+        </>
+      )}
+
+      {/* Phase 3: AR Labels Rendering */}
+      {organ.id === "heart" &&
+        showLabels &&
+        !modelLoading &&
+        !modelError &&
+        anatomicalEducationalData
+          .find((data) => data.organId === organ.id)
+          ?.anatomicalPoints.map((point) => (
+            <ARLabel
+              key={point.id}
+              point={point}
+              language={language}
+              screenPosition={labelPositions[point.id] || { x: 0, y: 0 }}
+              isVisible={!!labelPositions[point.id]}
+              onClick={() =>
+                setSelectedLabelId(selectedLabelId === point.id ? null : point.id)
+              }
+              isSelected={selectedLabelId === point.id}
+            />
+          ))}
+
       {/* AR container - attached to body like cutout example */}
       <div
         ref={containerRef}
@@ -557,6 +786,13 @@ const ARScannerPage: React.FC = () => {
           width: "100vw",
           height: "100vh",
         }}
+      />
+
+      {/* Portal-based Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showConfirmation}
+        onConfirm={handleConfirmViewSlicedHeart}
+        onCancel={handleCancelViewSlicedHeart}
       />
     </div>
   );

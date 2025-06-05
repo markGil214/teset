@@ -1,0 +1,23 @@
+# Navigate to your project directory
+cd "c:\Users\Mary Cabalquinto\vite-project"
+
+# Add all changes to staging
+git add .
+
+# Commit with a descriptive message
+git commit -m "Fix zoom controls: Add marker detection to prevent automatic zooming
+
+- Add markerDetected state to track when AR marker is found/lost
+- Update zoom handlers to only work when marker is detected
+- Add marker event listeners (markerFound/markerLost) to PatternMarker
+- Reset zoom states when marker is lost (dialogs, sliced model, etc.)
+- Add visual feedback showing marker detection status
+- Remove unused modelVisible state variable
+- Consolidate duplicate scale logic using getBaseScale function
+- Prevent touch gestures when marker not detected
+- Disable zoom controls in ARControls when marker not detected
+
+This fixes the issue where zoom controls worked even without scanning the marker, causing dialogs to appear automatically."
+
+# Push to your remote repository
+git push origin main
