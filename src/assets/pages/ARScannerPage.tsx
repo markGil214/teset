@@ -536,6 +536,9 @@ const ARScannerPage: React.FC = () => {
           }
         }
 
+        // Update label positions for DOM elements
+        updateLabelPositions(camera);
+
         renderer.render(scene, camera);
       }
       animationId = requestAnimationFrame(animate);
@@ -556,43 +559,12 @@ const ARScannerPage: React.FC = () => {
       passive: false,
     });
 
-    // Add canvas click event listener for heart part interaction
-    const handleCanvasClick = (event: MouseEvent) => {
-      if (!raycasterRef.current || !mouseRef.current || !labelGroupRef.current) return;
-
-      // Calculate mouse position in normalized device coordinates
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      // Update the picking ray with the camera and mouse position
-      raycasterRef.current.setFromCamera(mouseRef.current, camera);
-
-      // Calculate objects intersecting the picking ray
-      const intersects = raycasterRef.current.intersectObjects(labelGroupRef.current.children, true);
-
-      if (intersects.length > 0) {
-        const clickedObject = intersects[0].object;
-        if (clickedObject.userData && clickedObject.userData.heartPart) {
-          handlePartClick(clickedObject.userData.heartPart);
-        }
-      }
-    };
-
-    // Add click event listener to renderer canvas
-    renderer.domElement.addEventListener('click', handleCanvasClick);
-
     // Cleanup
     return () => {
       // Remove touch event listeners
       document.removeEventListener("touchstart", handleTouchStartEvent);
       document.removeEventListener("touchmove", handleTouchMoveEvent);
       document.removeEventListener("touchend", handleTouchEndEvent);
-      
-      // Remove canvas click event listener
-      if (renderer && renderer.domElement) {
-        renderer.domElement.removeEventListener('click', handleCanvasClick);
-      }
       // Cancel animation frame
       if (animationId) {
         cancelAnimationFrame(animationId);
@@ -628,13 +600,47 @@ const ARScannerPage: React.FC = () => {
     };
   }, [organ]);
 
-  // Interactive Heart Labeling Functions - Styled like sample App.tsx
+  // Handle heart part click interactions
+  const handlePartClick = useCallback((part: HeartPart) => {
+    console.log("Heart part clicked:", part.name);
+    
+    // Update selected part
+    setSelectedPart(selectedPart?.id === part.id ? null : part);
+
+    // Update label styling for selection
+    const labelsContainer = document.getElementById('heart-labels-container');
+    if (labelsContainer) {
+      const labels = labelsContainer.querySelectorAll('.heart-label-point');
+      labels.forEach((label: any) => {
+        if (label.dataset.partId === part.id) {
+          if (selectedPart?.id === part.id) {
+            // Deselecting
+            label.style.backgroundColor = part.color;
+            label.style.transform = 'translate(-50%, -50%) scale(1)';
+          } else {
+            // Selecting
+            label.style.backgroundColor = '#f39c12';
+            label.style.transform = 'translate(-50%, -50%) scale(1.2)';
+          }
+        } else {
+          // Reset other labels
+          const otherPart = heartParts.find(p => p.id === label.dataset.partId);
+          if (otherPart) {
+            label.style.backgroundColor = otherPart.color;
+            label.style.transform = 'translate(-50%, -50%) scale(1)';
+          }
+        }
+      });
+    }
+  }, [selectedPart]);
+
+  // Interactive Heart Labeling Functions - Styled like sample App.tsx with DOM elements
   const createHeartLabels = useCallback(() => {
     if (!markerGroupRef.current) return;
 
     console.log("Creating heart labels with modern styling...");
 
-    // Create label group
+    // Create label group for 3D objects
     labelGroupRef.current = new window.THREE.Group();
     markerGroupRef.current.add(labelGroupRef.current);
 
@@ -642,65 +648,83 @@ const ARScannerPage: React.FC = () => {
     raycasterRef.current = new window.THREE.Raycaster();
     mouseRef.current = new window.THREE.Vector2();
 
+    // Create DOM container for labels
+    const labelsContainer = document.createElement('div');
+    labelsContainer.id = 'heart-labels-container';
+    labelsContainer.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 10;
+    `;
+    document.body.appendChild(labelsContainer);
+
     heartParts.forEach((part) => {
-      // Create clickable label point (circular) - styled like sample
-      const pointGeometry = new window.THREE.CircleGeometry(0.08, 16);
-      const pointMaterial = new window.THREE.MeshBasicMaterial({
-        color: part.color,
+      // Create invisible 3D marker for position tracking
+      const markerGeometry = new window.THREE.SphereGeometry(0.05, 8, 8);
+      const markerMaterial = new window.THREE.MeshBasicMaterial({
         transparent: true,
-        opacity: 0.9,
-        side: window.THREE.DoubleSide,
+        opacity: 0
       });
-      const labelPoint = new window.THREE.Mesh(pointGeometry, pointMaterial);
-      labelPoint.position.set(...part.position);
-      labelPoint.userData = { heartPart: part };
-      
-      // Make the label point always face the camera
-      labelPoint.lookAt(0, 0, 1);
-      
-      labelGroupRef.current.add(labelPoint);
+      const marker = new window.THREE.Mesh(markerGeometry, markerMaterial);
+      marker.position.set(...part.position);
+      marker.userData = { heartPart: part };
+      labelGroupRef.current.add(marker);
 
-      // Create number text on the label point
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      if (context) {
-        canvas.width = 128;
-        canvas.height = 128;
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw white border circle
-        context.beginPath();
-        context.arc(64, 64, 60, 0, 2 * Math.PI);
-        context.fillStyle = 'white';
-        context.fill();
-        
-        // Draw main colored circle
-        context.beginPath();
-        context.arc(64, 64, 55, 0, 2 * Math.PI);
-        context.fillStyle = part.color;
-        context.fill();
-        
-        // Add number text
-        context.fillStyle = 'white';
-        context.font = 'bold 48px Arial';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.fillText(part.id, 64, 64);
-      }
+      // Create DOM label element styled like sample App.tsx
+      const labelElement = document.createElement('div');
+      labelElement.className = 'heart-label-point';
+      labelElement.style.cssText = `
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: ${part.color};
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        border: 2px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        transition: all 0.3s ease;
+        pointer-events: auto;
+        user-select: none;
+        transform: translate(-50%, -50%);
+      `;
+      labelElement.textContent = part.id;
+      labelElement.dataset.partId = part.id;
 
-      const numberTexture = new window.THREE.CanvasTexture(canvas);
-      const numberMaterial = new window.THREE.SpriteMaterial({ 
-        map: numberTexture,
-        transparent: true,
-        alphaTest: 0.1
+      // Add hover effects
+      labelElement.addEventListener('mouseenter', () => {
+        labelElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
+        labelElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
       });
-      const numberSprite = new window.THREE.Sprite(numberMaterial);
-      numberSprite.position.set(...part.position);
-      numberSprite.scale.set(0.15, 0.15, 1);
-      numberSprite.userData = { heartPart: part };
-      labelGroupRef.current.add(numberSprite);
+
+      labelElement.addEventListener('mouseleave', () => {
+        if (selectedPart?.id !== part.id) {
+          labelElement.style.transform = 'translate(-50%, -50%) scale(1)';
+          labelElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        }
+      });
+
+      // Add click handler
+      labelElement.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handlePartClick(part);
+      });
+
+      labelsContainer.appendChild(labelElement);
+      
+      // Store reference for position updates
+      marker.userData.labelElement = labelElement;
     });
-  }, []);
+  }, [handlePartClick]);
 
   const removeHeartLabels = useCallback(() => {
     if (labelGroupRef.current && markerGroupRef.current) {
@@ -708,12 +732,42 @@ const ARScannerPage: React.FC = () => {
       markerGroupRef.current.remove(labelGroupRef.current);
       labelGroupRef.current = null;
     }
+
+    // Remove DOM labels container
+    const labelsContainer = document.getElementById('heart-labels-container');
+    if (labelsContainer) {
+      document.body.removeChild(labelsContainer);
+    }
+
     setSelectedPart(null);
   }, []);
 
-  const handlePartClick = useCallback((part: HeartPart) => {
-    console.log("Heart part clicked:", part.name);
-    setSelectedPart(part);
+  const updateLabelPositions = useCallback((camera: any) => {
+    if (!labelGroupRef.current) return;
+
+    labelGroupRef.current.children.forEach((marker: any) => {
+      if (marker.userData.labelElement) {
+        // Project 3D position to screen coordinates
+        const vector = marker.position.clone();
+        vector.project(camera);
+
+        // Convert to screen coordinates
+        const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
+
+        // Update DOM element position
+        const labelElement = marker.userData.labelElement;
+        labelElement.style.left = `${x}px`;
+        labelElement.style.top = `${y}px`;
+
+        // Hide labels that are behind the camera or too far
+        if (vector.z > 1) {
+          labelElement.style.display = 'none';
+        } else {
+          labelElement.style.display = 'flex';
+        }
+      }
+    });
   }, []);
 
   // Function to load sliced heart model
