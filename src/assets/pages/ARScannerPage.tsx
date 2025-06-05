@@ -124,7 +124,7 @@ const ARScannerPage: React.FC = () => {
       case "brain":
         return 0.3;
       case "heart":
-        return 0.8;
+        return 0.5; // Updated to match the model loading scale
       case "kidney":
         return 0.4;
       case "lungs":
@@ -353,6 +353,14 @@ const ARScannerPage: React.FC = () => {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // Check viewport meta tag for proper AR setup
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      console.log('Viewport meta tag:', viewport.getAttribute('content'));
+    } else {
+      console.warn('No viewport meta tag found - this may affect AR quality');
+    }
+
     let animationId: number;
     let renderer: any;
     let source: any;
@@ -360,12 +368,13 @@ const ARScannerPage: React.FC = () => {
 
     // EXACT COPY-CAT of basic-cutout.html script section
     renderer = new window.THREE.WebGLRenderer({
-      // antialias: true,
+      antialias: true, // Enable antialiasing for better quality
       alpha: true,
     });
     renderer.setClearColor(new window.THREE.Color("lightgrey"), 0);
-    // renderer.setPixelRatio(2);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio at 2 for performance
     renderer.setSize(window.innerWidth, window.innerHeight);
+    console.log(`Renderer initialized with pixel ratio: ${Math.min(window.devicePixelRatio, 2)}, size: ${window.innerWidth}x${window.innerHeight}`);
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0px";
     renderer.domElement.style.left = "0px";
@@ -376,24 +385,73 @@ const ARScannerPage: React.FC = () => {
     var markerGroup = new window.THREE.Group();
     scene.add(markerGroup);
 
-    source = new window.THREEAR.Source({ renderer, camera });
-    window.THREEAR.initialize({ source: source }).then((controller: any) => {
+    source = new window.THREEAR.Source({ 
+      renderer, 
+      camera,
+      sourceWidth: 1280,
+      sourceHeight: 720,
+      displayWidth: 1280,
+      displayHeight: 720,
+      // Add video constraints for better quality
+      videoConstraints: {
+        facingMode: 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 }
+      }
+    });
+    
+    window.THREEAR.initialize({ 
+      source: source,
+      canvasWidth: 80 * 4, // Increased for better quality
+      canvasHeight: 60 * 4,
+      maxDetectionRate: 60 // Higher detection rate
+    }).then((controller: any) => {
       // Initialize raycaster and mouse for label interaction
       raycasterRef.current = new window.THREE.Raycaster();
       mouseRef.current = new window.THREE.Vector2();
 
       // Add lighting for better 3D model visibility
-      var ambientLight = new window.THREE.AmbientLight(0x404040, 0.6);
+      var ambientLight = new window.THREE.AmbientLight(0x404040, 0.8); // Increased intensity
       scene.add(ambientLight);
 
-      var directionalLight = new window.THREE.DirectionalLight(0xffffff, 0.8);
+      var directionalLight = new window.THREE.DirectionalLight(0xffffff, 1.0); // Increased intensity
       directionalLight.position.set(1, 1, 1);
-      scene.add(directionalLight); // Load the 3D model for this organ
+      scene.add(directionalLight);
+      
+      // Add additional directional light for better illumination
+      var directionalLight2 = new window.THREE.DirectionalLight(0xffffff, 0.6);
+      directionalLight2.position.set(-1, -1, -1);
+      scene.add(directionalLight2);      // Load the 3D model for this organ
+      console.log(`Loading heart model from: ${organ.modelPath}`);
       var gltfLoader = new window.THREE.GLTFLoader();
       gltfLoader.load(
         organ.modelPath,
         (gltf: any) => {
+          console.log("Heart model loaded successfully:", gltf);
           var model = gltf.scene;
+
+          // Enhance model materials for better clarity
+          model.traverse((child: any) => {
+            if (child.isMesh) {
+              // Improve material properties
+              if (child.material) {
+                child.material.transparent = false;
+                child.material.alphaTest = 0.1;
+                // Improve material quality
+                child.material.minFilter = window.THREE.LinearFilter;
+                child.material.magFilter = window.THREE.LinearFilter;
+                child.material.needsUpdate = true;
+                // Enable shadows if supported
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            }
+          });
+
+          // Log model details for debugging
+          console.log(`Model bounding box:`, model.userData);
+          console.log(`Model children count:`, model.children.length);
 
           // Scale and position the model appropriately for AR based on organ type
           let scale, positionY;
@@ -403,7 +461,7 @@ const ARScannerPage: React.FC = () => {
               positionY = 0.1;
               break;
             case "heart":
-              scale = 0.8;
+              scale = 0.5; // Reduced scale for better clarity
               positionY = 0;
               break;
             case "kidney":
@@ -449,9 +507,13 @@ const ARScannerPage: React.FC = () => {
             `${organ.name} 3D model loaded successfully with scale: ${scale}`
           );
         },
-        undefined,
+        (progress: any) => {
+          // Log loading progress
+          console.log('Heart model loading progress:', (progress.loaded / progress.total * 100) + '%');
+        },
         (error: any) => {
           console.error("Error loading 3D model:", error);
+          console.error("Model path attempted:", organ.modelPath);
           setModelLoading(false);
           setModelError(true);
 
@@ -470,13 +532,27 @@ const ARScannerPage: React.FC = () => {
       var patternMarker = new window.THREEAR.PatternMarker({
         patternUrl: "/data/patt.hiro",
         markerObject: markerGroup,
+        minConfidence: 0.6, // Improved confidence threshold
+        smooth: true, // Enable smoothing for better tracking
+        smoothCount: 5, // Number of frames to smooth over
+        smoothTolerance: 0.01, // Tolerance for smoothing
+        smoothThreshold: 2 // Threshold for smoothing
       });
 
       controller.trackMarker(patternMarker);
 
       // Add click event listener for label interaction
       clickHandler = (event: MouseEvent) => handleCanvasClick(event, camera, renderer);
-      renderer.domElement.addEventListener('click', clickHandler); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
+      renderer.domElement.addEventListener('click', clickHandler);
+
+      // Debug: Log when marker is found/lost
+      patternMarker.addEventListener('getMarker', () => {
+        console.log('Marker detected - model should be visible');
+      });
+
+      patternMarker.addEventListener('lostMarker', () => {
+        console.log('Marker lost - model hidden');
+      }); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
       var lastTimeMsec = 0;
       function animate(nowMsec: number) {
         // keep looping
@@ -655,7 +731,7 @@ const ARScannerPage: React.FC = () => {
         const slicedModel = gltf.scene;
 
         // Apply same scale and position as heart
-        const scale = 0.8;
+        const scale = 0.5; // Updated to match the regular heart scale
         const currentZoomLevel =
           zoomControllerRef.current?.getCurrentZoom() || 1.0;
         const finalScale = scale * currentZoomLevel;
