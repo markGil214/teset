@@ -1,22 +1,37 @@
-/* Simple and direct approach - no conflicts */
+/* Following basic-cutout.html format for proper AR button functionality */
 
-/* UI Elements always clickable */
+/* Ensure UI buttons are always clickable - following THREEAR examples */
 button,
 [data-ui-element="true"],
-[role="button"] {
+[role="button"],
+input,
+select,
+a {
   pointer-events: auto !important;
+  z-index: 100 !important; /* Same as basic-cutout.html header overlay */
   position: relative !important;
-  z-index: 1000 !important;
   touch-action: manipulation !important;
+  cursor: pointer !important;
 }
 
-/* Canvas starts blocked, enabled only during touch */
+/* AR Canvas should not interfere with UI - following THREEAR pattern */
 canvas {
   pointer-events: none !important;
-  touch-action: none !important;
+  position: absolute !important;
+  top: 0px !important;
+  left: 0px !important;
 }
 
-/* For debugging - uncomment to see z-index layers
+/* AR renderer container styling - matches basic-cutout.html */
+.ar-renderer {
+  position: absolute !important;
+  top: 0px !important;
+  left: 0px !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* For debugging - uncomment to see interaction layers
 button { background-color: rgba(0, 255, 0, 0.2) !important; }
-canvas { background-color: rgba(255, 0, 0, 0.2) !important; }
+canvas { background-color: rgba(255, 0, 0, 0.1) !important; }
 */

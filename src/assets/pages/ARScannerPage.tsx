@@ -4,9 +4,6 @@ import { organs } from "../components/organData";
 import { ZoomController } from "../../utils/ZoomController";
 import ARControls from "../components/ARControls";
 import ConfirmationDialog from "../components/ConfirmationDialog";
-import ARLabel from "../components/ARLabel";
-import { anatomicalEducationalData } from "../data/anatomicalData";
-import { HeartLabelManager } from "../../utils/HeartLabelManager";
 
 // Declare global variables for the libraries
 declare global {
@@ -37,17 +34,6 @@ const ARScannerPage: React.FC = () => {
   const markerGroupRef = useRef<any>(null);
   const baseScaleRef = useRef<number>(0.5);
   const originalModelRef = useRef<any>(null);
-
-  // Phase 3: Anatomical Labeling System state
-  const [showLabels, setShowLabels] = useState(false);
-  const [selectedLabelId, setSelectedLabelId] = useState<string | null>(null);
-  const [language, setLanguage] = useState<"en" | "fil">("en");
-  const [labelPositions, setLabelPositions] = useState<{
-    [key: string]: { x: number; y: number };
-  }>({});
-  const heartLabelManagerRef = useRef<HeartLabelManager | null>(null);
-  const cameraRef = useRef<any>(null);
-  const rendererRef = useRef<any>(null);
 
   if (!organ) {
     return <div>Organ not found</div>;
@@ -138,50 +124,7 @@ const ARScannerPage: React.FC = () => {
       console.log("Cleaning up zoom controller");
       zoomControllerRef.current?.destroy();
     };
-  }, [organ.id, getBaseScale]); 
-
-  // Initialize Heart Label Manager for Phase 3
-  useEffect(() => {
-    if (organ.id === "heart") {
-      heartLabelManagerRef.current = new HeartLabelManager();
-      console.log("HeartLabelManager initialized for heart organ");
-
-      return () => {
-        console.log("Cleaning up HeartLabelManager");
-        heartLabelManagerRef.current?.destroy();
-      };
-    }
-  }, [organ.id]);
-
-  // Function to update label positions
-  const updateLabelPositions = useCallback(() => {
-    if (
-      !heartLabelManagerRef.current ||
-      !markerGroupRef.current ||
-      !cameraRef.current ||
-      !rendererRef.current ||
-      organ.id !== "heart"
-    ) {
-      return;
-    }
-
-    const currentOrganData = anatomicalEducationalData.find(
-      (data) => data.organId === organ.id
-    );
-
-    if (!currentOrganData) return;
-
-    const newPositions = heartLabelManagerRef.current.updateLabelPositions(
-      markerGroupRef.current,
-      cameraRef.current,
-      rendererRef.current,
-      currentOrganData.anatomicalPoints
-    );
-
-    setLabelPositions(newPositions);
-  }, [organ.id]);
-
-  // Zoom control handlers
+  }, [organ.id, getBaseScale]); // Zoom control handlers
   const handleZoomIn = useCallback(() => {
     console.log("=== ARScannerPage: Zoom In button clicked ===");
     console.log("ZoomController exists:", !!zoomControllerRef.current);
@@ -233,14 +176,30 @@ const ARScannerPage: React.FC = () => {
     setTimeout(() => setIsZoomAnimating(false), 300);
   }, []);
 
-  // Touch gesture handlers - now only called from AR canvas
+  // Touch gesture handlers - Following PHASE3 pattern for UI element detection
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       // Don't handle touch events if confirmation dialog is shown
       if (showConfirmation) {
         return;
       }
-      // Since this is only called from canvas, we can handle all touch events
+
+      // Check if the touch started on a UI button or interactive element
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === "BUTTON" ||
+          target.closest("button") ||
+          target.hasAttribute("data-ui-element") ||
+          target.closest("[data-ui-element]") ||
+          target.style.cursor === "pointer" ||
+          target.closest('[style*="cursor: pointer"]'))
+      ) {
+        // Don't prevent default for UI elements - let them handle their own events
+        console.log("Touch on UI element detected, skipping zoom handler");
+        return;
+      }
+
       zoomControllerRef.current?.handleTouchStart(e);
     },
     [showConfirmation]
@@ -252,7 +211,19 @@ const ARScannerPage: React.FC = () => {
       if (showConfirmation) {
         return;
       }
-      // Since this is only called from canvas, we can handle all touch events
+
+      // Check if touch is on UI element
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === "BUTTON" ||
+          target.closest("button") ||
+          target.hasAttribute("data-ui-element") ||
+          target.closest("[data-ui-element]"))
+      ) {
+        return;
+      }
+
       zoomControllerRef.current?.handleTouchMove(e);
     },
     [showConfirmation]
@@ -264,7 +235,19 @@ const ARScannerPage: React.FC = () => {
       if (showConfirmation) {
         return;
       }
-      // Since this is only called from canvas, we can handle all touch events
+
+      // Check if touch is on UI element
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === "BUTTON" ||
+          target.closest("button") ||
+          target.hasAttribute("data-ui-element") ||
+          target.closest("[data-ui-element]"))
+      ) {
+        return;
+      }
+
       zoomControllerRef.current?.handleTouchEnd(e);
     },
     [showConfirmation]
@@ -305,28 +288,12 @@ const ARScannerPage: React.FC = () => {
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0px";
     renderer.domElement.style.left = "0px";
-    renderer.domElement.style.zIndex = "10";
-    renderer.domElement.style.pointerEvents = "none"; // Start with blocked pointer events
-    
-    // Attach canvas to our container instead of body
-    if (containerRef.current) {
-      containerRef.current.appendChild(renderer.domElement);
-    } else {
-      // Fallback to body if container not ready
-      document.body.appendChild(renderer.domElement);
-    } 
-    
-    // init scene and camera - EXACT SAME AS BASIC.HTML
+    document.body.appendChild(renderer.domElement); // init scene and camera - EXACT SAME AS BASIC.HTML
     var scene = new window.THREE.Scene();
     var camera = new window.THREE.Camera();
     scene.add(camera);
     var markerGroup = new window.THREE.Group();
     scene.add(markerGroup);
-
-    // Store references for label system
-    rendererRef.current = renderer;
-    cameraRef.current = camera;
-    markerGroupRef.current = markerGroup;
 
     source = new window.THREEAR.Source({ renderer, camera });
     window.THREEAR.initialize({ source: source }).then((controller: any) => {
@@ -432,11 +399,6 @@ const ARScannerPage: React.FC = () => {
         // call each update function
         controller.update(source.domElement);
 
-        // Update label positions for Phase 3 (only for heart organ)
-        if (organ?.id === "heart" && showLabels) {
-          updateLabelPositions();
-        }
-
         // Rotate the 3D model if it's loaded (but not for sliced heart model)
         if ((markerGroup as any).organModel) {
           // Only rotate if it's not the sliced heart model
@@ -451,60 +413,27 @@ const ARScannerPage: React.FC = () => {
       animationId = requestAnimationFrame(animate);
     });
 
-    // Add touch event listeners for pinch-to-zoom ONLY to the renderer canvas
-    let canvasElement: HTMLCanvasElement | null = null;
-    
-    // Create event handler references
+    // Add touch event listeners for pinch-to-zoom
     const handleTouchStartEvent = (e: TouchEvent) => handleTouchStart(e);
     const handleTouchMoveEvent = (e: TouchEvent) => handleTouchMove(e);
     const handleTouchEndEvent = (e: TouchEvent) => handleTouchEnd(e);
-    
-    // Wait for canvas to be created and then attach touch events to it specifically
-    const attachTouchEvents = () => {
-      canvasElement = renderer.domElement as HTMLCanvasElement;
-      if (canvasElement) {
-        console.log("Attaching touch events to AR canvas only");
-        
-        // Canvas should only respond to touch gestures, not clicks
-        canvasElement.style.touchAction = "none";
-        canvasElement.style.pointerEvents = "none"; // Block all pointer events initially
-        canvasElement.style.zIndex = "10";
-        
-        // Enable pointer events only for touch gestures
-        canvasElement.addEventListener("touchstart", (e) => {
-          if (canvasElement) {
-            canvasElement.style.pointerEvents = "auto";
-          }
-          handleTouchStartEvent(e);
-        }, { passive: false });
-        
-        canvasElement.addEventListener("touchmove", handleTouchMoveEvent, {
-          passive: false,
-        });
-        
-        canvasElement.addEventListener("touchend", (e) => {
-          handleTouchEndEvent(e);
-          // Disable pointer events after touch ends to allow UI clicks
-          setTimeout(() => {
-            if (canvasElement) {
-              canvasElement.style.pointerEvents = "none";
-            }
-          }, 100);
-        }, { passive: false });
-      }
-    };
-    
-    // Attach events after a short delay to ensure canvas is ready
-    setTimeout(attachTouchEvents, 100);
+
+    document.addEventListener("touchstart", handleTouchStartEvent, {
+      passive: false,
+    });
+    document.addEventListener("touchmove", handleTouchMoveEvent, {
+      passive: false,
+    });
+    document.addEventListener("touchend", handleTouchEndEvent, {
+      passive: false,
+    });
 
     // Cleanup
     return () => {
-      // Remove touch event listeners from canvas only
-      if (canvasElement) {
-        // Remove the original event listeners (touchmove and basic touchend)
-        canvasElement.removeEventListener("touchmove", handleTouchMoveEvent);
-        // Note: touchstart and touchend have custom handlers, so they'll be cleaned up automatically
-      }
+      // Remove touch event listeners
+      document.removeEventListener("touchstart", handleTouchStartEvent);
+      document.removeEventListener("touchmove", handleTouchMoveEvent);
+      document.removeEventListener("touchend", handleTouchEndEvent);
       // Cancel animation frame
       if (animationId) {
         cancelAnimationFrame(animationId);
@@ -518,12 +447,16 @@ const ARScannerPage: React.FC = () => {
 
       // Dispose of renderer
       if (renderer) {
-        // Remove canvas from container or body
-        if (renderer.domElement && renderer.domElement.parentElement) {
-          renderer.domElement.parentElement.removeChild(renderer.domElement);
-        }
         renderer.dispose();
       }
+
+      // Remove the renderer element from document.body
+      const rendererElements = document.querySelectorAll("canvas");
+      rendererElements.forEach((canvas) => {
+        if (canvas.parentElement === document.body) {
+          document.body.removeChild(canvas);
+        }
+      });
 
       // Remove video elements that might be created by AR
       const videoElements = document.querySelectorAll("video");
@@ -534,29 +467,7 @@ const ARScannerPage: React.FC = () => {
         }
       });
     };
-  }, [organ, updateLabelPositions]);
-
-  // Phase 3: Label control functions
-  const toggleLabels = useCallback(() => {
-    const newShowLabels = !showLabels;
-    setShowLabels(newShowLabels);
-    
-    if (heartLabelManagerRef.current) {
-      heartLabelManagerRef.current.setLabelsVisible(newShowLabels);
-    }
-    
-    // Clear selected label when hiding labels
-    if (!newShowLabels) {
-      setSelectedLabelId(null);
-    }
-    
-    console.log(`Labels ${newShowLabels ? 'shown' : 'hidden'} for ${organ.name}`);
-  }, [showLabels, organ.name]);
-
-  const toggleLanguage = useCallback(() => {
-    setLanguage(language === "en" ? "fil" : "en");
-    console.log(`Language switched to ${language === "en" ? 'Filipino' : 'English'}`);
-  }, [language]);
+  }, [organ]);
 
   // Function to load sliced heart model
   const loadSlicedHeartModel = useCallback(() => {
@@ -721,14 +632,11 @@ const ARScannerPage: React.FC = () => {
             padding: "8px",
             marginTop: "10px",
             cursor: "pointer",
-            touchAction: "manipulation",
+            pointerEvents: "auto",
+            position: "relative",
+            zIndex: 100,
           }}
           onClick={() => navigate(-1)}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            navigate(-1);
-          }}
         >
           ← Back to Menu [{organ.name} 3D Model]{" "}
         </div>
@@ -748,109 +656,13 @@ const ARScannerPage: React.FC = () => {
         onMaxZoomMessageShown={() => setShowMaxZoomMessage(false)}
       />
 
-      {/* Phase 3: Label Controls (only show for heart organ) */}
-      {organ.id === "heart" && !modelLoading && !modelError && (
-        <>
-          {/* Labels Toggle Button */}
-          <button
-            onClick={toggleLabels}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              toggleLabels();
-            }}
-            data-ui-element="true"
-            style={{
-              position: "absolute",
-              top: "120px",
-              right: "10px",
-              padding: "10px 15px",
-              backgroundColor: showLabels
-                ? "rgba(40, 167, 69, 0.9)"
-                : "rgba(108, 117, 125, 0.8)",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              zIndex: 101,
-              fontSize: "14px",
-              fontWeight: "600",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-              backdropFilter: "blur(10px)",
-              transition: "all 0.3s ease",
-              touchAction: "manipulation",
-            }}
-          >
-            {showLabels ? "🏷️ Hide Labels" : "🏷️ Show Labels"}
-          </button>
-
-          {/* Language Toggle Button */}
-          {showLabels && (
-            <button
-              onClick={toggleLanguage}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleLanguage();
-              }}
-              data-ui-element="true"
-              style={{
-                position: "absolute",
-                top: "175px",
-                right: "10px",
-                padding: "8px 12px",
-                backgroundColor: "rgba(52, 152, 219, 0.9)",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                zIndex: 101,
-                fontSize: "12px",
-                fontWeight: "500",
-                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-                backdropFilter: "blur(10px)",
-                transition: "all 0.3s ease",
-                touchAction: "manipulation",
-              }}
-            >
-              🌐 {language === "en" ? "Filipino" : "English"}
-            </button>
-          )}
-        </>
-      )}
-
-      {/* Phase 3: AR Labels Rendering */}
-      {organ.id === "heart" &&
-        showLabels &&
-        !modelLoading &&
-        !modelError &&
-        anatomicalEducationalData
-          .find((data) => data.organId === organ.id)
-          ?.anatomicalPoints.map((point) => (
-            <ARLabel
-              key={point.id}
-              point={point}
-              language={language}
-              screenPosition={labelPositions[point.id] || { x: 0, y: 0 }}
-              isVisible={!!labelPositions[point.id]}
-              onClick={() =>
-                setSelectedLabelId(selectedLabelId === point.id ? null : point.id)
-              }
-              isSelected={selectedLabelId === point.id}
-            />
-          ))}
-
-      {/* AR container - contains canvas but allows UI events to pass through */}
+      {/* AR container - attached to body like cutout example */}
       <div
         ref={containerRef}
         style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
+          position: "relative",
           width: "100vw",
           height: "100vh",
-          pointerEvents: "none", // Container blocks nothing
-          zIndex: 1, // Keep AR content behind UI elements
         }}
       />
 
