@@ -13,6 +13,83 @@ declare global {
   }
 }
 
+// Heart part interface for interactive labeling system
+interface HeartPart {
+  id: string;
+  name: string;
+  description: string;
+  position: [number, number, number];
+  color: string;
+}
+
+// Heart parts data for interactive labels
+const heartParts: HeartPart[] = [
+  {
+    id: "1",
+    name: "Aorta",
+    description:
+      "The main artery that carries oxygenated blood from the left ventricle to the rest of the body.",
+    position: [0, 1, 0.5],
+    color: "#e74c3c",
+  },
+  {
+    id: "2",
+    name: "Superior Vena Cava",
+    description:
+      "Large vein that carries deoxygenated blood from the upper body back to the right atrium of the heart.",
+    position: [-0.5, 0.4, 0.2],
+    color: "#3498db",
+  },
+  {
+    id: "3",
+    name: "Pulmonary Artery",
+    description:
+      "Carries deoxygenated blood from the right ventricle to the lungs for oxygenation.",
+    position: [1.0, 0.3, 0.2],
+    color: "#9b59b6",
+  },
+  {
+    id: "4",
+    name: "Right Atrium",
+    description:
+      "Upper right chamber of the heart that receives deoxygenated blood from the body via the vena cavae.",
+    position: [0.2, 0.1, 0.4],
+    color: "#2ecc71",
+  },
+  {
+    id: "5",
+    name: "Left Atrium",
+    description:
+      "Upper left chamber of the heart that receives oxygenated blood from the lungs via the pulmonary veins.",
+    position: [1.2, 0.0, 0.2],
+    color: "#f39c12",
+  },
+  {
+    id: "6",
+    name: "Right Ventricle",
+    description:
+      "Lower right chamber of the heart that pumps deoxygenated blood to the lungs through the pulmonary artery.",
+    position: [0.1, -0.4, 0.4],
+    color: "#8e44ad",
+  },
+  {
+    id: "7",
+    name: "Left Ventricle",
+    description:
+      "Lower left chamber of the heart that pumps oxygenated blood to the body through the aorta. It has the thickest muscular wall.",
+    position: [1.0, -0.2, 0.2],
+    color: "#c0392b",
+  },
+  {
+    id: "8",
+    name: "Inferior Vena Cava",
+    description:
+      "Large vein that carries deoxygenated blood from the lower body back to the right atrium of the heart.",
+    position: [0.1, -0.7, 0.3],
+    color: "#34495e",
+  },
+];
+
 const ARScannerPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -28,12 +105,20 @@ const ARScannerPage: React.FC = () => {
   const [showMaxZoomMessage, setShowMaxZoomMessage] = useState(false);
   const [showSlicedModel, setShowSlicedModel] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedPart, setSelectedPart] = useState<HeartPart | null>(null);
+  
+  // Refs for 3D scene management
   const showSlicedModelRef = useRef(false);
   const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
   const baseScaleRef = useRef<number>(0.5);
   const originalModelRef = useRef<any>(null);
+  
+  // Refs for interactive heart labeling
+  const labelGroupRef = useRef<any>(null);
+  const raycasterRef = useRef<any>(null);
+  const mouseRef = useRef<any>(null);
 
   if (!organ) {
     return <div>Organ not found</div>;
@@ -57,6 +142,22 @@ const ARScannerPage: React.FC = () => {
   }, []);
   // Initialize zoom controller
   useEffect(() => {
+    // Add CSS animation for heart part panel
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
     const baseScale = getBaseScale(organ.id);
     baseScaleRef.current = baseScale;
     console.log(
@@ -123,6 +224,14 @@ const ARScannerPage: React.FC = () => {
     return () => {
       console.log("Cleaning up zoom controller");
       zoomControllerRef.current?.destroy();
+      
+      // Remove the CSS style
+      const existingStyles = document.querySelectorAll('style');
+      existingStyles.forEach((styleEl) => {
+        if (styleEl.textContent?.includes('@keyframes slideUp')) {
+          document.head.removeChild(styleEl);
+        }
+      });
     };
   }, [organ.id, getBaseScale]); // Zoom control handlers
   const handleZoomIn = useCallback(() => {
@@ -276,23 +385,20 @@ const ARScannerPage: React.FC = () => {
     let animationId: number;
     let renderer: any;
     let source: any;
-    let clock: any;
 
-    // EXACT COPY-CAT of basic-cutout.html script section
+    // THREEAR WebGL Renderer configuration - following basic.html pattern
     renderer = new window.THREE.WebGLRenderer({
-      // antialias: true,
+      antialias: true,  // Enable antialiasing for better quality
       alpha: true,
+      preserveDrawingBuffer: true  // Helps with quality on mobile devices
     });
     renderer.setClearColor(new window.THREE.Color("lightgrey"), 0);
-    // renderer.setPixelRatio(2);
+    renderer.setPixelRatio(window.devicePixelRatio);  // Use device pixel ratio for crisp rendering
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0px";
     renderer.domElement.style.left = "0px";
     document.body.appendChild(renderer.domElement); 
-    
-    // Add clock like basic-cutout.html
-    clock = new window.THREE.Clock();
     
     // init scene and camera - EXACT SAME AS BASIC.HTML
     var scene = new window.THREE.Scene();
@@ -302,10 +408,31 @@ const ARScannerPage: React.FC = () => {
     scene.add(markerGroup);
 
     source = new window.THREEAR.Source({ renderer, camera });
-    window.THREEAR.initialize({ source: source }).then((controller: any) => {
-      // Add lighting exactly like basic-cutout.html
-      var ambientLight = new window.THREE.AmbientLight(0xcccccc, 1.0);
-      scene.add(ambientLight); // Load the 3D model for this organ
+    
+    // Initialize with performance optimizations like basic-performance.html
+    window.THREEAR.initialize({ 
+      source: source,
+      canvasWidth: 80 * 4,   // Higher resolution for better tracking
+      canvasHeight: 60 * 4,
+      maxDetectionRate: 60   // Max detection rate for smooth tracking
+    }).then((controller: any) => {
+      // Add enhanced lighting for better 3D model visibility
+      var ambientLight = new window.THREE.AmbientLight(0x404040, 0.8);  // Increased intensity
+      scene.add(ambientLight);
+
+      // Add multiple directional lights for better illumination
+      var directionalLight1 = new window.THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight1.position.set(1, 1, 1);
+      scene.add(directionalLight1);
+      
+      var directionalLight2 = new window.THREE.DirectionalLight(0xffffff, 0.4);
+      directionalLight2.position.set(-1, -1, -1);
+      scene.add(directionalLight2);
+      
+      // Add point light for additional illumination
+      var pointLight = new window.THREE.PointLight(0xffffff, 0.5, 100);
+      pointLight.position.set(0, 2, 2);
+      scene.add(pointLight); // Load the 3D model for this organ
       var gltfLoader = new window.THREE.GLTFLoader();
       gltfLoader.load(
         organ.modelPath,
@@ -317,27 +444,27 @@ const ARScannerPage: React.FC = () => {
           switch (organ.id) {
             case "brain":
               scale = 0.3;
-              positionY = -scale / 2;
+              positionY = 0.1;
               break;
             case "heart":
               scale = 0.8;
-              positionY = -scale / 2;
+              positionY = 0;
               break;
             case "kidney":
               scale = 0.4;
-              positionY = -scale / 2;
+              positionY = 0;
               break;
             case "lungs":
               scale = 0.6;
-              positionY = -scale / 2;
+              positionY = 0;
               break;
             case "skin":
               scale = 0.5;
-              positionY = -scale / 2;
+              positionY = 0;
               break;
             default:
               scale = 0.5;
-              positionY = -scale / 2;
+              positionY = 0;
           }
           model.scale.set(scale, scale, scale);
           model.position.y = positionY;
@@ -374,13 +501,13 @@ const ARScannerPage: React.FC = () => {
 
           // Fallback: add a simple cube if model fails to load
           var geometry = new window.THREE.CubeGeometry(1, 1, 1);
-          var material = new window.THREE.MeshBasicMaterial({
-            color: 0xff0000,
+          var material = new window.THREE.MeshNormalMaterial({
             transparent: true,
             opacity: 0.5,
+            side: window.THREE.DoubleSide,
           });
           var cube = new window.THREE.Mesh(geometry, material);
-          cube.position.y = -geometry.parameters.height / 2;
+          cube.position.y = geometry.parameters.height / 2;
           markerGroup.add(cube);
         }
       );
@@ -389,19 +516,24 @@ const ARScannerPage: React.FC = () => {
         markerObject: markerGroup,
       });
 
-      controller.trackMarker(patternMarker);
-
-      // Use EXACT SAME animation loop as basic-cutout.html - THIS IS KEY!
-      function animate() {
+      controller.trackMarker(patternMarker); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
+      var lastTimeMsec = 0;
+      function animate(nowMsec: number) {
+        // keep looping
         animationId = requestAnimationFrame(animate);
-        var delta = clock.getDelta();
+        // measure time
+        lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
+        var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
+        lastTimeMsec = nowMsec;
+        // call each update function
         controller.update(source.domElement);
 
         // Rotate the 3D model if it's loaded (but not for sliced heart model)
         if ((markerGroup as any).organModel) {
           // Only rotate if it's not the sliced heart model
           if (!showSlicedModelRef.current) {
-            (markerGroup as any).organModel.rotation.y += delta * Math.PI * 0.5;
+            (markerGroup as any).organModel.rotation.y +=
+              (deltaMsec / 2000) * Math.PI;
           }
         }
 
@@ -425,12 +557,43 @@ const ARScannerPage: React.FC = () => {
       passive: false,
     });
 
+    // Add canvas click event listener for heart part interaction
+    const handleCanvasClick = (event: MouseEvent) => {
+      if (!raycasterRef.current || !mouseRef.current || !labelGroupRef.current) return;
+
+      // Calculate mouse position in normalized device coordinates
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      // Update the picking ray with the camera and mouse position
+      raycasterRef.current.setFromCamera(mouseRef.current, camera);
+
+      // Calculate objects intersecting the picking ray
+      const intersects = raycasterRef.current.intersectObjects(labelGroupRef.current.children, true);
+
+      if (intersects.length > 0) {
+        const clickedObject = intersects[0].object;
+        if (clickedObject.userData && clickedObject.userData.heartPart) {
+          handlePartClick(clickedObject.userData.heartPart);
+        }
+      }
+    };
+
+    // Add click event listener to renderer canvas
+    renderer.domElement.addEventListener('click', handleCanvasClick);
+
     // Cleanup
     return () => {
       // Remove touch event listeners
       document.removeEventListener("touchstart", handleTouchStartEvent);
       document.removeEventListener("touchmove", handleTouchMoveEvent);
       document.removeEventListener("touchend", handleTouchEndEvent);
+      
+      // Remove canvas click event listener
+      if (renderer && renderer.domElement) {
+        renderer.domElement.removeEventListener('click', handleCanvasClick);
+      }
       // Cancel animation frame
       if (animationId) {
         cancelAnimationFrame(animationId);
@@ -466,6 +629,70 @@ const ARScannerPage: React.FC = () => {
     };
   }, [organ]);
 
+  // Interactive Heart Labeling Functions
+  const createHeartLabels = useCallback(() => {
+    if (!markerGroupRef.current) return;
+
+    console.log("Creating heart labels...");
+
+    // Create label group
+    labelGroupRef.current = new window.THREE.Group();
+    markerGroupRef.current.add(labelGroupRef.current);
+
+    // Initialize raycaster and mouse for interaction
+    raycasterRef.current = new window.THREE.Raycaster();
+    mouseRef.current = new window.THREE.Vector2();
+
+    heartParts.forEach((part) => {
+      // Create label sphere
+      const sphereGeometry = new window.THREE.SphereGeometry(0.05, 8, 6);
+      const sphereMaterial = new window.THREE.MeshBasicMaterial({
+        color: part.color,
+        transparent: true,
+        opacity: 0.8,
+      });
+      const sphere = new window.THREE.Mesh(sphereGeometry, sphereMaterial);
+      sphere.position.set(...part.position);
+      sphere.userData = { heartPart: part };
+      labelGroupRef.current.add(sphere);
+
+      // Create text sprite for label
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (context) {
+        canvas.width = 256;
+        canvas.height = 64;
+        context.fillStyle = part.color;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = 'white';
+        context.font = '20px Arial';
+        context.textAlign = 'center';
+        context.fillText(part.name, canvas.width / 2, canvas.height / 2 + 7);
+      }
+
+      const texture = new window.THREE.CanvasTexture(canvas);
+      const spriteMaterial = new window.THREE.SpriteMaterial({ map: texture });
+      const sprite = new window.THREE.Sprite(spriteMaterial);
+      sprite.position.set(part.position[0], part.position[1] + 0.2, part.position[2]);
+      sprite.scale.set(0.5, 0.125, 1);
+      labelGroupRef.current.add(sprite);
+    });
+  }, []);
+
+  const removeHeartLabels = useCallback(() => {
+    if (labelGroupRef.current && markerGroupRef.current) {
+      console.log("Removing heart labels...");
+      markerGroupRef.current.remove(labelGroupRef.current);
+      labelGroupRef.current = null;
+    }
+    setSelectedPart(null);
+  }, []);
+
+  const handlePartClick = useCallback((part: HeartPart) => {
+    console.log("Heart part clicked:", part.name);
+    setSelectedPart(part);
+  }, []);
+
   // Function to load sliced heart model
   const loadSlicedHeartModel = useCallback(() => {
     if (!markerGroupRef.current || !organModelRef.current) return;
@@ -492,7 +719,7 @@ const ARScannerPage: React.FC = () => {
         const finalScale = scale * currentZoomLevel;
 
         slicedModel.scale.set(finalScale, finalScale, finalScale);
-        slicedModel.position.y = -scale / 2;
+        slicedModel.position.y = 0;
 
         // Add sliced model to scene
         markerGroupRef.current.add(slicedModel);
@@ -501,7 +728,10 @@ const ARScannerPage: React.FC = () => {
         organModelRef.current = slicedModel;
         (markerGroupRef.current as any).organModel = slicedModel;
 
-        console.log("Sliced heart model loaded successfully");
+        // Add interactive heart labels for sliced model
+        createHeartLabels();
+
+        console.log("Sliced heart model loaded successfully with interactive labels");
       },
       undefined,
       (error: any) => {
@@ -521,6 +751,9 @@ const ARScannerPage: React.FC = () => {
 
     console.log("Restoring original heart model...");
 
+    // Remove interactive heart labels
+    removeHeartLabels();
+
     // Remove current sliced model from scene
     if (organModelRef.current) {
       markerGroupRef.current.remove(organModelRef.current);
@@ -534,7 +767,7 @@ const ARScannerPage: React.FC = () => {
     (markerGroupRef.current as any).organModel = originalModelRef.current;
 
     console.log("Original heart model restored successfully");
-  }, []);
+  }, [removeHeartLabels]);
 
   useEffect(() => {
     if (showSlicedModel) {
@@ -669,6 +902,51 @@ const ARScannerPage: React.FC = () => {
         onConfirm={handleConfirmViewSlicedHeart}
         onCancel={handleCancelViewSlicedHeart}
       />
+
+      {/* Heart Part Information Panel */}
+      {selectedPart && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            left: '20px',
+            right: '20px',
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            color: 'white',
+            padding: '20px',
+            borderRadius: '10px',
+            border: `3px solid ${selectedPart.color}`,
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            zIndex: 1000,
+            maxHeight: '40vh',
+            overflowY: 'auto',
+            animation: 'slideUp 0.3s ease-out',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+            <h3 style={{ margin: '0', color: selectedPart.color, fontSize: '18px' }}>
+              {selectedPart.name}
+            </h3>
+            <button
+              onClick={() => setSelectedPart(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'white',
+                fontSize: '20px',
+                cursor: 'pointer',
+                padding: '0',
+                lineHeight: '1',
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <p style={{ margin: '0', fontSize: '14px', lineHeight: '1.4' }}>
+            {selectedPart.description}
+          </p>
+        </div>
+      )}
     </div>
   );
 };

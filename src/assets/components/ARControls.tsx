@@ -101,6 +101,7 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
       <button
         onClick={onZoomIn}
         disabled={!canZoomIn}
+        data-ui-element="true"
         style={{
           width: "60px",
           height: "60px",
@@ -122,6 +123,9 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
           userSelect: "none",
           WebkitUserSelect: "none",
           WebkitTapHighlightColor: "transparent",
+          pointerEvents: "auto",
+          position: "relative",
+          zIndex: 200,
         }}
         onMouseDown={(e) => e.preventDefault()}
         onTouchStart={(e) => e.preventDefault()}
@@ -149,6 +153,7 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
       <button
         onClick={onZoomOut}
         disabled={!canZoomOut}
+        data-ui-element="true"
         style={{
           width: "60px",
           height: "60px",
@@ -170,6 +175,9 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
           userSelect: "none",
           WebkitUserSelect: "none",
           WebkitTapHighlightColor: "transparent",
+          pointerEvents: "auto",
+          position: "relative",
+          zIndex: 200,
         }}
         onMouseDown={(e) => e.preventDefault()}
         onTouchStart={(e) => e.preventDefault()}
@@ -180,6 +188,7 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
       <button
         onClick={onResetZoom}
         disabled={currentZoom === 1.0 || isAnimating || disabled}
+        data-ui-element="true"
         style={{
           width: "60px",
           height: "30px",
@@ -204,6 +213,9 @@ const ARControls: React.FC<ExtendedZoomControlsProps> = ({
           userSelect: "none",
           WebkitUserSelect: "none",
           WebkitTapHighlightColor: "transparent",
+          pointerEvents: "auto",
+          position: "relative",
+          zIndex: 200,
         }}
         onMouseDown={(e) => e.preventDefault()}
         onTouchStart={(e) => e.preventDefault()}

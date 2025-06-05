@@ -1,19 +1,37 @@
-/* Add these rules to ensure pointer events work correctly */
-.pointer-events-fix {
-  pointer-events: auto !important;
-}
+/* Following basic-cutout.html format for proper AR button functionality */
 
-/* Ensure forms and inputs are always clickable */
+/* Ensure UI buttons are always clickable - following THREEAR examples */
+button,
+[data-ui-element="true"],
+[role="button"],
 input,
 select,
-button,
 a {
-  position: relative;
-  z-index: 20; /* Higher than background elements */
+  pointer-events: auto !important;
+  z-index: 100 !important; /* Same as basic-cutout.html header overlay */
+  position: relative !important;
+  touch-action: manipulation !important;
+  cursor: pointer !important;
 }
 
-/* For debugging - uncomment to see z-index layers
-.z-0 { background-color: rgba(255, 0, 0, 0.1); }
-.z-10 { background-color: rgba(0, 255, 0, 0.1); }
-.z-20 { background-color: rgba(0, 0, 255, 0.1); }
+/* AR Canvas should not interfere with UI - following THREEAR pattern */
+canvas {
+  pointer-events: none !important;
+  position: absolute !important;
+  top: 0px !important;
+  left: 0px !important;
+}
+
+/* AR renderer container styling - matches basic-cutout.html */
+.ar-renderer {
+  position: absolute !important;
+  top: 0px !important;
+  left: 0px !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* For debugging - uncomment to see interaction layers
+button { background-color: rgba(0, 255, 0, 0.2) !important; }
+canvas { background-color: rgba(255, 0, 0, 0.1) !important; }
 */
