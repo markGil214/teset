@@ -18,7 +18,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   useEffect(() => {
     if (isOpen) {
       console.log("ConfirmationDialog mounted and visible");
-
+      
       const handleConfirmClick = (e: Event) => {
         e.preventDefault();
         e.stopPropagation();
@@ -35,35 +35,15 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
       // Add multiple event types for better compatibility
       if (confirmButtonRef.current) {
-        confirmButtonRef.current.addEventListener("click", handleConfirmClick, {
-          capture: true,
-        });
-        confirmButtonRef.current.addEventListener(
-          "touchend",
-          handleConfirmClick,
-          { capture: true }
-        );
-        confirmButtonRef.current.addEventListener(
-          "mousedown",
-          handleConfirmClick,
-          { capture: true }
-        );
+        confirmButtonRef.current.addEventListener('click', handleConfirmClick, { capture: true });
+        confirmButtonRef.current.addEventListener('touchend', handleConfirmClick, { capture: true });
+        confirmButtonRef.current.addEventListener('mousedown', handleConfirmClick, { capture: true });
       }
-
+      
       if (cancelButtonRef.current) {
-        cancelButtonRef.current.addEventListener("click", handleCancelClick, {
-          capture: true,
-        });
-        cancelButtonRef.current.addEventListener(
-          "touchend",
-          handleCancelClick,
-          { capture: true }
-        );
-        cancelButtonRef.current.addEventListener(
-          "mousedown",
-          handleCancelClick,
-          { capture: true }
-        );
+        cancelButtonRef.current.addEventListener('click', handleCancelClick, { capture: true });
+        cancelButtonRef.current.addEventListener('touchend', handleCancelClick, { capture: true });
+        cancelButtonRef.current.addEventListener('mousedown', handleCancelClick, { capture: true });
       }
 
       // Focus the confirm button for better accessibility
@@ -74,33 +54,15 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
       // Cleanup
       return () => {
         if (confirmButtonRef.current) {
-          confirmButtonRef.current.removeEventListener(
-            "click",
-            handleConfirmClick
-          );
-          confirmButtonRef.current.removeEventListener(
-            "touchend",
-            handleConfirmClick
-          );
-          confirmButtonRef.current.removeEventListener(
-            "mousedown",
-            handleConfirmClick
-          );
+          confirmButtonRef.current.removeEventListener('click', handleConfirmClick);
+          confirmButtonRef.current.removeEventListener('touchend', handleConfirmClick);
+          confirmButtonRef.current.removeEventListener('mousedown', handleConfirmClick);
         }
-
+        
         if (cancelButtonRef.current) {
-          cancelButtonRef.current.removeEventListener(
-            "click",
-            handleCancelClick
-          );
-          cancelButtonRef.current.removeEventListener(
-            "touchend",
-            handleCancelClick
-          );
-          cancelButtonRef.current.removeEventListener(
-            "mousedown",
-            handleCancelClick
-          );
+          cancelButtonRef.current.removeEventListener('click', handleCancelClick);
+          cancelButtonRef.current.removeEventListener('touchend', handleCancelClick);
+          cancelButtonRef.current.removeEventListener('mousedown', handleCancelClick);
         }
       };
     }
@@ -146,34 +108,28 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3
-          style={{
-            margin: "0 0 20px 0",
-            color: "#333",
-            fontSize: "20px",
-            fontWeight: "bold",
-          }}
-        >
+        <h3 style={{ 
+          margin: "0 0 20px 0", 
+          color: "#333",
+          fontSize: "20px",
+          fontWeight: "bold"
+        }}>
           View Sliced Heart Model
         </h3>
-        <p
-          style={{
-            margin: "0 0 30px 0",
-            color: "#666",
-            lineHeight: "1.5",
-            fontSize: "16px",
-          }}
-        >
-          You've reached maximum zoom level. Would you like to view the sliced
-          model of the heart to see its internal structure?
+        <p style={{ 
+          margin: "0 0 30px 0", 
+          color: "#666",
+          lineHeight: "1.5",
+          fontSize: "16px"
+        }}>
+          You've reached maximum zoom level. Would you like to view the 
+          sliced model of the heart to see its internal structure?
         </p>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: "15px",
-          }}
-        >
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "space-between",
+          gap: "15px"
+        }}>
           <button
             ref={cancelButtonRef}
             type="button"

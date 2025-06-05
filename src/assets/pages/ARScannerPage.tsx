@@ -22,9 +22,6 @@ const ARScannerPage: React.FC = () => {
   const [modelLoading, setModelLoading] = useState(true);
   const [modelError, setModelError] = useState(false);
 
-  // Marker detection state
-  const [markerDetected, setMarkerDetected] = useState(false);
-
   // Zoom state
   const [currentZoom, setCurrentZoom] = useState(1.0);
   const [isZoomAnimating, setIsZoomAnimating] = useState(false);
@@ -106,7 +103,7 @@ const ARScannerPage: React.FC = () => {
             "ARScannerPage: Max zoom reached - showing sliced heart confirmation"
           );
           setShowConfirmation(true);
-
+          
           // Hide the original model when showing the confirmation dialog
           if (organModelRef.current && markerGroupRef.current) {
             // Store the current model before hiding it
@@ -130,15 +127,8 @@ const ARScannerPage: React.FC = () => {
   }, [organ.id, getBaseScale]); // Zoom control handlers
   const handleZoomIn = useCallback(() => {
     console.log("=== ARScannerPage: Zoom In button clicked ===");
-    console.log("Marker detected:", markerDetected);
     console.log("ZoomController exists:", !!zoomControllerRef.current);
     console.log("Model exists:", !!organModelRef.current);
-    
-    if (!markerDetected) {
-      console.log("Cannot zoom - marker not detected");
-      return;
-    }
-    
     if (zoomControllerRef.current) {
       console.log(
         "Current zoom before zoomIn:",
@@ -150,19 +140,12 @@ const ARScannerPage: React.FC = () => {
     }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
-  }, [markerDetected]);
+  }, []);
 
   const handleZoomOut = useCallback(() => {
     console.log("=== ARScannerPage: Zoom Out button clicked ===");
-    console.log("Marker detected:", markerDetected);
     console.log("ZoomController exists:", !!zoomControllerRef.current);
     console.log("Model exists:", !!organModelRef.current);
-    
-    if (!markerDetected) {
-      console.log("Cannot zoom - marker not detected");
-      return;
-    }
-    
     if (zoomControllerRef.current) {
       console.log(
         "Current zoom before zoomOut:",
@@ -174,19 +157,12 @@ const ARScannerPage: React.FC = () => {
     }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
-  }, [markerDetected]);
+  }, []);
 
   const handleResetZoom = useCallback(() => {
     console.log("=== ARScannerPage: Reset Zoom button clicked ===");
-    console.log("Marker detected:", markerDetected);
     console.log("ZoomController exists:", !!zoomControllerRef.current);
     console.log("Model exists:", !!organModelRef.current);
-    
-    if (!markerDetected) {
-      console.log("Cannot zoom - marker not detected");
-      return;
-    }
-    
     if (zoomControllerRef.current) {
       console.log(
         "Current zoom before reset:",
@@ -198,41 +174,32 @@ const ARScannerPage: React.FC = () => {
     }
     setIsZoomAnimating(true);
     setTimeout(() => setIsZoomAnimating(false), 300);
-  }, [markerDetected]);
+  }, []);
 
   // Touch gesture handlers
-  const handleTouchStart = useCallback(
-    (e: TouchEvent) => {
-      // Don't handle touch events if confirmation dialog is shown or marker not detected
-      if (showConfirmation || !markerDetected) {
-        return;
-      }
-      zoomControllerRef.current?.handleTouchStart(e);
-    },
-    [showConfirmation, markerDetected]
-  );
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    // Don't handle touch events if confirmation dialog is shown
+    if (showConfirmation) {
+      return;
+    }
+    zoomControllerRef.current?.handleTouchStart(e);
+  }, [showConfirmation]);
 
-  const handleTouchMove = useCallback(
-    (e: TouchEvent) => {
-      // Don't handle touch events if confirmation dialog is shown or marker not detected
-      if (showConfirmation || !markerDetected) {
-        return;
-      }
-      zoomControllerRef.current?.handleTouchMove(e);
-    },
-    [showConfirmation, markerDetected]
-  );
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    // Don't handle touch events if confirmation dialog is shown
+    if (showConfirmation) {
+      return;
+    }
+    zoomControllerRef.current?.handleTouchMove(e);
+  }, [showConfirmation]);
 
-  const handleTouchEnd = useCallback(
-    (e: TouchEvent) => {
-      // Don't handle touch events if confirmation dialog is shown or marker not detected
-      if (showConfirmation || !markerDetected) {
-        return;
-      }
-      zoomControllerRef.current?.handleTouchEnd(e);
-    },
-    [showConfirmation, markerDetected]
-  );
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    // Don't handle touch events if confirmation dialog is shown
+    if (showConfirmation) {
+      return;
+    }
+    zoomControllerRef.current?.handleTouchEnd(e);
+  }, [showConfirmation]);
 
   // Prevent body scrolling when AR is active
   useEffect(() => {
@@ -292,9 +259,32 @@ const ARScannerPage: React.FC = () => {
           var model = gltf.scene;
 
           // Scale and position the model appropriately for AR based on organ type
-          const scale = getBaseScale(organ.id);
-          const positionY = organ.id === "brain" ? 0.1 : 0; // Brain needs slightly higher position
-          
+          let scale, positionY;
+          switch (organ.id) {
+            case "brain":
+              scale = 0.3;
+              positionY = 0.1;
+              break;
+            case "heart":
+              scale = 0.8;
+              positionY = 0;
+              break;
+            case "kidney":
+              scale = 0.4;
+              positionY = 0;
+              break;
+            case "lungs":
+              scale = 0.6;
+              positionY = 0;
+              break;
+            case "skin":
+              scale = 0.5;
+              positionY = 0;
+              break;
+            default:
+              scale = 0.5;
+              positionY = 0;
+          }
           model.scale.set(scale, scale, scale);
           model.position.y = positionY;
           markerGroup.add(model);
@@ -343,23 +333,6 @@ const ARScannerPage: React.FC = () => {
       var patternMarker = new window.THREEAR.PatternMarker({
         patternUrl: "/data/patt.hiro",
         markerObject: markerGroup,
-      });
-
-      // Add marker detection event listeners
-      patternMarker.addEventListener('markerFound', () => {
-        console.log('Marker detected - 3D model is now visible');
-        setMarkerDetected(true);
-      });
-
-      patternMarker.addEventListener('markerLost', () => {
-        console.log('Marker lost - 3D model is no longer visible');
-        setMarkerDetected(false);
-        
-        // Reset zoom-related states when marker is lost
-        setShowMaxZoomMessage(false);
-        setShowConfirmation(false);
-        setShowSlicedModel(false);
-        showSlicedModelRef.current = false;
       });
 
       controller.trackMarker(patternMarker); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
@@ -535,7 +508,7 @@ const ARScannerPage: React.FC = () => {
     if (zoomControllerRef.current) {
       zoomControllerRef.current.zoomOut();
     }
-
+    
     // Restore the original model
     if (originalModelRef.current && markerGroupRef.current) {
       markerGroupRef.current.add(originalModelRef.current);
@@ -599,23 +572,6 @@ const ARScannerPage: React.FC = () => {
             ⚠️ Model loading failed - showing fallback cube
           </div>
         )}
-        {!modelLoading && !modelError && (
-          <div
-            style={{
-              backgroundColor: markerDetected 
-                ? "rgba(40, 167, 69, 0.8)" 
-                : "rgba(255, 193, 7, 0.8)",
-              padding: "8px",
-              marginTop: "10px",
-              borderRadius: "4px",
-              color: "white",
-            }}
-          >
-            {markerDetected 
-              ? "✅ Marker detected - 3D model visible!" 
-              : "🔍 Looking for Hiro marker..."}
-          </div>
-        )}
         <div
           id="button"
           style={{
@@ -637,7 +593,7 @@ const ARScannerPage: React.FC = () => {
         onZoomOut={handleZoomOut}
         onResetZoom={handleResetZoom}
         isAnimating={isZoomAnimating}
-        disabled={modelLoading || modelError || !markerDetected}
+        disabled={modelLoading || modelError}
         showMaxZoomMessage={showMaxZoomMessage}
         showSlicedModel={showSlicedModel}
         organId={organ.id}
