@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { organs } from "../components/organData";
 import { ZoomController } from "../../utils/ZoomController";
 import ARControls from "../components/ARControls";
@@ -14,13 +14,18 @@ declare global {
 }
 
 const ARScannerPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const organId = searchParams.get("organ");
-  const organ = organs.find((o) => o.id === organId);
+  const [selectedOrganId, setSelectedOrganId] = useState<string>("heart"); // Default to heart
+  const organ = organs.find((o) => o.id === selectedOrganId);
   const containerRef = useRef<HTMLDivElement>(null);
   const [modelLoading, setModelLoading] = useState(true);
   const [modelError, setModelError] = useState(false);
+  const [cameraInitialized, setCameraInitialized] = useState(false);
+  const sceneRef = useRef<any>(null);
+  const cameraRef = useRef<any>(null);
+  const rendererRef = useRef<any>(null);
+  const sourceRef = useRef<any>(null);
+  const controllerRef = useRef<any>(null);
 
   // Zoom state
   const [currentZoom, setCurrentZoom] = useState(1.0);
@@ -55,13 +60,20 @@ const ARScannerPage: React.FC = () => {
         return 0.5;
     }
   }, []);
-  // Initialize zoom controller
+  // Initialize zoom controller - reinitialize when organ changes
   useEffect(() => {
+    if (!organ) return;
+    
     const baseScale = getBaseScale(organ.id);
     baseScaleRef.current = baseScale;
     console.log(
       `Initializing zoom controller for ${organ.name} with base scale ${baseScale}`
     );
+
+    // Destroy previous controller if it exists
+    if (zoomControllerRef.current) {
+      zoomControllerRef.current.destroy();
+    }
 
     zoomControllerRef.current = new ZoomController(1.0, {
       onZoomChange: (zoom: number) => {
@@ -124,7 +136,7 @@ const ARScannerPage: React.FC = () => {
       console.log("Cleaning up zoom controller");
       zoomControllerRef.current?.destroy();
     };
-  }, [organ.id, getBaseScale]); // Zoom control handlers
+  }, [organ?.id, getBaseScale, selectedOrganId]); // Zoom control handlers
   const handleZoomIn = useCallback(() => {
     console.log("=== ARScannerPage: Zoom In button clicked ===");
     console.log("ZoomController exists:", !!zoomControllerRef.current);
@@ -192,6 +204,8 @@ const ARScannerPage: React.FC = () => {
           target.closest("button") ||
           target.hasAttribute("data-ui-element") ||
           target.closest("[data-ui-element]") ||
+          target.hasAttribute("data-organ-button") ||
+          target.closest("[data-organ-button]") ||
           target.style.cursor === "pointer" ||
           target.closest('[style*="cursor: pointer"]'))
       ) {
@@ -219,7 +233,9 @@ const ARScannerPage: React.FC = () => {
         (target.tagName === "BUTTON" ||
           target.closest("button") ||
           target.hasAttribute("data-ui-element") ||
-          target.closest("[data-ui-element]"))
+          target.closest("[data-ui-element]") ||
+          target.hasAttribute("data-organ-button") ||
+          target.closest("[data-organ-button]"))
       ) {
         return;
       }
@@ -243,7 +259,9 @@ const ARScannerPage: React.FC = () => {
         (target.tagName === "BUTTON" ||
           target.closest("button") ||
           target.hasAttribute("data-ui-element") ||
-          target.closest("[data-ui-element]"))
+          target.closest("[data-ui-element]") ||
+          target.hasAttribute("data-organ-button") ||
+          target.closest("[data-organ-button]"))
       ) {
         return;
       }
@@ -270,81 +288,178 @@ const ARScannerPage: React.FC = () => {
     };
   }, []);
 
+  // Initialize the camera and AR scene only once
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || cameraInitialized) return;
 
-    let animationId: number;
-    let renderer: any;
-    let source: any;
+    console.log("Initializing camera and AR scene");
 
     // EXACT COPY-CAT of basic-cutout.html script section
-    renderer = new window.THREE.WebGLRenderer({
-      // antialias: true,
+    const renderer = new window.THREE.WebGLRenderer({
       alpha: true,
     });
     renderer.setClearColor(new window.THREE.Color("lightgrey"), 0);
-    // renderer.setPixelRatio(2);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0px";
     renderer.domElement.style.left = "0px";
-    document.body.appendChild(renderer.domElement); // init scene and camera - EXACT SAME AS BASIC.HTML
-    var scene = new window.THREE.Scene();
-    var camera = new window.THREE.Camera();
+    document.body.appendChild(renderer.domElement); 
+    
+    // Initialize scene and camera
+    const scene = new window.THREE.Scene();
+    const camera = new window.THREE.Camera();
     scene.add(camera);
-    var markerGroup = new window.THREE.Group();
+    const markerGroup = new window.THREE.Group();
     scene.add(markerGroup);
 
-    source = new window.THREEAR.Source({ renderer, camera });
+    // Save references
+    rendererRef.current = renderer;
+    sceneRef.current = scene;
+    cameraRef.current = camera;
+    markerGroupRef.current = markerGroup;
+
+    // Set camera as initialized
+    setCameraInitialized(true);
+  }, []);
+
+  // Function to start the animation loop
+  const startAnimationLoop = useCallback(() => {
+    if (!controllerRef.current || !sourceRef.current || !rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+
+    console.log("Starting animation loop");
+    
+    const controller = controllerRef.current;
+    const source = sourceRef.current;
+    const renderer = rendererRef.current;
+    const scene = sceneRef.current;
+    const camera = cameraRef.current;
+    
+    let animationId: number;
+    let lastTimeMsec = 0;
+    
+    function animate(nowMsec: number) {
+      // keep looping
+      animationId = requestAnimationFrame(animate);
+      // measure time
+      lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
+      var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
+      lastTimeMsec = nowMsec;
+      // call each update function
+      controller.update(source.domElement);
+      
+      // Rotate the 3D model if it's loaded (but not for sliced heart model)
+      if (markerGroupRef.current && (markerGroupRef.current as any).organModel) {
+        // Only rotate if it's not the sliced heart model
+        if (!showSlicedModelRef.current) {
+          (markerGroupRef.current as any).organModel.rotation.y +=
+            (deltaMsec / 2000) * Math.PI;
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+    
+    animationId = requestAnimationFrame(animate);
+    return animationId;
+  }, []);
+
+  // Initialize the AR source and controller only once
+  useEffect(() => {
+    if (!cameraInitialized || !rendererRef.current || !cameraRef.current || sourceRef.current) return;
+
+    console.log("Initializing AR source and controller");
+
+    const renderer = rendererRef.current;
+    const camera = cameraRef.current;
+    const scene = sceneRef.current;
+
+    // Initialize AR source
+    const source = new window.THREEAR.Source({ renderer, camera });
+    sourceRef.current = source;
+
+    // Initialize AR controller
     window.THREEAR.initialize({ source: source }).then((controller: any) => {
+      controllerRef.current = controller;
+
       // Add lighting for better 3D model visibility
       var ambientLight = new window.THREE.AmbientLight(0x404040, 0.6);
       scene.add(ambientLight);
 
       var directionalLight = new window.THREE.DirectionalLight(0xffffff, 0.8);
       directionalLight.position.set(1, 1, 1);
-      scene.add(directionalLight); // Load the 3D model for this organ
-      var gltfLoader = new window.THREE.GLTFLoader();
-      gltfLoader.load(
-        organ.modelPath,
-        (gltf: any) => {
-          var model = gltf.scene;
+      scene.add(directionalLight);
 
-          // Scale and position the model appropriately for AR based on organ type
-          let scale, positionY;
-          switch (organ.id) {
-            case "brain":
-              scale = 0.3;
-              positionY = 0.1;
-              break;
-            case "heart":
-              scale = 0.8;
-              positionY = 0;
-              break;
-            case "kidney":
-              scale = 0.4;
-              positionY = 0;
-              break;
-            case "lungs":
-              scale = 0.6;
-              positionY = 0;
-              break;
-            case "skin":
-              scale = 0.5;
-              positionY = 0;
-              break;
-            default:
-              scale = 0.5;
-              positionY = 0;
-          }
-          model.scale.set(scale, scale, scale);
-          model.position.y = positionY;
-          markerGroup.add(model);
+      // Setup marker tracking
+      var patternMarker = new window.THREEAR.PatternMarker({
+        patternUrl: "/data/patt.hiro",
+        markerObject: markerGroupRef.current,
+      });
+      controller.trackMarker(patternMarker);
 
-          // Store model reference for zoom control
-          organModelRef.current = model;
-          markerGroupRef.current = markerGroup;
-          (markerGroup as any).organModel = model;
+      // Start animation loop
+      startAnimationLoop();
+    });
+  }, [cameraInitialized, startAnimationLoop]);
+
+  // Load the organ model whenever the selected organ changes
+  useEffect(() => {
+    if (!organ || !cameraInitialized || !markerGroupRef.current) return;
+
+    console.log(`Loading model for ${organ.name}`);
+    setModelLoading(true);
+    setModelError(false);
+
+    // Remove any existing model
+    if (organModelRef.current) {
+      markerGroupRef.current.remove(organModelRef.current);
+      organModelRef.current = null;
+    }
+
+    // Load the 3D model for the selected organ
+    var gltfLoader = new window.THREE.GLTFLoader();
+    gltfLoader.load(
+      organ.modelPath,
+      (gltf: any) => {
+        var model = gltf.scene;
+
+        // Scale and position the model appropriately for AR based on organ type
+        let scale, positionY;
+        switch (organ.id) {
+          case "brain":
+            scale = 0.3;
+            positionY = 0.1;
+            break;
+          case "heart":
+            scale = 0.8;
+            positionY = 0;
+            break;
+          case "kidney":
+            scale = 0.4;
+            positionY = 0;
+            break;
+          case "lungs":
+            scale = 0.6;
+            positionY = 0;
+            break;
+          case "skin":
+            scale = 0.5;
+            positionY = 0;
+            break;
+          default:
+            scale = 0.5;
+            positionY = 0;
+        }
+        
+        // Store the base scale for this organ
+        baseScaleRef.current = scale;
+        
+        model.scale.set(scale, scale, scale);
+        model.position.y = positionY;
+        markerGroupRef.current.add(model);
+
+        // Store model reference for zoom control
+        organModelRef.current = model;
+        (markerGroupRef.current as any).organModel = model;
 
           // Apply current zoom level to the newly loaded model
           if (zoomControllerRef.current) {
@@ -363,6 +478,12 @@ const ARScannerPage: React.FC = () => {
           console.log(
             `${organ.name} 3D model loaded successfully with scale: ${scale}`
           );
+          
+          // When changing organs, reset sliced model state
+          if (showSlicedModel && organ.id !== "heart") {
+            setShowSlicedModel(false);
+            showSlicedModelRef.current = false;
+          }
         },
         undefined,
         (error: any) => {
@@ -379,40 +500,13 @@ const ARScannerPage: React.FC = () => {
           });
           var cube = new window.THREE.Mesh(geometry, material);
           cube.position.y = geometry.parameters.height / 2;
-          markerGroup.add(cube);
+          markerGroupRef.current.add(cube);
         }
       );
-      var patternMarker = new window.THREEAR.PatternMarker({
-        patternUrl: "/data/patt.hiro",
-        markerObject: markerGroup,
-      });
-
-      controller.trackMarker(patternMarker); // Use EXACT SAME animation loop as basic.html - THIS IS KEY!
-      var lastTimeMsec = 0;
-      function animate(nowMsec: number) {
-        // keep looping
-        animationId = requestAnimationFrame(animate);
-        // measure time
-        lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
-        var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
-        lastTimeMsec = nowMsec;
-        // call each update function
-        controller.update(source.domElement);
-
-        // Rotate the 3D model if it's loaded (but not for sliced heart model)
-        if ((markerGroup as any).organModel) {
-          // Only rotate if it's not the sliced heart model
-          if (!showSlicedModelRef.current) {
-            (markerGroup as any).organModel.rotation.y +=
-              (deltaMsec / 2000) * Math.PI;
-          }
-        }
-
-        renderer.render(scene, camera);
-      }
-      animationId = requestAnimationFrame(animate);
-    });
-
+  }, [organ, selectedOrganId, cameraInitialized, showSlicedModel]);
+  
+  // Cleanup function and add event listeners when component mounts
+  useEffect(() => {
     // Add touch event listeners for pinch-to-zoom
     const handleTouchStartEvent = (e: TouchEvent) => handleTouchStart(e);
     const handleTouchMoveEvent = (e: TouchEvent) => handleTouchMove(e);
@@ -428,26 +522,24 @@ const ARScannerPage: React.FC = () => {
       passive: false,
     });
 
-    // Cleanup
+    // Cleanup function when component unmounts
     return () => {
+      console.log("Cleaning up AR resources");
+      
       // Remove touch event listeners
       document.removeEventListener("touchstart", handleTouchStartEvent);
       document.removeEventListener("touchmove", handleTouchMoveEvent);
       document.removeEventListener("touchend", handleTouchEndEvent);
-      // Cancel animation frame
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-
+      
       // Stop camera stream
-      if (source && source.domElement && source.domElement.srcObject) {
-        const stream = source.domElement.srcObject as MediaStream;
+      if (sourceRef.current && sourceRef.current.domElement && sourceRef.current.domElement.srcObject) {
+        const stream = sourceRef.current.domElement.srcObject as MediaStream;
         stream.getTracks().forEach((track) => track.stop());
       }
 
       // Dispose of renderer
-      if (renderer) {
-        renderer.dispose();
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
       }
 
       // Remove the renderer element from document.body
@@ -467,7 +559,7 @@ const ARScannerPage: React.FC = () => {
         }
       });
     };
-  }, [organ]);
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   // Function to load sliced heart model
   const loadSlicedHeartModel = useCallback(() => {
@@ -641,6 +733,77 @@ const ARScannerPage: React.FC = () => {
         >
           ← Back to Menu [{organ.name} 3D Model]{" "}
         </div>
+      </div>
+      
+      {/* Organ Selection Buttons (exactly like the image provided) */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "100px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          justifyContent: "center",
+          gap: "12px",
+          zIndex: 200,
+        }}
+      >
+        <button
+          data-organ-button="true"
+          data-ui-element="true"
+          onClick={() => setSelectedOrganId("heart")}
+          style={{
+            width: "80px",
+            padding: "10px",
+            borderRadius: "5px",
+            border: selectedOrganId === "heart" ? "2px solid white" : "1px solid rgba(255,255,255,0.4)",
+            backgroundColor: selectedOrganId === "heart" ? "rgba(255,255,255,0.9)" : "rgba(100,100,100,0.7)",
+            color: selectedOrganId === "heart" ? "#000" : "#fff",
+            fontSize: "14px",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
+          Heart
+        </button>
+        
+        <button
+          data-organ-button="true"
+          data-ui-element="true"
+          onClick={() => setSelectedOrganId("brain")}
+          style={{
+            width: "80px",
+            padding: "10px",
+            borderRadius: "5px",
+            border: selectedOrganId === "brain" ? "2px solid white" : "1px solid rgba(255,255,255,0.4)",
+            backgroundColor: selectedOrganId === "brain" ? "rgba(255,255,255,0.9)" : "rgba(100,100,100,0.7)",
+            color: selectedOrganId === "brain" ? "#000" : "#fff",
+            fontSize: "14px",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
+          Default
+        </button>
+        
+        <button
+          data-organ-button="true"
+          data-ui-element="true"
+          onClick={() => setSelectedOrganId("lungs")}
+          style={{
+            width: "80px",
+            padding: "10px",
+            borderRadius: "5px",
+            border: selectedOrganId === "lungs" ? "2px solid white" : "1px solid rgba(255,255,255,0.4)",
+            backgroundColor: selectedOrganId === "lungs" ? "rgba(255,255,255,0.9)" : "rgba(100,100,100,0.7)",
+            color: selectedOrganId === "lungs" ? "#000" : "#fff",
+            fontSize: "14px",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
+          Lungs
+        </button>
       </div>
 
       {/* Zoom Controls */}

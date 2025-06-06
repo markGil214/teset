@@ -17,7 +17,6 @@ import Animation from "./assets/components/animation";
 import OrganMatcherGame from "./assets/pages/OrganMatcherGame";
 import LandscapeWrapper from "./assets/components/LandscapeWrapper";
 import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
-import ScanExploreHub from "./assets/pages/ScanExploreHub";
 import OrganDetailPage from "./assets/pages/OrganDetailPage";
 import ARScannerPage from "./assets/pages/ARScannerPage";
 import SlicedHeartPage from "./assets/pages/SlicedHeartPage";
@@ -278,16 +277,6 @@ function AppContent() {
           <Route path="/ar-heart" element={<Navigate to="/" />} />{" "}
           <Route
             path="/scan-explore"
-            element={
-              secondRegistrationComplete ? (
-                <ScanExploreHub />
-              ) : (
-                <Navigate to="/" />
-              )
-            }
-          />
-          <Route
-            path="/scan-explore/ar"
             element={
               secondRegistrationComplete ? (
                 <ARScannerPage />
