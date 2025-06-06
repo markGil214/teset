@@ -1,0 +1,1132 @@
+/* ===========================
+   1. BASE STYLES & RESET
+   =========================== */
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body,
+html {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: "Montserrat", sans-serif;
+  background: #230f43;
+}
+
+/* ===========================
+      2. ANIMATIONS
+      =========================== */
+@keyframes rise {
+  0% {
+    bottom: -100px;
+    transform: translateX(0);
+  }
+  50% {
+    transform: translate(100px);
+  }
+  100% {
+    bottom: 1080px;
+    transform: translateX(-200px);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===========================
+      3. BACKGROUND ELEMENTS
+      =========================== */
+.bubbles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+  top: 0;
+  left: 0;
+}
+
+.bubble {
+  position: absolute;
+  bottom: -100px;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-image: url("/lungs.png");
+  animation: rise 10s infinite ease-in;
+}
+
+.bubble:nth-child(1) {
+  width: 40px;
+  height: 40px;
+  background-image: url("/heart.png");
+  left: 10%;
+  animation-duration: 15s;
+}
+
+.bubble:nth-child(2) {
+  width: 40px;
+  height: 40px;
+  left: 20%;
+  animation-duration: 14s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(3) {
+  width: 50px;
+  background-image: url("/heart.png");
+  height: 50px;
+  left: 35%;
+  animation-duration: 15s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(4) {
+  width: 80px;
+  height: 80px;
+  right: 0%;
+  animation-duration: 15s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(5) {
+  width: 35px;
+  height: 35px;
+  background-image: url("/heart.png");
+  left: 55%;
+  animation-duration: 6s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(6) {
+  width: 45px;
+  height: 45px;
+  left: 45%;
+  animation-duration: 8s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(7) {
+  width: 90px;
+  background-image: url("/heart.png");
+  height: 90px;
+  left: 79%;
+  animation-duration: 7s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(8) {
+  width: 25px;
+  height: 25px;
+  left: 80%;
+  animation-duration: 6s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(9) {
+  width: 30px;
+  height: 30px;
+  left: 65%;
+  animation-duration: 11s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(10) {
+  width: 90px;
+  background-image: url("/heart.png");
+  height: 90px;
+  left: 25%;
+  animation-duration: 10s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(11) {
+  width: 45px;
+  height: 45px;
+  left: 65%;
+  animation-duration: 9s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(12) {
+  width: 90px;
+  background-image: url("/heart.png");
+  height: 90px;
+  left: 70%;
+  animation-duration: 12s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(13) {
+  width: 25px;
+  height: 25px;
+  background-image: url("/heart.png");
+  left: 100%;
+  animation-duration: 8s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(14) {
+  width: 30px;
+  height: 30px;
+  background-image: url("/heart.png");
+  left: 70%;
+  animation-duration: 8s;
+  animation-delay: 0s;
+}
+
+.bubble:nth-child(15) {
+  width: 90px;
+  background-image: url("/heart.png");
+  height: 90px;
+  left: 25%;
+  animation-duration: 10s;
+  animation-delay: 0s;
+}
+
+/* ===========================
+      4. COMMON UI ELEMENTS
+      =========================== */
+.heading-title {
+  color: #ffbe00;
+  z-index: 1;
+  margin: 8px;
+}
+
+.sub-heading {
+  color: #ffffff;
+  z-index: 1;
+}
+
+.btn {
+  margin-top: 20px;
+  color: #ffffff;
+  padding: 12px 24px;
+  font-size: 16px;
+  background-color: #0fdd00;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 1;
+  font-weight: 500;
+}
+
+.back-button {
+  display: block;
+  padding: 0.5rem 1.2rem;
+  background-color: #0fdd00;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.back-button:hover {
+  background-color: #0cbb00;
+}
+
+.back-button-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  padding-bottom: 1.5rem;
+  position: sticky;
+  bottom: 0;
+}
+
+/* ===========================
+      5. LOADING & GET STARTED PAGES
+      =========================== */
+.get-started-screen,
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.loader {
+  margin-top: 20px;
+  font-size: 2rem;
+  color: #ffbe00;
+  font-weight: bold;
+  z-index: 1;
+}
+
+/* ===========================
+      6. REGISTRATION PAGE
+      =========================== */
+.register-bg {
+  min-height: 100vh;
+  background: #2d174d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.register-bg .bg-img {
+  position: absolute;
+  width: 90px;
+  opacity: 0.9;
+}
+
+.bg-img.img1 {
+  top: 30px;
+  left: 20px;
+}
+
+.bg-img.img2 {
+  top: 80px;
+  right: 30px;
+}
+
+.bg-img.img3 {
+  bottom: 60px;
+  left: 10px;
+}
+
+.bg-img.img4 {
+  bottom: 30px;
+  right: 20px;
+}
+
+.register-card {
+  background: #ffc800;
+  border-radius: 24px;
+  padding: 40px 24px 24px 24px;
+  width: 90%;
+  max-width: 340px;
+  margin-top: 1em;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 2;
+}
+
+.register-avatar {
+  width: 80px;
+  height: 80px;
+  background: #eee;
+  border-radius: 50%;
+  position: absolute;
+  left: 50%;
+  top: -40px;
+  transform: translateX(-50%);
+  box-shadow: 0 6px 8px #b98b00;
+  z-index: 3;
+}
+
+.register-title {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1em;
+  text-align: center;
+  z-index: 2;
+}
+
+.register-form label {
+  display: block;
+  color: #3d2c00;
+  font-size: 1.1rem;
+  margin-bottom: 6px;
+  margin-top: 18px;
+}
+
+.register-form input,
+.register-form select {
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  border-bottom: 2px solid #e6a800;
+  background: transparent;
+  font-size: 1rem;
+  margin-bottom: 4px;
+  outline: none;
+}
+
+.register-btn {
+  width: 100%;
+  margin-top: 28px;
+  background: #00c800;
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+  padding: 1em;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.register-btn:hover {
+  background: #009900;
+}
+
+.register-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 18px;
+  gap: 8px;
+}
+
+.register-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffc800;
+  opacity: 0.5;
+}
+
+.register-dot.active {
+  background: #fff;
+  opacity: 1;
+}
+
+/* ===========================
+      7. DASHBOARD 
+      =========================== */
+.dashboard-container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #241245;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.dashboard-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+}
+
+.welcome-text {
+  color: #f3d849;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.avatar-container {
+  width: 3em;
+  height: 3em;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #e0e0e0;
+}
+
+.user-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logo-container {
+  margin: 20px 0 40px 0;
+  text-align: center;
+}
+
+.logo-blocks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 10px;
+}
+
+.block {
+  width: 100%;
+  height: 100%;
+}
+
+.blue {
+  background-color: #4a5dbd;
+  grid-column: 1 / 2;
+  grid-row: 1 / 3;
+}
+
+.orange {
+  background-color: #ff6b35;
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+  z-index: 30 !important;
+}
+
+.green {
+  background-color: #3cb043;
+  grid-column: 1 / 2;
+  grid-row: 2 / 3;
+}
+
+.pink {
+  background-color: #ff3f80;
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+}
+
+.logo-text {
+  color: white;
+  font-size: 1.8rem;
+  margin: 10px 0;
+  font-weight: bold;
+}
+
+.dashboard-buttons {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 300px;
+  gap: 16px;
+}
+
+.dashboard-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 20px;
+  background-color: #e78c11;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dashboard-btn:hover {
+  background-color: #d67d00;
+}
+
+.btn-icon {
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+/* ===========================
+      8. GAME SELECTION PAGE
+      =========================== */
+.game-selection-container {
+  padding: 1rem 0.75rem;
+  max-width: 750px;
+  margin: 0 auto;
+  min-height: 90vh;
+  background-color: #230f43;
+  color: white;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.game-selection-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.game-selection-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #ffbe00;
+}
+
+.game-selection-header p {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.game-card {
+  border-radius: 10px;
+  padding: 1.2rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+  min-height: 160px;
+}
+
+.game-card:hover,
+.game-card.hovered {
+  transform: translateY(-10px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.game-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.game-title {
+  font-size: 1.3rem;
+  margin-bottom: 0.3rem;
+  color: white;
+}
+
+.game-description {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* ===========================
+      9. ORGAN MATCHER GAME
+      =========================== */
+.organ-matcher-container {
+  width: 100%;
+  height: 100%;
+  max-height: 100vh;
+  background-color: #241245;
+  color: white;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.game-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.game-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #f3d849;
+}
+
+.game-stats {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 1.5rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.stat-item {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.game-content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Game board and card styles */
+.game-board-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0.5rem 0;
+  min-height: 0;
+  width: 100%;
+  padding: 0.5rem;
+}
+
+.game-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 900px;
+  padding: 0.5rem;
+  align-items: center;
+  justify-items: center;
+  justify-content: center;
+}
+
+.card {
+  aspect-ratio: 1/1;
+  width: 100%;
+  max-width: 120px;
+  min-width: 70px;
+  margin: 0 auto;
+  perspective: 1000px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+.card-inner {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.5s;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.card.flipped .card-inner {
+  transform: rotateY(180deg);
+}
+
+.card-front,
+.card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  text-align: center;
+  overflow: hidden;
+}
+
+.card-front {
+  background: linear-gradient(135deg, #4a5dbd, #3cb043);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-question-mark {
+  font-size: 3rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.card-back {
+  transform: rotateY(180deg);
+  color: black;
+  justify-content: space-between;
+}
+
+.card.organ .card-back {
+  background-color: #4a5dbd;
+  color: white;
+}
+
+.card.function .card-back {
+  background-color: #3cb043;
+  color: white;
+}
+
+.card.matched .card-back {
+  background-color: #e78c11;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+}
+
+.card-image {
+  width: 80%;
+  height: 60%;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.card-content {
+  font-size: 0.9rem;
+  font-weight: bold;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+/* Game controls and buttons */
+.game-controls {
+  margin-top: auto;
+  padding: 1rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.game-controls button,
+.difficulty-btn,
+.start-game-btn,
+.game-complete-buttons button {
+  padding: 0.75rem 1.5rem;
+  background-color: #e78c11;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.game-controls button:hover,
+.difficulty-btn:hover,
+.start-game-btn:hover,
+.game-complete-buttons button:hover {
+  background-color: #d67d00;
+  transform: translateY(-2px);
+}
+
+/* Difficulty selection */
+.difficulty-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  margin: 2rem 0;
+}
+
+.difficulty-selection h2 {
+  margin-bottom: 1.5rem;
+  color: #f3d849;
+}
+
+.difficulty-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.difficulty-btn {
+  min-width: 140px;
+}
+
+.difficulty-btn.selected {
+  background-color: #f3d849;
+  color: #241245;
+}
+
+.start-game-btn {
+  font-size: 1.2rem;
+  padding: 1rem 2rem;
+}
+
+/* Game complete screen */
+.game-complete {
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 2rem;
+  border-radius: 10px;
+  margin: 2rem 0;
+}
+
+.game-complete h2 {
+  color: #f3d849;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.game-complete p {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.game-complete-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.game-complete-buttons button {
+  flex: 0 1 auto;
+  min-width: 120px;
+}
+
+/* ===========================
+      10. LANDSCAPE MODE
+      =========================== */
+.landscape-game-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #241245;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.landscape-content {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rotate-device-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  color: white;
+}
+
+.rotate-icon {
+  font-size: 4rem;
+  animation: rotate 2s infinite linear;
+  margin-bottom: 1rem;
+}
+
+/* ===========================
+      11. RESPONSIVE STYLES
+      =========================== */
+/* iPhone SE Specific Styles */
+@media (max-width: 375px) {
+  .game-selection-container {
+    padding: 0.5rem;
+    min-height: 80vh;
+  }
+
+  .game-selection-header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .games-grid {
+    gap: 0.75rem;
+  }
+
+  .game-card {
+    padding: 1rem 0.75rem;
+    min-height: 140px;
+  }
+
+  .game-icon {
+    font-size: 2.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .game-title {
+    font-size: 1.1rem;
+  }
+
+  .game-description {
+    font-size: 0.8rem;
+  }
+}
+
+/* Small devices */
+@media (max-width: 480px) {
+  .game-board {
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    gap: 4px;
+  }
+
+  .card-question-mark {
+    font-size: 2rem;
+  }
+
+  .card-content {
+    font-size: 0.7rem;
+  }
+
+  .game-stats {
+    padding: 0.5rem;
+  }
+
+  .stat-item {
+    font-size: 0.9rem;
+  }
+}
+
+/* Medium devices */
+@media (max-width: 768px) {
+  .game-board {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
+
+  .difficulty-buttons {
+    flex-direction: column;
+  }
+}
+
+/* ===========================
+   12. ANATOMY QUIZ
+   =========================== */
+.anatomy-quiz-container {
+  width: 100%;
+  height: 100%;
+  max-height: 100vh;
+  background-color: #241245;
+  color: white;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.quiz-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.quiz-stats {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.quiz-question-container {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  flex: 1;
+}
+
+.quiz-question h2 {
+  font-size: 1.4rem;
+  margin-bottom: 1.5rem;
+  color: #f3d849;
+  text-align: center;
+}
+
+.question-image {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.question-image img {
+  max-width: 180px;
+  max-height: 180px;
+  object-fit: contain;
+}
+
+.quiz-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.quiz-option {
+  padding: 1rem;
+  background-color: #4a5dbd;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quiz-option:hover:not(:disabled) {
+  background-color: #3f51b5;
+  transform: translateY(-2px);
+}
+
+.quiz-option.correct {
+  background-color: #3cb043;
+  color: white;
+}
+
+.quiz-option.incorrect {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.quiz-option:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .quiz-options {
+    grid-template-columns: 1fr;
+  }
+
+  .quiz-question h2 {
+    font-size: 1.2rem;
+  }
+
+  .question-image img {
+    max-width: 150px;
+    max-height: 150px;
+  }
+}
+/* Add these styles to your existing CSS file */
+
+.heart-model {
+  margin: 0 auto;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.question-model {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+  height: 300px;
+}

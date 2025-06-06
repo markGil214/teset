@@ -19,9 +19,6 @@ declare global {
   }
 }
 
-// Module-level initialization tracking to prevent double initialization in StrictMode
-let isZoomControllerInitialized = false;
-
 const ARScannerPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -33,9 +30,9 @@ const ARScannerPage: React.FC = () => {
   const zoomControllerRef = useRef<ZoomController | null>(null);
   const organModelRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
-  const baseScaleRef = useRef<number>(0.5);  const originalModelRef = useRef<any>(null);
+  const baseScaleRef = useRef<number>(0.5);
+  const originalModelRef = useRef<any>(null);
   const showSlicedModelRef = useRef(false);
-  const initializationRef = useRef(false);
 
   // State
   const [modelLoading, setModelLoading] = useState(true);
@@ -66,22 +63,15 @@ const ARScannerPage: React.FC = () => {
       default:
         return 0.5;
     }
-  }, []);  // Initialize zoom controller
-  useEffect(() => {
-    // Prevent duplicate initialization using module-level flag
-    if (isZoomControllerInitialized) {
-      console.log("Zoom controller already initialized globally, skipping...");
-      return;
-    }
+  }, []);
 
+  // Initialize zoom controller
+  useEffect(() => {
     const baseScale = getBaseScale(organ.id);
     baseScaleRef.current = baseScale;
     console.log(
       `Initializing zoom controller for ${organ.name} with base scale ${baseScale}`
     );
-
-    isZoomControllerInitialized = true;
-    initializationRef.current = true;
 
     zoomControllerRef.current = new ZoomController(1.0, {
       onZoomChange: (zoom: number) => {
@@ -133,13 +123,13 @@ const ARScannerPage: React.FC = () => {
           setShowMaxZoomMessage(true);
         }
       },
-    });    console.log("Zoom controller initialized successfully");
+    });
+
+    console.log("Zoom controller initialized successfully");
 
     return () => {
       console.log("Cleaning up zoom controller");
       zoomControllerRef.current?.destroy();
-      initializationRef.current = false;
-      // Don't reset the module-level flag to prevent re-initialization
     };
   }, [organ.id, getBaseScale]);
 

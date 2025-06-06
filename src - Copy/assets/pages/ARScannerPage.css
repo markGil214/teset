@@ -1,0 +1,45 @@
+/* ARScannerPage.css - Following basic-cutout.html format */
+.ar-scanner-page {
+  margin: 0px;
+  overflow: hidden;
+  font-family: Monospace;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Header overlay - EXACT same style as basic-cutout.html */
+.ar-header {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 100;
+  color: white;
+  font-family: Monospace;
+}
+
+/* Back button - matching basic-cutout.html button style */
+.back-btn {
+  background-color: rgba(201, 76, 76, 0.7);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+.back-btn:hover {
+  background-color: rgba(201, 76, 76, 0.9);
+}
+
+/* Ensure all buttons follow the same pattern */
+button {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 100 !important;
+}

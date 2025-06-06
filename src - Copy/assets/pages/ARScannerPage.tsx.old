@@ -1,0 +1,311 @@
+import React, { useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { organs } from "../components/organData";
+import "./ARScannerPage.css";
+import { useARCamera } from "../../utils/useARCamera";
+
+// We need to import these libraries via script tags
+// since they need to be loaded in a specific order
+declare global {
+  interface Window {
+    AFRAME: any;
+    THREEx: any;
+    THREE: any;
+    THREEAR: any;
+  }
+}
+
+// Define interface for GLTF result
+interface GLTFResult {
+  scene: any;
+  scenes: any[];
+  cameras: any[];
+  animations: any[];
+  asset: any;
+}
+
+const ARScannerPage: React.FC = () => {
+  const { organId } = useParams<{ organId: string }>();
+  const navigate = useNavigate();
+  const organ = organs.find((o) => o.id === organId);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const modelRef = useRef<any>(null);
+  
+  // Use the AR camera hook
+  const {
+    containerRef,
+    isInitialized,
+    hasTorch,
+    isMarkerDetected: markerDetected,
+    toggleTorch,
+    arCamera,
+    error: cameraError
+  } = useARCamera({
+    sourceWidth: 1280,
+    sourceHeight: 720,
+    facingMode: "environment"
+  });
+  useEffect(() => {
+    // Load the 3D model when AR camera is ready
+    if (isInitialized && arCamera && organ) {
+      setIsLoading(true);
+      
+      // Make sure THREE.js and GLTFLoader are available
+      if (!window.THREE) {
+        console.error("THREE.js is not loaded");
+        setIsLoading(false);
+        return;
+      }
+      
+      if (!window.THREE.GLTFLoader) {
+        // Try to load GLTFLoader
+        const gltfLoaderScript = document.createElement("script");
+        gltfLoaderScript.src = "/vendor/GLTFLoader.js";
+        gltfLoaderScript.async = true;
+        document.head.appendChild(gltfLoaderScript);
+        
+        gltfLoaderScript.onload = () => loadModel();
+        gltfLoaderScript.onerror = () => {
+          console.error("GLTFLoader is not available");
+          setIsLoading(false);
+        };
+        return;
+      }
+      
+      loadModel();
+    }
+  }, [isInitialized, arCamera, organ]);
+  
+  // Function to load the 3D model
+  const loadModel = () => {
+    if (!organ || !arCamera) return;
+    
+    try {
+      const gltfLoader = new window.THREE.GLTFLoader();
+      
+      gltfLoader.load(
+        organ.modelPath,
+        (gltf: GLTFResult) => {
+          const model = gltf.scene;
+          model.scale.set(0.05, 0.05, 0.05);
+          
+          // Create a group to hold the model
+          const group = new window.THREE.Group();
+          group.add(model);
+          
+          // Add the group to the AR scene
+          arCamera.getScene().add(group);
+          
+          // Store reference to the group
+          modelRef.current = group;
+          
+          // Hide the model initially (will be shown when marker is detected)
+          group.visible = false;
+          
+          setIsLoading(false);
+        },
+        undefined,
+        (error: Error) => {
+          console.error("Error loading model:", error);
+          setIsLoading(false);
+        }
+      );
+    } catch (err) {
+      console.error("Error loading model:", err);
+      setIsLoading(false);
+    }
+  };
+      const source = new window.THREEAR.Source({
+        renderer,
+        camera,
+        sourceType: "webcam",
+        sourceWidth: 1280,
+        sourceHeight: 720,
+        displayWidth: window.innerWidth,
+        displayHeight: window.innerHeight,
+        facingMode: "environment",
+        deviceId: null, // Set to a specific camera ID if needed
+      });
+      
+      // Store the source in a ref for later access (torch toggling)
+      sourceRef.current = source;
+      // Create controller with pattern detection settings
+      const controller = new window.THREEAR.Controller({
+        source,
+        lostTimeout: 1000,
+        debug: false,
+        detectionMode: "mono_and_matrix", // Better detection mode
+        matrixCodeType: "3x3",
+        patternRatio: 0.5,
+        imageSmoothingEnabled: true, // Enable image smoothing for better detection
+        maxDetectionRate: 60,
+        canvasWidth: 1280, // Higher resolution for better detection
+        canvasHeight: 720,
+        positioning: {
+          // Smoother camera tracking
+          smooth: true,
+          smoothCount: 5,
+          smoothTolerance: 0.01,
+          smoothThreshold: 2,
+        },
+      });
+
+      // Initialize the controller and source
+      controller.postInit.then(() => {
+        // Check if device has torch capability
+        if (source.domElement && source.hasMobileTorch(source.domElement as HTMLVideoElement)) {
+          setHasTorch(true);
+        }
+          // Create a marker
+        const pattern = new window.THREEAR.PatternMarker({
+          patternUrl: "/data/patt.hiro",
+          markerObject: new window.THREE.Group(),
+        });
+        
+        // Set up marker detection events
+        pattern.addEventListener('markerFound', () => {
+          setMarkerDetected(true);
+        });
+        
+        pattern.addEventListener('markerLost', () => {
+          setMarkerDetected(false);
+        });
+        
+        // Add the marker to the controller for tracking
+        controller.trackMarker(pattern);
+
+        // Add the marker group to the scene
+        scene.add(pattern.markerObject);
+
+        // Load 3D model
+        const gltfLoader = new window.THREE.GLTFLoader();
+        gltfLoader.load(
+          organ.modelPath,
+          (gltf: GLTFResult) => {
+            const model = gltf.scene;
+            model.scale.set(0.05, 0.05, 0.05);
+            pattern.markerObject.add(model);
+          },
+          undefined,
+          (error: Error) => console.error("Error loading model:", error)
+        );
+
+        // Add lighting
+        const ambientLight = new window.THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const directionalLight = new window.THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(0, 1, 1);
+        scene.add(directionalLight);
+
+        // Handle window resize
+        window.addEventListener("resize", () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          controller.onResize(renderer);
+        });
+
+        // Animation loop
+        const animate = () => {
+          requestAnimationFrame(animate);
+
+          // Update for AR
+          controller.update(source.domElement);
+
+          // Render the scene
+          renderer.render(scene, camera);
+        };
+
+        // Start animation loop
+        animate();
+      })
+      .catch((error: Error) => console.error("Error initializing AR:", error));
+    };
+
+    loadScripts();    // Clean up
+    return () => {
+      // Clean up scripts
+      const threeScript = document.querySelector('script[src*="three.101.min.js"]');
+      const threearScript = document.querySelector('script[src*="THREEAR.js"]');
+      const gltfLoaderScript = document.querySelector('script[src*="GLTFLoader.js"]');
+      
+      if (threeScript) document.head.removeChild(threeScript);
+      if (threearScript) document.head.removeChild(threearScript);
+      if (gltfLoaderScript) document.head.removeChild(gltfLoaderScript);
+      
+      // Dispose of THREEAR resources
+      if (sourceRef.current) {
+        sourceRef.current.dispose();
+      }
+      
+      // Clean up DOM
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+      }
+      
+      // Remove resize listeners
+      window.removeEventListener('resize', () => {});
+    };
+  }, [organ]);
+
+  // Function to toggle the torch/flash
+  const toggleTorch = () => {
+    if (sourceRef.current && sourceRef.current.domElement) {
+      sourceRef.current.toggleMobileTorch(sourceRef.current.domElement as HTMLVideoElement);
+    }
+  };
+
+  if (!organ) {
+    return <div>Organ not found.</div>;
+  }
+
+  return (
+    <div className="ar-scanner-page">      <div className="ar-header">
+        <button className="back-btn" onClick={() => navigate(-1)}>
+          ← Back
+        </button>
+        <h2>AR View: {organ.name}</h2>
+        {hasTorch && (
+          <button className="torch-btn" onClick={toggleTorch}>
+            Toggle Flash
+          </button>
+        )}
+      </div>
+
+      <div className="ar-container" ref={containerRef}>
+        <div className="loading-message">Loading AR experience...</div>
+        {markerDetected && (
+          <div className="marker-status-detected">
+            Marker Detected
+          </div>
+        )}
+        {!markerDetected && (
+          <div className="marker-status-searching">
+            Searching for marker...
+          </div>
+        )}
+      </div>
+      <div className="ar-instructions">
+        <h3>Instructions:</h3>
+        <ol>
+          <li>Allow camera access when prompted</li>
+          <li>Point your camera at the Hiro marker</li>
+          <li>Hold your device steady while the marker is being detected</li>
+          <li>Keep the entire marker in view for best tracking results</li>
+          <li>Move around to view the 3D model from different angles</li>
+        </ol>
+        <div className="marker-info">
+          <p>
+            Don't have a marker?{" "}
+            <a href="/marker.html" target="_blank">
+              Get one here
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ARScannerPage;
