@@ -174,7 +174,6 @@ function AppContent() {
     window.location.href = "/ARScannerPage.html";
     return <div>Redirecting to AR Scanner...</div>;
   };
-  };
 
   return (
     <div className="relative">
@@ -328,5 +327,4 @@ function AppContent() {
     </div>
   );
 }
-
 export default App;

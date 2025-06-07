@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/scan-explore",
+      "destination": "/ARScannerPage.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
