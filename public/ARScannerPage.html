@@ -452,8 +452,8 @@
       function goBackToOrganSelection() {
         cleanup();
         localStorage.removeItem("selectedOrgan");
-        // Go back to the React app home page
-        window.location.href = "/home";
+        // Use relative path for better routing compatibility
+        window.location.href = "/";
       }
 
       // Get base scale for organ type
@@ -680,9 +680,23 @@
               }
             }
 
-            renderer.render(scene, camera);
-          }
+            renderer.render(scene, camera);          }
           animationId = requestAnimationFrame(animate);
+        }).catch((error) => {
+          console.error("THREEAR initialization failed:", error);
+          setModelError(true);
+          setModelLoading(false);
+          // Clear any loading timeout
+          if (window.loadingTimeout) {
+            clearTimeout(window.loadingTimeout);
+            window.loadingTimeout = null;
+          }
+          // Show error message to user
+          const errorMsg = document.getElementById('error-message');
+          if (errorMsg) {
+            errorMsg.textContent = 'Failed to initialize AR scanner. Please check camera permissions and try again.';
+            errorMsg.style.display = 'block';
+          }
         });
 
         // Add touch event listeners

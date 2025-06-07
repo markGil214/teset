@@ -168,11 +168,22 @@ function AppContent() {
     );
   }
 
-  // AR Scanner component that redirects to standalone HTML page
+  // Option 1: Create a wrapper component that loads your HTML file
   const ARScannerPage = () => {
-    // Redirect to the standalone AR Scanner HTML page
-    window.location.href = "/ARScannerPage.html";
-    return <div>Redirecting to AR Scanner...</div>;
+    return (
+      <iframe
+        src="/src/assets/pages/ARScannerPage.html"
+        style={{
+          width: "100vw",
+          height: "100vh",
+          border: "none",
+          position: "fixed",
+          top: 0,
+          left: 0,
+        }}
+        title="AR Scanner"
+      />
+    );
   };
 
   return (
@@ -327,4 +338,5 @@ function AppContent() {
     </div>
   );
 }
+
 export default App;

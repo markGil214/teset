@@ -448,12 +448,13 @@
           return JSON.parse(organData);
         }
         return null;
-      }      // Navigate back to organ selection
+      }
+
+      // Navigate back to organ selection
       function goBackToOrganSelection() {
         cleanup();
         localStorage.removeItem("selectedOrgan");
-        // Use relative path for better routing compatibility
-        window.location.href = "/";
+        window.location.href = "OrganSelectionPage.html";
       }
 
       // Get base scale for organ type
@@ -564,23 +565,25 @@
         var camera = new THREE.Camera();
         scene.add(camera);
         markerGroup = new THREE.Group();
-        scene.add(markerGroup);
-
-        source = new THREEAR.Source({ renderer, camera });
-        THREEAR.initialize({ source: source }).then((controller) => {
+        scene.add(markerGroup);        source = new THREEAR.Source({ renderer, camera });
+        console.log("THREEAR Source created:", source);
+          THREEAR.initialize({ source: source }).then((controller) => {
+          console.log("THREEAR initialized successfully:", controller);
+          
           // Add lighting
           var ambientLight = new THREE.AmbientLight(0x404040, 0.6);
           scene.add(ambientLight);
 
           var directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
           directionalLight.position.set(1, 1, 1);
-          scene.add(directionalLight);
-
-          // Load the 3D model
+          scene.add(directionalLight);// Load the 3D model
           var gltfLoader = new THREE.GLTFLoader();
+          console.log(`Loading 3D model from: ${currentOrgan.modelPath}`);
+          
           gltfLoader.load(
             currentOrgan.modelPath,
             (gltf) => {
+              console.log("3D model loaded successfully:", gltf);
               var model = gltf.scene;
 
               // Scale and position the model
@@ -611,6 +614,7 @@
                   positionY = 0;
               }
 
+              console.log(`Setting model scale to: ${scale}`);
               model.scale.set(scale, scale, scale);
               model.position.y = positionY;
               markerGroup.add(model);
@@ -629,17 +633,26 @@
                   );
                   model.scale.set(newScale, newScale, newScale);
                 }
+              }              // Model loaded successfully
+              if (window.loadingTimeout) {
+                clearTimeout(window.loadingTimeout);
+                window.loadingTimeout = null;
               }
-
-              // Model loaded successfully
               setModelLoading(false);
               console.log(
                 `${currentOrgan.name} 3D model loaded successfully with scale: ${scale}`
               );
             },
-            undefined,
+            (progress) => {
+              console.log("Loading progress:", progress);
+              if (progress.lengthComputable) {
+                const percentComplete = (progress.loaded / progress.total) * 100;
+                console.log(`Loading ${currentOrgan.name}: ${percentComplete.toFixed(2)}%`);
+              }
+            },
             (error) => {
               console.error("Error loading 3D model:", error);
+              console.error("Model path that failed:", currentOrgan.modelPath);
               setModelLoading(false);
               setModelError(true);
 
@@ -653,6 +666,10 @@
               var cube = new THREE.Mesh(geometry, material);
               cube.position.y = geometry.parameters.height / 2;
               markerGroup.add(cube);
+              
+              // Also store cube as organModel for consistency
+              organModel = cube;
+              markerGroup.organModel = cube;
             }
           );
 
@@ -999,14 +1016,25 @@
         // Restore scrolling
         document.body.style.overflow = "";
         document.documentElement.style.overflow = "";
-      }
-
-      // Initialize the application
+      }      // Initialize the application
       document.addEventListener("DOMContentLoaded", function () {
+        console.log("DOM Content Loaded - Starting AR Scanner initialization");
+        
         // Get organ data from localStorage
-        currentOrgan = getSelectedOrgan();        if (!currentOrgan) {
+        currentOrgan = getSelectedOrgan();
+        console.log("Selected organ data:", currentOrgan);
+
+        if (!currentOrgan) {
           alert("No organ selected. Redirecting to organ selection page.");
-          window.location.href = "/";
+          window.location.href = "OrganSelectionPage.html";
+          return;
+        }
+
+        // Validate organ data
+        if (!currentOrgan.modelPath) {
+          console.error("No model path found for organ:", currentOrgan);
+          alert("Invalid organ data. Redirecting to organ selection page.");
+          window.location.href = "OrganSelectionPage.html";
           return;
         }
 
@@ -1015,7 +1043,19 @@
           "scannerTitle"
         ).textContent = `AR Scanner for ${currentOrgan.name} - Point your camera at the Hiro marker`;
 
+        // Set loading timeout (30 seconds)
+        const loadingTimeout = setTimeout(() => {
+          console.error("Model loading timeout reached");
+          setModelLoading(false);
+          setModelError(true);
+          alert(`Failed to load ${currentOrgan.name} model. Please try again.`);
+        }, 30000);
+
+        // Store timeout ID to clear it when model loads
+        window.loadingTimeout = loadingTimeout;
+
         // Initialize AR with selected organ
+        console.log("Starting AR initialization...");
         initializeAR();
       });
 
