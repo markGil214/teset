@@ -7,4 +7,13 @@ export default defineConfig({
   server: {
     allowedHosts: [".ngrok-free.app"],
   },
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        // Add your HTML pages here if they need to be built separately
+      }
+    }
+  },
+  publicDir: 'public'
 });

@@ -443,18 +443,17 @@
 
       // Get organ data from localStorage
       function getSelectedOrgan() {
-        const organData = localStorage.getItem('selectedOrgan');
+        const organData = localStorage.getItem("selectedOrgan");
         if (organData) {
           return JSON.parse(organData);
         }
         return null;
-      }
-
-      // Navigate back to organ selection
+      }      // Navigate back to organ selection
       function goBackToOrganSelection() {
         cleanup();
-        localStorage.removeItem('selectedOrgan');
-        window.location.href = 'OrganSelectionPage.html';
+        localStorage.removeItem("selectedOrgan");
+        // Use relative path for better routing compatibility
+        window.location.href = "/";
       }
 
       // Get base scale for organ type
@@ -1005,17 +1004,16 @@
       // Initialize the application
       document.addEventListener("DOMContentLoaded", function () {
         // Get organ data from localStorage
-        currentOrgan = getSelectedOrgan();
-        
-        if (!currentOrgan) {
-          alert('No organ selected. Redirecting to organ selection page.');
-          window.location.href = 'OrganSelectionPage.html';
+        currentOrgan = getSelectedOrgan();        if (!currentOrgan) {
+          alert("No organ selected. Redirecting to organ selection page.");
+          window.location.href = "/";
           return;
         }
 
         // Update scanner title
-        document.getElementById("scannerTitle").textContent = 
-          `AR Scanner for ${currentOrgan.name} - Point your camera at the Hiro marker`;
+        document.getElementById(
+          "scannerTitle"
+        ).textContent = `AR Scanner for ${currentOrgan.name} - Point your camera at the Hiro marker`;
 
         // Initialize AR with selected organ
         initializeAR();
