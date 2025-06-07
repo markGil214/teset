@@ -567,16 +567,20 @@
         document.body.style.overflow = "hidden";
         document.documentElement.style.overflow = "hidden";
 
-        // Initialize renderer
+        // Initialize renderer (matching basic-cutout.html setup)
         renderer = new THREE.WebGLRenderer({
+          // antialias: true,
           alpha: true,
         });
         renderer.setClearColor(new THREE.Color("lightgrey"), 0);
+        // renderer.setPixelRatio(2);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.domElement.style.position = "absolute";
         renderer.domElement.style.top = "0px";
         renderer.domElement.style.left = "0px";
         document.body.appendChild(renderer.domElement);
+
+        var clock = new THREE.Clock();
 
         // Initialize scene and camera
         var scene = new THREE.Scene();
@@ -589,13 +593,9 @@
         THREEAR.initialize({ source: source }).then((controller) => {
           console.log("THREEAR initialized successfully:", controller);
 
-          // Add lighting
-          var ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-          scene.add(ambientLight);
-
-          var directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-          directionalLight.position.set(1, 1, 1);
-          scene.add(directionalLight); // Load the 3D model
+          // Add lighting (matching basic-cutout.html pattern)
+          var ambientLight = new THREE.AmbientLight(0xcccccc, 1.0);
+          scene.add(ambientLight); // Load the 3D model
           console.log("Checking if GLTFLoader is available...");
           if (!THREE.GLTFLoader) {
             console.error(
@@ -712,13 +712,15 @@
 
           controller.trackMarker(patternMarker);
 
-          // Animation loop
+          // Animation loop (matching basic-cutout.html pattern)
           var lastTimeMsec = 0;
           function animate(nowMsec) {
             animationId = requestAnimationFrame(animate);
             lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
             var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
             lastTimeMsec = nowMsec;
+
+            // Update AR controller
             controller.update(source.domElement);
 
             // Rotate the 3D model if loaded

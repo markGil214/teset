@@ -19,6 +19,7 @@ import LandscapeWrapper from "./assets/components/LandscapeWrapper";
 import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
 import OrganDetailPage from "./assets/pages/OrganDetailPage";
 import SlicedHeartPage from "./assets/pages/SlicedHeartPage";
+import OrganSelectionPage from "./assets/pages/OrganSelectionPage";
 
 // Main App wrapper that provides the Router context
 function App() {
@@ -172,7 +173,7 @@ function AppContent() {
   const ARScannerPage = () => {
     return (
       <iframe
-        src="/src/assets/pages/ARScannerPage.html"
+        src="/ARScannerPage.html"
         style={{
           width: "100vw",
           height: "100vh",
@@ -240,6 +241,16 @@ function AppContent() {
             element={
               secondRegistrationComplete ? (
                 <HomePage onExit={() => {}} onGamesClick={navigateToGames} />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/organ-selection"
+            element={
+              secondRegistrationComplete ? (
+                <OrganSelectionPage />
               ) : (
                 <Navigate to="/" />
               )

@@ -1,6 +1,9 @@
 import React, { useRef, useEffect } from "react";
 import { organs } from "../components/organData";
 
+// Module-level initialization tracking to prevent double initialization in StrictMode
+let isARSceneInitialized = false;
+
 interface ARModelHandlerProps {
   organId: string;
   onModelLoaded: (model: any) => void;
@@ -19,17 +22,25 @@ const ARModelHandler: React.FC<ARModelHandlerProps> = ({
   containerRef,
   zoomControllerRef,
   showSlicedModelRef,
-}) => {
-  const animationIdRef = useRef<number | undefined>(undefined);
+}) => {  const animationIdRef = useRef<number | undefined>(undefined);
   const rendererRef = useRef<any>(null);
   const sourceRef = useRef<any>(null);
   const organModelRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
+  const initializationRef = useRef(false);
 
-  const organ = organs.find((o) => o.id === organId);
-
-  useEffect(() => {
+  const organ = organs.find((o) => o.id === organId);  useEffect(() => {
     if (!containerRef.current || !organ) return;
+
+    // Prevent duplicate initialization using module-level flag
+    if (isARSceneInitialized) {
+      console.log("AR scene already initialized globally, skipping...");
+      return;
+    }
+
+    console.log(`Initializing AR scene for ${organ.name}`);
+    isARSceneInitialized = true;
+    initializationRef.current = true;
 
     // Create renderer with performance optimizations
     const renderer = new window.THREE.WebGLRenderer({
@@ -278,9 +289,7 @@ const ARModelHandler: React.FC<ARModelHandlerProps> = ({
         if (canvas.parentElement === document.body) {
           document.body.removeChild(canvas);
         }
-      });
-
-      // Remove video elements that might be created by AR
+      });      // Remove video elements that might be created by AR
       const videoElements = document.querySelectorAll("video");
       videoElements.forEach((video) => {
         if (video.parentElement === document.body) {
@@ -288,6 +297,10 @@ const ARModelHandler: React.FC<ARModelHandlerProps> = ({
           document.body.removeChild(video);
         }
       });
+
+      // Reset initialization flag      console.log("AR scene cleanup complete, resetting initialization flag");
+      initializationRef.current = false;
+      // Don't reset the module-level flag to prevent re-initialization
     };
   }, [
     organId,

@@ -81,7 +81,7 @@ const HomePage: React.FC<HomePageProps> = ({
 
   // Handle button clicks
   const handleScanExplore = () => {
-    navigate("/scan-explore");
+    navigate("/organ-selection");
   };
 
   const handleQuizPuzzles = () => {
