@@ -56,13 +56,52 @@
         border: none;
         color: white;
         border-radius: 4px;
+        margin-right: 10px;
       }
 
       .back-button:hover {
         background: rgba(201, 76, 76, 0.5);
       }
 
-      /* Zoom Controls */
+      .info-button {
+        background: rgba(52, 152, 219, 0.3);
+        padding: 8px;
+        margin-top: 10px;
+        cursor: pointer;
+        pointer-events: auto;
+        position: relative;
+        z-index: 100;
+        border: none;
+        color: white;
+        border-radius: 4px;
+      }
+
+      .info-button:hover {
+        background: rgba(52, 152, 219, 0.5);
+      }
+
+      .button-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0;
+      }
+
+      /* Mobile responsiveness */
+      @media (max-width: 768px) {
+        .button-container {
+          flex-direction: column;
+        }
+
+        .back-button,
+        .info-button {
+          margin-right: 0;
+          margin-bottom: 5px;
+        }
+
+        .overlay {
+          font-size: 14px;
+        }
+      } /* Zoom Controls */
       .zoom-controls {
         position: absolute;
         bottom: 20px;
@@ -208,9 +247,14 @@
         <div id="errorMessage" class="error-message hidden">
           ⚠️ Model loading failed - showing fallback cube
         </div>
-        <button class="back-button" onclick="goBackToOrganSelection()">
-          ← Back to Organ Selection
-        </button>
+        <div class="button-container">
+          <button class="back-button" onclick="goBackToOrganSelection()">
+            ← Back to Organ Selection
+          </button>
+          <button class="info-button" onclick="openHeartInfo()">
+            ℹ️ Heart Info
+          </button>
+        </div>
       </div>
 
       <!-- Zoom Controls -->
@@ -457,21 +501,26 @@
       let originalModel = null;
       let animationId = null;
       let renderer = null;
-      let source = null;
-
-      // Get organ data from localStorage
+      let source = null; // Get organ data from localStorage
       function getSelectedOrgan() {
         const organData = localStorage.getItem("selectedOrgan");
         if (organData) {
           return JSON.parse(organData);
         }
         return null;
-      } // Navigate back to organ selection
+      }
+
+      // Navigate back to organ selection
       function goBackToOrganSelection() {
         cleanup();
         localStorage.removeItem("selectedOrgan");
         // Use relative path for better routing compatibility
         window.location.href = "/";
+      }
+
+      // Open heart information page
+      function openHeartInfo() {
+        window.open("HeartInfoPage.html", "_blank");
       }
 
       // Get base scale for organ type
@@ -882,13 +931,11 @@
           markerGroup.remove(organModel);
         }
       }
-
       function confirmSlicedHeart() {
         console.log("User confirmed to view sliced heart model");
         hideConfirmationDialog();
-        // For now, just restore the original model
-        // In a full implementation, you would load the sliced model here
-        loadSlicedHeartModel();
+        // Navigate to the SlicedHeartViewer page
+        window.location.href = "/SlicedHeartViewer.html";
       }
 
       function cancelSlicedHeart() {

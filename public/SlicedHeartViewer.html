@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sliced Heart Viewer - Interactive Anatomy</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        font-size: 16px; /* Base font size for rem calculations */
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        overflow: hidden;
+      } /* Main Container using CSS Grid */
+      #root {
+        display: grid;
+        grid-template-areas:
+          "info-btn back-btn"
+          "header header"
+          "canvas canvas"
+          "info info";
+        grid-template-rows: auto auto 1fr auto;
+        grid-template-columns: auto 1fr;
+        width: 100vw;
+        height: 100vh;
+        gap: 1rem;
+        padding: 1.25rem;
+      }
+
+      /* Canvas Container */
+      #canvas-container {
+        grid-area: canvas;
+        position: relative;
+        min-height: 0;
+        min-width: 0;
+      } /* Header Section */
+      .header {
+        grid-area: header;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        pointer-events: auto;
+        z-index: 100;
+      }
+
+      .header h1 {
+        color: #f39c12;
+        font-size: 2rem;
+        font-weight: 700;
+        text-shadow: 0.125rem 0.125rem 0.25rem rgba(0, 0, 0, 0.5);
+        margin-bottom: 0.25rem;
+      }
+
+      .header p {
+        color: white;
+        font-size: 1rem;
+        opacity: 0.9;
+        text-shadow: 0.0625rem 0.0625rem 0.125rem rgba(0, 0, 0, 0.5);
+      } /* Back Button */
+      .back-button {
+        grid-area: back-btn;
+        align-self: center;
+        justify-self: end;
+        background: rgba(231, 76, 60, 0.9);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 1.5625rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        pointer-events: auto;
+        backdrop-filter: blur(0.625rem);
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.3);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+      }
+
+      .back-button:hover {
+        background: rgba(231, 76, 60, 1);
+        transform: translateY(-0.125rem);
+        box-shadow: 0 0.375rem 1rem rgba(0, 0, 0, 0.4);
+      }
+
+      /* Info Button */
+      .info-button {
+        grid-area: info-btn;
+        align-self: center;
+        justify-self: start;
+        background: rgba(52, 152, 219, 0.9);
+        color: white;
+        border: none;
+        padding: 0.75rem;
+        border-radius: 50%;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        pointer-events: auto;
+        backdrop-filter: blur(0.625rem);
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.3);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 3rem;
+        height: 3rem;
+      }
+
+      .info-button:hover {
+        background: rgba(52, 152, 219, 1);
+        transform: translateY(-0.125rem);
+        box-shadow: 0 0.375rem 1rem rgba(0, 0, 0, 0.4);
+      } /* Controls Modal */
+      .controls-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 300;
+        backdrop-filter: blur(0.625rem);
+      }
+
+      .controls-modal.visible {
+        display: flex;
+      }
+
+      .controls-modal-content {
+        background: rgba(52, 73, 94, 0.95);
+        color: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        backdrop-filter: blur(1rem);
+        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.5);
+        max-width: 20rem;
+        width: 90%;
+        position: relative;
+      }
+
+      .controls-modal h4 {
+        color: #f39c12;
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        text-align: center;
+      }
+
+      .controls-modal .controls-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .controls-modal .control-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 1rem;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+      }
+
+      .controls-modal .control-icon {
+        width: 2rem;
+        height: 2rem;
+        background: #f39c12;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        font-weight: bold;
+        flex-shrink: 0;
+      }
+
+      .close-modal {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(231, 76, 60, 0.9);
+        color: white;
+        border: none;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        font-weight: bold;
+        transition: all 0.3s ease;
+      }
+
+      .close-modal:hover {
+        background: rgba(231, 76, 60, 1);
+        transform: scale(1.1);
+      }
+
+      /* Info Panel using Flexbox */
+      .info-panel {
+        grid-area: info;
+        align-self: end;
+        background: rgba(44, 62, 80, 0.95);
+        color: white;
+        padding: 1.25rem;
+        border-radius: 0.75rem;
+        backdrop-filter: blur(0.9375rem);
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4);
+        pointer-events: auto;
+        opacity: 0;
+        transform: translateY(100%);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        gap: 0.625rem;
+        max-width: 25rem;
+      }
+
+      .info-panel.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .info-panel h3 {
+        color: #f39c12;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .info-panel p {
+        font-size: 1rem;
+        line-height: 1.6;
+        margin: 0;
+        opacity: 0.9;
+      } /* Loading Indicator */
+      .loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 1.2rem;
+        text-align: center;
+        pointer-events: none;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+      }
+
+      .loading::after {
+        content: "";
+        width: 1.25rem;
+        height: 1.25rem;
+        border: 0.1875rem solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #f39c12;
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Label points */
+      .label-point {
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: bold;
+        border: 0.125rem solid white;
+        box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        pointer-events: auto;
+      }
+
+      .label-point:hover {
+        transform: scale(1.2);
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.5);
+      }
+
+      .label-point.selected {
+        background-color: #f39c12 !important;
+        transform: scale(1.3);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 0.625rem rgba(243, 156, 18, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(243, 156, 18, 0);
+        }
+      } /* Responsive Design using Grid and Flexbox */
+      @media (max-width: 48rem) {
+        #root {
+          grid-template-areas:
+            "back header controls"
+            "canvas canvas canvas"
+            "info info info";
+          grid-template-rows: auto 1fr auto;
+          grid-template-columns: 1fr 2fr 1fr;
+          gap: 0.75rem;
+          padding: 1rem;
+        }
+
+        .header h1 {
+          font-size: 1.75rem;
+        }
+
+        .header p {
+          font-size: 0.9rem;
+        }
+
+        .controls-info {
+          max-width: none;
+        }
+
+        .controls-list {
+          flex-direction: row;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .info-panel {
+          max-width: none;
+          align-self: stretch;
+          justify-self: stretch;
+        }
+      }
+
+      @media (max-width: 30rem) {
+        #root {
+          grid-template-areas:
+            "header"
+            "canvas"
+            "controls"
+            "info";
+          grid-template-rows: auto 1fr auto auto;
+          grid-template-columns: 1fr;
+          gap: 0.5rem;
+          padding: 0.75rem;
+        }
+
+        .back-button {
+          position: fixed;
+          top: 0.75rem;
+          left: 0.75rem;
+          grid-area: unset;
+          z-index: 200;
+          padding: 0.5rem 1rem;
+          font-size: 0.8rem;
+        }
+
+        .header h1 {
+          font-size: 1.5rem;
+        }
+
+        .header p {
+          font-size: 0.85rem;
+        }
+
+        .controls-info {
+          align-self: stretch;
+          justify-self: stretch;
+          padding: 0.75rem;
+        }
+
+        .controls-list {
+          flex-direction: row;
+          flex-wrap: wrap;
+          justify-content: space-around;
+        }
+
+        .control-item {
+          font-size: 0.75rem;
+        }
+
+        .info-panel {
+          padding: 1rem;
+        }
+
+        .info-panel h3 {
+          font-size: 1.25rem;
+        }
+
+        .info-panel p {
+          font-size: 0.9rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <!-- Info Button -->
+      <button class="info-button" onclick="showModal()">ℹ️</button>
+
+      <!-- Back Button -->
+      <button class="back-button" onclick="goBackToAR()">
+        ← Back to AR Scanner
+      </button>
+
+      <!-- Header -->
+      <div class="header">
+        <h1>Interactive Heart Anatomy</h1>
+        <p>Explore the detailed structure of the human heart</p>
+      </div>
+
+      <!-- Canvas Container -->
+      <div id="canvas-container"></div>
+
+      <!-- Loading Indicator -->
+      <div class="loading" id="loading">Loading 3D model...</div>
+
+      <!-- Info Panel -->
+      <div class="info-panel" id="info-panel">
+        <h3 id="part-name">Select a part</h3>
+        <p id="part-description">
+          Click on the numbered points to learn about different parts of the
+          heart.
+        </p>
+      </div>
+    </div>
+
+    <!-- Controls Modal -->
+    <div class="controls-modal" id="controls-modal">
+      <div class="controls-modal-content">
+        <button class="close-modal" onclick="hideModal()">×</button>
+        <h4>Controls</h4>
+        <div class="controls-list">
+          <div class="control-item">
+            <div class="control-icon">🖱️</div>
+            <span>Click & drag to rotate</span>
+          </div>
+          <div class="control-item">
+            <div class="control-icon">🔍</div>
+            <span>Scroll to zoom</span>
+          </div>
+          <div class="control-item">
+            <div class="control-icon">📍</div>
+            <span>Click numbered points for info</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Include THREE.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <script>
+      // Heart parts data (matching the sample App.tsx structure)
+      const heartParts = [
+        {
+          id: "1",
+          name: "Aorta",
+          description:
+            "The main artery that carries oxygenated blood from the left ventricle to the rest of the body.",
+          position: [0, 1, 0.5],
+          color: "#e74c3c",
+        },
+        {
+          id: "2",
+          name: "Superior Vena Cava",
+          description:
+            "Large vein that carries deoxygenated blood from the upper body back to the right atrium of the heart.",
+          position: [-0.5, 0.4, 0.2],
+          color: "#3498db",
+        },
+        {
+          id: "3",
+          name: "Pulmonary Artery",
+          description:
+            "Carries deoxygenated blood from the right ventricle to the lungs for oxygenation.",
+          position: [1.0, 0.3, 0.2],
+          color: "#9b59b6",
+        },
+        {
+          id: "4",
+          name: "Right Atrium",
+          description:
+            "Upper right chamber of the heart that receives deoxygenated blood from the body via the vena cavae.",
+          position: [0.2, 0.1, 0.4],
+          color: "#2ecc71",
+        },
+        {
+          id: "5",
+          name: "Left Atrium",
+          description:
+            "Upper left chamber of the heart that receives oxygenated blood from the lungs via the pulmonary veins.",
+          position: [-0.2, 0.1, 0.4],
+          color: "#f39c12",
+        },
+        {
+          id: "6",
+          name: "Right Ventricle",
+          description:
+            "Lower right chamber of the heart that pumps deoxygenated blood to the lungs via the pulmonary artery.",
+          position: [0.3, -0.3, 0.3],
+          color: "#e67e22",
+        },
+        {
+          id: "7",
+          name: "Left Ventricle",
+          description:
+            "Lower left chamber of the heart that pumps oxygenated blood to the body via the aorta. It's the strongest chamber.",
+          position: [-0.3, -0.3, 0.3],
+          color: "#c0392b",
+        },
+      ];
+
+      // Global variables
+      let scene, camera, renderer, controls;
+      let heartModel = null;
+      let labelPoints = [];
+      let selectedPart = null;
+
+      // Initialize the 3D scene
+      function initScene() {
+        // Create scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x2c3e50);
+
+        // Create camera
+        camera = new THREE.PerspectiveCamera(
+          45,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        camera.position.set(0, 0, 5);
+
+        // Create renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Add renderer to container
+        document
+          .getElementById("canvas-container")
+          .appendChild(renderer.domElement);
+
+        // Create controls
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+        controls.enableZoom = true;
+        controls.enablePan = true;
+        controls.minDistance = 2;
+        controls.maxDistance = 10;
+
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 0.5);
+        pointLight.position.set(-10, -10, -5);
+        scene.add(pointLight);
+
+        // Load heart model
+        loadHeartModel();
+
+        // Create label points
+        createLabelPoints();
+
+        // Start render loop
+        animate();
+      }
+
+      // Load 3D heart model
+      function loadHeartModel() {
+        const loader = new THREE.GLTFLoader();
+
+        // Try to load sliced heart model, fallback to regular heart
+        loader.load(
+          "/sliced_organs/heart.glb",
+          (gltf) => {
+            heartModel = gltf.scene;
+            heartModel.scale.set(1.5, 1.5, 1.5);
+            heartModel.position.set(0, 0, 0);
+
+            // Enable shadows
+            heartModel.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            scene.add(heartModel);
+            hideLoading();
+          },
+          (progress) => {
+            console.log("Loading progress:", progress);
+          },
+          (error) => {
+            console.error("Error loading sliced heart model:", error);
+            // Fallback to regular heart model
+            loadFallbackHeart();
+          }
+        );
+      }
+
+      // Fallback heart model
+      function loadFallbackHeart() {
+        loader.load(
+          "/realistic_human_heart/scene.gltf",
+          (gltf) => {
+            heartModel = gltf.scene;
+            heartModel.scale.set(0.01, 0.01, 0.01);
+            heartModel.position.set(0, 0, 0);
+
+            heartModel.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            scene.add(heartModel);
+            hideLoading();
+          },
+          undefined,
+          (error) => {
+            console.error("Error loading fallback heart model:", error);
+            createFallbackGeometry();
+          }
+        );
+      }
+
+      // Create fallback geometry if models fail to load
+      function createFallbackGeometry() {
+        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        const material = new THREE.MeshPhongMaterial({
+          color: 0xe74c3c,
+          transparent: true,
+          opacity: 0.8,
+        });
+
+        heartModel = new THREE.Mesh(geometry, material);
+        heartModel.position.set(0, 0, 0);
+        heartModel.castShadow = true;
+        heartModel.receiveShadow = true;
+
+        scene.add(heartModel);
+        hideLoading();
+      }
+
+      // Create interactive label points
+      function createLabelPoints() {
+        heartParts.forEach((part) => {
+          const labelGroup = new THREE.Group();
+
+          // Create clickable sphere for the label
+          const geometry = new THREE.SphereGeometry(0.05, 16, 16);
+          const material = new THREE.MeshBasicMaterial({
+            color: part.color,
+            transparent: true,
+            opacity: 0.8,
+          });
+
+          const sphere = new THREE.Mesh(geometry, material);
+          sphere.position.set(...part.position);
+          sphere.userData = { partId: part.id };
+
+          labelGroup.add(sphere);
+          labelPoints.push(sphere);
+          scene.add(labelGroup);
+        });
+      }
+
+      // Handle mouse clicks on label points
+      function onMouseClick(event) {
+        const mouse = new THREE.Vector2();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+
+        const intersects = raycaster.intersectObjects(labelPoints);
+
+        if (intersects.length > 0) {
+          const clickedObject = intersects[0].object;
+          const partId = clickedObject.userData.partId;
+          selectPart(partId);
+        } else {
+          selectPart(null);
+        }
+      }
+
+      // Select a heart part
+      function selectPart(partId) {
+        selectedPart = partId;
+
+        // Update visual feedback
+        labelPoints.forEach((point) => {
+          const isSelected = point.userData.partId === partId;
+          point.material.emissive.setHex(isSelected ? 0x444444 : 0x000000);
+          point.scale.setScalar(isSelected ? 1.5 : 1);
+        });
+
+        // Update info panel
+        if (partId) {
+          const part = heartParts.find((p) => p.id === partId);
+          if (part) {
+            document.getElementById("part-name").textContent = part.name;
+            document.getElementById("part-description").textContent =
+              part.description;
+            document.getElementById("info-panel").classList.add("visible");
+          }
+        } else {
+          document.getElementById("info-panel").classList.remove("visible");
+        }
+      }
+
+      // Hide loading indicator
+      function hideLoading() {
+        document.getElementById("loading").style.display = "none";
+      } // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+
+        controls.update();
+
+        // Heart model is static - no rotation
+        // Removed: heartModel.rotation.y += 0.005;
+
+        renderer.render(scene, camera);
+      } // Handle window resize
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // Show controls modal
+      function showModal() {
+        document.getElementById("controls-modal").classList.add("visible");
+      }
+
+      // Hide controls modal
+      function hideModal() {
+        document.getElementById("controls-modal").classList.remove("visible");
+      }
+
+      // Navigate back to AR Scanner
+      function goBackToAR() {
+        // Clear the scene and dispose of resources
+        if (renderer) {
+          renderer.dispose();
+        }
+
+        // Navigate back to the AR scanner
+        window.history.back();
+      } // Initialize everything when page loads
+      window.addEventListener("load", () => {
+        initScene();
+        window.addEventListener("resize", onWindowResize);
+        window.addEventListener("click", onMouseClick);
+
+        // Close modal when clicking outside of it
+        document
+          .getElementById("controls-modal")
+          .addEventListener("click", (event) => {
+            if (event.target.id === "controls-modal") {
+              hideModal();
+            }
+          });
+      });
+
+      // Cleanup when page unloads
+      window.addEventListener("beforeunload", () => {
+        if (renderer) {
+          renderer.dispose();
+        }
+      });
+    </script>
+  </body>
+</html>
