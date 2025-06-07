@@ -260,13 +260,29 @@
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- Include THREE.js and THREEAR.js -->
+    </div>    <!-- Include THREE.js and THREEAR.js -->
     <script src="/vendor/three.101.min.js"></script>
-    <script src="/THREEAR.js"></script>
-
-    <script>
+    <script src="/vendor/GLTFLoader.js"></script>
+    <script src="/THREEAR.js"></script>    <script>
+      // Protect against browser extension conflicts
+      (function() {
+        'use strict';
+        
+        // Store original location reference to prevent extension conflicts
+        const originalLocation = window.location;
+        
+        // Prevent extensions from redefining location
+        try {
+          Object.defineProperty(window, 'location', {
+            value: originalLocation,
+            writable: false,
+            configurable: false
+          });
+        } catch (e) {
+          console.warn('Could not protect location object:', e);
+        }
+      })();
+      
       // ZoomController class (converted from TypeScript)
       class ZoomController {
         constructor(initialZoom = 1.0, callbacks = {}) {
@@ -576,7 +592,15 @@
 
           var directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
           directionalLight.position.set(1, 1, 1);
-          scene.add(directionalLight);// Load the 3D model
+          scene.add(directionalLight);          // Load the 3D model
+          console.log("Checking if GLTFLoader is available...");
+          if (!THREE.GLTFLoader) {
+            console.error("GLTFLoader not available. Make sure GLTFLoader.js is loaded.");
+            setModelLoading(false);
+            setModelError(true);
+            return;
+          }
+          
           var gltfLoader = new THREE.GLTFLoader();
           console.log(`Loading 3D model from: ${currentOrgan.modelPath}`);
           
