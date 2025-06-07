@@ -284,35 +284,92 @@
         to {
           transform: rotate(360deg);
         }
-      }
-
-      /* Label points */
+      } /* Numbered Label Points */
       .label-point {
-        width: 1.5rem;
-        height: 1.5rem;
+        position: absolute;
+        width: 2rem;
+        height: 2rem;
         border-radius: 50%;
+        background: rgba(52, 152, 219, 0.9);
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        font-size: 0.75rem;
+        font-size: 0.9rem;
         font-weight: bold;
         border: 0.125rem solid white;
         box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.3);
         transition: all 0.3s ease;
         pointer-events: auto;
+        z-index: 10;
+        user-select: none;
       }
 
       .label-point:hover {
         transform: scale(1.2);
         box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.5);
+        background: rgba(52, 152, 219, 1);
       }
 
       .label-point.selected {
-        background-color: #f39c12 !important;
+        background: #f39c12 !important;
         transform: scale(1.3);
         animation: pulse 2s infinite;
+      }
+
+      /* Info Tooltip - Similar to the image */
+      .info-tooltip {
+        position: absolute;
+        background: rgba(44, 62, 80, 0.95);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(0.5rem);
+        z-index: 20;
+        opacity: 0;
+        transform: scale(0.8);
+        transition: all 0.3s ease;
+        pointer-events: none;
+        min-width: 200px;
+        max-width: 300px;
+      }
+
+      .info-tooltip.visible {
+        opacity: 1;
+        transform: scale(1);
+        pointer-events: auto;
+      }
+
+      .info-tooltip h4 {
+        color: #f39c12;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+        border-bottom: 1px solid rgba(243, 156, 18, 0.3);
+        padding-bottom: 0.25rem;
+      }
+
+      .info-tooltip p {
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin: 0;
+        opacity: 0.9;
+      }
+
+      /* Navigation arrows for tooltip */
+      .info-tooltip::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: -0.5rem;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-top: 0.5rem solid transparent;
+        border-bottom: 0.5rem solid transparent;
+        border-right: 0.5rem solid rgba(44, 62, 80, 0.95);
       }
 
       @keyframes pulse {
@@ -542,13 +599,13 @@
           position: [-0.3, -0.3, 0.3],
           color: "#c0392b",
         },
-      ];
-
-      // Global variables
+      ]; // Global variables
       let scene, camera, renderer, controls;
       let heartModel = null;
       let labelPoints = [];
       let selectedPart = null;
+      let labelElements = [];
+      let tooltipElement = null;
 
       // Initialize the 3D scene
       function initScene() {
@@ -643,6 +700,14 @@
         );
       }
 
+      // Hide loading indicator
+      function hideLoading() {
+        const loadingElement = document.getElementById("loading");
+        if (loadingElement) {
+          loadingElement.style.display = "none";
+        }
+      }
+
       // Fallback heart model
       function loadFallbackHeart() {
         loader.load(
@@ -686,29 +751,61 @@
 
         scene.add(heartModel);
         hideLoading();
-      }
-
-      // Create interactive label points
+      } // Create interactive label points
       function createLabelPoints() {
-        heartParts.forEach((part) => {
-          const labelGroup = new THREE.Group();
+        const container = document.getElementById("canvas-container");
 
-          // Create clickable sphere for the label
-          const geometry = new THREE.SphereGeometry(0.05, 16, 16);
+        heartParts.forEach((part, index) => {
+          // Create 3D invisible sphere for raycasting
+          const geometry = new THREE.SphereGeometry(0.08, 16, 16);
           const material = new THREE.MeshBasicMaterial({
             color: part.color,
             transparent: true,
-            opacity: 0.8,
+            opacity: 0, // Invisible
           });
 
           const sphere = new THREE.Mesh(geometry, material);
           sphere.position.set(...part.position);
-          sphere.userData = { partId: part.id };
+          sphere.userData = { partId: part.id, partData: part };
 
-          labelGroup.add(sphere);
           labelPoints.push(sphere);
-          scene.add(labelGroup);
+          scene.add(sphere);
+
+          // Create 2D label element
+          const labelElement = document.createElement("div");
+          labelElement.className = "label-point";
+          labelElement.textContent = part.id;
+          labelElement.style.left = "50%";
+          labelElement.style.top = "50%";
+          labelElement.dataset.partId = part.id;
+
+          // Add click event
+          labelElement.addEventListener("click", (e) => {
+            e.stopPropagation();
+            selectPart(part.id);
+          });
+
+          // Add hover events for tooltip
+          labelElement.addEventListener("mouseenter", (e) => {
+            showTooltip(e, part);
+          });
+
+          labelElement.addEventListener("mouseleave", () => {
+            hideTooltip();
+          });
+
+          container.appendChild(labelElement);
+          labelElements.push(labelElement);
         });
+
+        // Create tooltip element
+        tooltipElement = document.createElement("div");
+        tooltipElement.className = "info-tooltip";
+        tooltipElement.innerHTML = `
+          <h4 id="tooltip-title">Part Name</h4>
+          <p id="tooltip-description">Description</p>
+        `;
+        container.appendChild(tooltipElement);
       }
 
       // Handle mouse clicks on label points
@@ -754,16 +851,70 @@
         } else {
           document.getElementById("info-panel").classList.remove("visible");
         }
+      } // Show tooltip with part information
+      function showTooltip(event, part) {
+        if (!tooltipElement) return;
+
+        document.getElementById("tooltip-title").textContent = part.name;
+        document.getElementById("tooltip-description").textContent =
+          part.description;
+
+        tooltipElement.classList.add("visible");
+
+        // Position tooltip near the label
+        const rect = event.target.getBoundingClientRect();
+        const containerRect = document
+          .getElementById("canvas-container")
+          .getBoundingClientRect();
+
+        tooltipElement.style.left = rect.right - containerRect.left + 10 + "px";
+        tooltipElement.style.top = rect.top - containerRect.top + "px";
       }
 
-      // Hide loading indicator
-      function hideLoading() {
-        document.getElementById("loading").style.display = "none";
+      // Hide tooltip
+      function hideTooltip() {
+        if (tooltipElement) {
+          tooltipElement.classList.remove("visible");
+        }
+      }
+
+      // Update 2D label positions based on 3D positions
+      function updateLabelPositions() {
+        labelPoints.forEach((point, index) => {
+          const labelElement = labelElements[index];
+          if (!labelElement) return;
+
+          // Project 3D position to 2D screen coordinates
+          const vector = point.position.clone();
+          vector.project(camera);
+
+          // Convert to screen coordinates
+          const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+          const y = (vector.y * -0.5 + 0.5) * renderer.domElement.clientHeight;
+
+          // Update label position
+          labelElement.style.left = x + "px";
+          labelElement.style.top = y + "px";
+
+          // Hide labels that are behind the camera or too far
+          const distance = camera.position.distanceTo(point.position);
+          const isVisible = vector.z < 1 && distance < 15;
+          labelElement.style.display = isVisible ? "flex" : "none";
+
+          // Adjust opacity based on distance
+          if (isVisible) {
+            const opacity = Math.max(0.6, 1 - (distance - 2) / 8);
+            labelElement.style.opacity = opacity;
+          }
+        });
       } // Animation loop
       function animate() {
         requestAnimationFrame(animate);
 
         controls.update();
+
+        // Update label positions to follow 3D model
+        updateLabelPositions();
 
         // Heart model is static - no rotation
         // Removed: heartModel.rotation.y += 0.005;
