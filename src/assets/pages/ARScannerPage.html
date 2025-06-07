@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AR Scanner - Organ Visualization</title>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        font-family: "Monospace", monospace;
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #000;
+      }
+
+      .overlay {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        z-index: 100;
+        color: white;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+      }
+
+      .loading-message {
+        background: rgba(0, 123, 255, 0.8);
+        padding: 8px;
+        margin-top: 10px;
+        border-radius: 4px;
+        color: white;
+      }
+
+      .error-message {
+        background: rgba(255, 193, 7, 0.8);
+        padding: 8px;
+        margin-top: 10px;
+        border-radius: 4px;
+        color: black;
+      }
+
+      .back-button {
+        background: rgba(201, 76, 76, 0.3);
+        padding: 8px;
+        margin-top: 10px;
+        cursor: pointer;
+        pointer-events: auto;
+        position: relative;
+        z-index: 100;
+        border: none;
+        color: white;
+        border-radius: 4px;
+      }
+
+      .back-button:hover {
+        background: rgba(201, 76, 76, 0.5);
+      }
+
+      /* Zoom Controls */
+      .zoom-controls {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .zoom-button {
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .zoom-button:hover {
+        background: rgba(0, 0, 0, 0.9);
+        transform: scale(1.1);
+      }
+
+      .zoom-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .zoom-display {
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 20px;
+        text-align: center;
+        font-size: 14px;
+        border: 1px solid #fff;
+      }
+
+      /* Confirmation Dialog */
+      .confirmation-dialog {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 300;
+      }
+
+      .dialog-content {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+        max-width: 400px;
+        margin: 20px;
+      }
+
+      .dialog-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      .dialog-button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      .confirm-button {
+        background: #007bff;
+        color: white;
+      }
+
+      .cancel-button {
+        background: #6c757d;
+        color: white;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @keyframes fadeInOut {
+        0% {
+          opacity: 0;
+          transform: translateY(10px) scale(0.9);
+        }
+        20% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        80% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-10px) scale(0.9);
+        }
+      }
+
+      .max-zoom-message {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 193, 7, 0.9);
+        color: black;
+        padding: 15px 20px;
+        border-radius: 10px;
+        font-weight: bold;
+        z-index: 250;
+        animation: fadeInOut 3s ease-in-out;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- AR Scanner Interface -->
+    <div id="arInterface">
+      <!-- Text overlay -->
+      <div class="overlay">
+        <div id="scannerTitle">
+          AR Scanner - Point your camera at the Hiro marker
+        </div>
+        <div id="loadingMessage" class="loading-message hidden">
+          🔄 Loading 3D model...
+        </div>
+        <div id="errorMessage" class="error-message hidden">
+          ⚠️ Model loading failed - showing fallback cube
+        </div>
+        <button class="back-button" onclick="goBackToOrganSelection()">
+          ← Back to Organ Selection
+        </button>
+      </div>
+
+      <!-- Zoom Controls -->
+      <div class="zoom-controls">
+        <div class="zoom-display" id="zoomDisplay">1.0x</div>
+        <button class="zoom-button" id="zoomInBtn" onclick="handleZoomIn()">
+          +
+        </button>
+        <button class="zoom-button" id="zoomOutBtn" onclick="handleZoomOut()">
+          -
+        </button>
+        <button
+          class="zoom-button"
+          id="resetZoomBtn"
+          onclick="handleResetZoom()"
+        >
+          ⌂
+        </button>
+      </div>
+
+      <!-- Max Zoom Message -->
+      <div id="maxZoomMessage" class="max-zoom-message hidden">
+        Maximum zoom reached!
+      </div>
+    </div>
+
+    <!-- Confirmation Dialog -->
+    <div id="confirmationDialog" class="confirmation-dialog hidden">
+      <div class="dialog-content">
+        <h3>View Sliced Heart Model?</h3>
+        <p>
+          You've reached maximum zoom. Would you like to view the detailed
+          sliced heart model?
+        </p>
+        <div class="dialog-buttons">
+          <button
+            class="dialog-button confirm-button"
+            onclick="confirmSlicedHeart()"
+          >
+            Yes, Show Sliced Model
+          </button>
+          <button
+            class="dialog-button cancel-button"
+            onclick="cancelSlicedHeart()"
+          >
+            No, Continue with Current Model
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Include THREE.js and THREEAR.js -->
+    <script src="/vendor/three.101.min.js"></script>
+    <script src="/THREEAR.js"></script>
+
+    <script>
+      // ZoomController class (converted from TypeScript)
+      class ZoomController {
+        constructor(initialZoom = 1.0, callbacks = {}) {
+          this.zoomState = {
+            currentZoom: initialZoom,
+            isAnimating: false,
+            thresholds: {
+              normalView: 1.0,
+              startSlicing: 1.5,
+              showLabels: 2.0,
+              maxDetail: 2.5,
+            },
+          };
+
+          this.touchState = {
+            isPinching: false,
+            initialDistance: 0,
+            baseZoom: initialZoom,
+            lastTouchTime: 0,
+          };
+
+          this.callbacks = callbacks;
+        }
+
+        getCurrentZoom() {
+          return this.zoomState.currentZoom;
+        }
+
+        isAnimating() {
+          return this.zoomState.isAnimating;
+        }
+
+        setZoom(zoom, animate = true) {
+          const clampedZoom = Math.max(0.5, Math.min(3.0, zoom));
+
+          console.log(
+            `ZoomController.setZoom - requested: ${zoom}, clamped: ${clampedZoom}, current: ${this.zoomState.currentZoom}`
+          );
+
+          if (zoom > 3.0 && this.zoomState.currentZoom === 3.0) {
+            console.log("Max zoom reached - triggering callback");
+            this.callbacks.onMaxZoomReached?.();
+          }
+
+          if (clampedZoom === this.zoomState.currentZoom) {
+            console.log("Zoom unchanged, skipping");
+            return;
+          }
+
+          this.checkThresholdCrossings(this.zoomState.currentZoom, clampedZoom);
+          this.zoomState.currentZoom = clampedZoom;
+
+          if (animate) {
+            console.log("Starting zoom animation to", clampedZoom);
+            this.animateZoom(clampedZoom);
+          } else {
+            console.log("Applying zoom immediately to", clampedZoom);
+            this.callbacks.onZoomChange?.(clampedZoom);
+          }
+        }
+
+        zoomIn(step = 0.2) {
+          console.log(
+            `ZoomController.zoomIn called - current: ${this.zoomState.currentZoom}, animating: ${this.zoomState.isAnimating}`
+          );
+          if (this.zoomState.isAnimating) {
+            console.log("Zoom in blocked - animation in progress");
+            return;
+          }
+          const newZoom = this.zoomState.currentZoom + step;
+          console.log(
+            `Zooming in from ${this.zoomState.currentZoom} to ${newZoom}`
+          );
+          this.setZoom(newZoom);
+        }
+
+        zoomOut(step = 0.2) {
+          console.log(
+            `ZoomController.zoomOut called - current: ${this.zoomState.currentZoom}, animating: ${this.zoomState.isAnimating}`
+          );
+          if (this.zoomState.isAnimating) {
+            console.log("Zoom out blocked - animation in progress");
+            return;
+          }
+          const newZoom = this.zoomState.currentZoom - step;
+          console.log(
+            `Zooming out from ${this.zoomState.currentZoom} to ${newZoom}`
+          );
+          this.setZoom(newZoom);
+        }
+
+        resetZoom() {
+          console.log("ZoomController.resetZoom called");
+          this.setZoom(1.0);
+        }
+
+        checkThresholdCrossings(oldZoom, newZoom) {
+          const thresholds = this.zoomState.thresholds;
+          for (const [key, value] of Object.entries(thresholds)) {
+            if (
+              (oldZoom < value && newZoom >= value) ||
+              (oldZoom >= value && newZoom < value)
+            ) {
+              console.log(`Threshold crossed: ${key} at ${value}`);
+              this.callbacks.onThresholdCrossed?.(key, newZoom);
+            }
+          }
+        }
+
+        animateZoom(targetZoom) {
+          this.zoomState.isAnimating = true;
+          this.callbacks.onZoomChange?.(targetZoom);
+          setTimeout(() => {
+            this.zoomState.isAnimating = false;
+          }, 300);
+        }
+
+        handleTouchStart(e) {
+          if (e.touches.length === 2) {
+            e.preventDefault();
+            this.touchState.isPinching = true;
+            this.touchState.initialDistance = this.getTouchDistance(e.touches);
+            this.touchState.baseZoom = this.zoomState.currentZoom;
+            this.touchState.lastTouchTime = Date.now();
+          }
+        }
+
+        handleTouchMove(e) {
+          if (this.touchState.isPinching && e.touches.length === 2) {
+            e.preventDefault();
+            const currentDistance = this.getTouchDistance(e.touches);
+            const scaleRatio =
+              currentDistance / this.touchState.initialDistance;
+            const newZoom = this.touchState.baseZoom * scaleRatio;
+            this.setZoom(newZoom, false);
+          }
+        }
+
+        handleTouchEnd(e) {
+          if (e.touches.length < 2) {
+            this.touchState.isPinching = false;
+          }
+        }
+
+        getTouchDistance(touches) {
+          const dx = touches[0].clientX - touches[1].clientX;
+          const dy = touches[0].clientY - touches[1].clientY;
+          return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        destroy() {
+          this.callbacks = {};
+        }
+      }
+
+      // Global variables
+      let currentOrgan = null;
+      let modelLoading = false;
+      let modelError = false;
+      let currentZoom = 1.0;
+      let isZoomAnimating = false;
+      let showMaxZoomMessage = false;
+      let showSlicedModel = false;
+      let showConfirmation = false;
+      let showSlicedModelRef = false;
+      let zoomController = null;
+      let organModel = null;
+      let markerGroup = null;
+      let baseScale = 0.5;
+      let originalModel = null;
+      let animationId = null;
+      let renderer = null;
+      let source = null;
+
+      // Get organ data from localStorage
+      function getSelectedOrgan() {
+        const organData = localStorage.getItem('selectedOrgan');
+        if (organData) {
+          return JSON.parse(organData);
+        }
+        return null;
+      }
+
+      // Navigate back to organ selection
+      function goBackToOrganSelection() {
+        cleanup();
+        localStorage.removeItem('selectedOrgan');
+        window.location.href = 'OrganSelectionPage.html';
+      }
+
+      // Get base scale for organ type
+      function getBaseScale(organId) {
+        switch (organId) {
+          case "brain":
+            return 0.3;
+          case "heart":
+            return 0.8;
+          case "kidney":
+            return 0.4;
+          case "lungs":
+            return 0.6;
+          case "skin":
+            return 0.5;
+          default:
+            return 0.5;
+        }
+      }
+
+      // Initialize zoom controller
+      function initializeZoomController() {
+        baseScale = getBaseScale(currentOrgan.id);
+        console.log(
+          `Initializing zoom controller for ${currentOrgan.name} with base scale ${baseScale}`
+        );
+
+        zoomController = new ZoomController(1.0, {
+          onZoomChange: (zoom) => {
+            console.log(`ARScanner: Zoom changed to: ${zoom}x`);
+            currentZoom = zoom;
+            document.getElementById(
+              "zoomDisplay"
+            ).textContent = `${zoom.toFixed(1)}x`;
+
+            // Check if we should switch back to original model when zooming out
+            if (showSlicedModel && zoom < 3.0 && currentOrgan.id === "heart") {
+              console.log(
+                "Zoom reduced below max - switching back to original model"
+              );
+              restoreOriginalModel();
+              showSlicedModel = false;
+              showSlicedModelRef = false;
+            }
+
+            // Apply zoom to the 3D model
+            if (organModel) {
+              const newScale = baseScale * zoom;
+              console.log(
+                `ARScanner: Applying scale: ${newScale} (base: ${baseScale}, zoom: ${zoom})`
+              );
+              organModel.scale.set(newScale, newScale, newScale);
+            } else {
+              console.log(
+                "ARScanner: Model not loaded yet - will apply zoom when loaded"
+              );
+            }
+          },
+          onThresholdCrossed: (threshold, zoom) => {
+            console.log(
+              `ARScanner: Zoom threshold crossed: ${threshold} at ${zoom}x`
+            );
+          },
+          onMaxZoomReached: () => {
+            if (currentOrgan.id === "heart") {
+              console.log(
+                "ARScanner: Max zoom reached - showing sliced heart confirmation"
+              );
+              showConfirmationDialog();
+            } else {
+              console.log("ARScanner: Max zoom reached - showing message");
+              showMaxZoomMessageFunc();
+            }
+          },
+        });
+
+        console.log("Zoom controller initialized successfully");
+      }
+
+      // Initialize AR
+      function initializeAR() {
+        if (!currentOrgan) return;
+
+        // Show loading
+        setModelLoading(true);
+        setModelError(false);
+
+        // Initialize zoom controller
+        initializeZoomController();
+
+        // Prevent body scrolling
+        document.body.style.overflow = "hidden";
+        document.documentElement.style.overflow = "hidden";
+
+        // Initialize renderer
+        renderer = new THREE.WebGLRenderer({
+          alpha: true,
+        });
+        renderer.setClearColor(new THREE.Color("lightgrey"), 0);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.domElement.style.position = "absolute";
+        renderer.domElement.style.top = "0px";
+        renderer.domElement.style.left = "0px";
+        document.body.appendChild(renderer.domElement);
+
+        // Initialize scene and camera
+        var scene = new THREE.Scene();
+        var camera = new THREE.Camera();
+        scene.add(camera);
+        markerGroup = new THREE.Group();
+        scene.add(markerGroup);
+
+        source = new THREEAR.Source({ renderer, camera });
+        THREEAR.initialize({ source: source }).then((controller) => {
+          // Add lighting
+          var ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+          scene.add(ambientLight);
+
+          var directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+          directionalLight.position.set(1, 1, 1);
+          scene.add(directionalLight);
+
+          // Load the 3D model
+          var gltfLoader = new THREE.GLTFLoader();
+          gltfLoader.load(
+            currentOrgan.modelPath,
+            (gltf) => {
+              var model = gltf.scene;
+
+              // Scale and position the model
+              let scale, positionY;
+              switch (currentOrgan.id) {
+                case "brain":
+                  scale = 0.3;
+                  positionY = 0.1;
+                  break;
+                case "heart":
+                  scale = 0.8;
+                  positionY = 0;
+                  break;
+                case "kidney":
+                  scale = 0.4;
+                  positionY = 0;
+                  break;
+                case "lungs":
+                  scale = 0.6;
+                  positionY = 0;
+                  break;
+                case "skin":
+                  scale = 0.5;
+                  positionY = 0;
+                  break;
+                default:
+                  scale = 0.5;
+                  positionY = 0;
+              }
+
+              model.scale.set(scale, scale, scale);
+              model.position.y = positionY;
+              markerGroup.add(model);
+
+              // Store model reference
+              organModel = model;
+              markerGroup.organModel = model;
+
+              // Apply current zoom level
+              if (zoomController) {
+                const currentZoomLevel = zoomController.getCurrentZoom();
+                if (currentZoomLevel !== 1.0) {
+                  const newScale = scale * currentZoomLevel;
+                  console.log(
+                    `Applying initial zoom ${currentZoomLevel}x to loaded model: scale ${newScale}`
+                  );
+                  model.scale.set(newScale, newScale, newScale);
+                }
+              }
+
+              // Model loaded successfully
+              setModelLoading(false);
+              console.log(
+                `${currentOrgan.name} 3D model loaded successfully with scale: ${scale}`
+              );
+            },
+            undefined,
+            (error) => {
+              console.error("Error loading 3D model:", error);
+              setModelLoading(false);
+              setModelError(true);
+
+              // Fallback: add a simple cube
+              var geometry = new THREE.CubeGeometry(1, 1, 1);
+              var material = new THREE.MeshNormalMaterial({
+                transparent: true,
+                opacity: 0.5,
+                side: THREE.DoubleSide,
+              });
+              var cube = new THREE.Mesh(geometry, material);
+              cube.position.y = geometry.parameters.height / 2;
+              markerGroup.add(cube);
+            }
+          );
+
+          var patternMarker = new THREEAR.PatternMarker({
+            patternUrl: "/data/patt.hiro",
+            markerObject: markerGroup,
+          });
+
+          controller.trackMarker(patternMarker);
+
+          // Animation loop
+          var lastTimeMsec = 0;
+          function animate(nowMsec) {
+            animationId = requestAnimationFrame(animate);
+            lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
+            var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
+            lastTimeMsec = nowMsec;
+            controller.update(source.domElement);
+
+            // Rotate the 3D model if loaded
+            if (markerGroup.organModel) {
+              if (!showSlicedModelRef) {
+                markerGroup.organModel.rotation.y +=
+                  (deltaMsec / 2000) * Math.PI;
+              }
+            }
+
+            renderer.render(scene, camera);
+          }
+          animationId = requestAnimationFrame(animate);
+        });
+
+        // Add touch event listeners
+        document.addEventListener("touchstart", handleTouchStart, {
+          passive: false,
+        });
+        document.addEventListener("touchmove", handleTouchMove, {
+          passive: false,
+        });
+        document.addEventListener("touchend", handleTouchEnd, {
+          passive: false,
+        });
+      }
+
+      // Touch event handlers
+      function handleTouchStart(e) {
+        if (showConfirmation) return;
+
+        const target = e.target;
+        if (
+          target &&
+          (target.tagName === "BUTTON" ||
+            target.closest("button") ||
+            target.hasAttribute("data-ui-element") ||
+            target.closest("[data-ui-element]") ||
+            target.style.cursor === "pointer" ||
+            target.closest('[style*="cursor: pointer"]'))
+        ) {
+          console.log("Touch on UI element detected, skipping zoom handler");
+          return;
+        }
+
+        zoomController?.handleTouchStart(e);
+      }
+
+      function handleTouchMove(e) {
+        if (showConfirmation) return;
+
+        const target = e.target;
+        if (
+          target &&
+          (target.tagName === "BUTTON" ||
+            target.closest("button") ||
+            target.hasAttribute("data-ui-element") ||
+            target.closest("[data-ui-element]"))
+        ) {
+          return;
+        }
+
+        zoomController?.handleTouchMove(e);
+      }
+
+      function handleTouchEnd(e) {
+        if (showConfirmation) return;
+
+        const target = e.target;
+        if (
+          target &&
+          (target.tagName === "BUTTON" ||
+            target.closest("button") ||
+            target.hasAttribute("data-ui-element") ||
+            target.closest("[data-ui-element]"))
+        ) {
+          return;
+        }
+
+        zoomController?.handleTouchEnd(e);
+      }
+
+      // Zoom control handlers
+      function handleZoomIn() {
+        console.log("=== ARScanner: Zoom In button clicked ===");
+        if (zoomController) {
+          zoomController.zoomIn();
+        }
+        setIsZoomAnimating(true);
+        setTimeout(() => setIsZoomAnimating(false), 300);
+      }
+
+      function handleZoomOut() {
+        console.log("=== ARScanner: Zoom Out button clicked ===");
+        if (zoomController) {
+          zoomController.zoomOut();
+        }
+        setIsZoomAnimating(true);
+        setTimeout(() => setIsZoomAnimating(false), 300);
+      }
+
+      function handleResetZoom() {
+        console.log("=== ARScanner: Reset Zoom button clicked ===");
+        if (zoomController) {
+          zoomController.resetZoom();
+        }
+        setIsZoomAnimating(true);
+        setTimeout(() => setIsZoomAnimating(false), 300);
+      }
+
+      // State management functions
+      function setModelLoading(loading) {
+        modelLoading = loading;
+        const loadingEl = document.getElementById("loadingMessage");
+        if (loading) {
+          loadingEl.textContent = `🔄 Loading ${
+            currentOrgan?.name || ""
+          } 3D model...`;
+          loadingEl.classList.remove("hidden");
+        } else {
+          loadingEl.classList.add("hidden");
+        }
+
+        // Update zoom button states
+        const disabled = loading || modelError;
+        document.getElementById("zoomInBtn").disabled = disabled;
+        document.getElementById("zoomOutBtn").disabled = disabled;
+        document.getElementById("resetZoomBtn").disabled = disabled;
+      }
+
+      function setModelError(error) {
+        modelError = error;
+        const errorEl = document.getElementById("errorMessage");
+        if (error) {
+          errorEl.classList.remove("hidden");
+        } else {
+          errorEl.classList.add("hidden");
+        }
+
+        // Update zoom button states
+        const disabled = modelLoading || error;
+        document.getElementById("zoomInBtn").disabled = disabled;
+        document.getElementById("zoomOutBtn").disabled = disabled;
+        document.getElementById("resetZoomBtn").disabled = disabled;
+      }
+
+      function setIsZoomAnimating(animating) {
+        isZoomAnimating = animating;
+      }
+
+      function showMaxZoomMessageFunc() {
+        const messageEl = document.getElementById("maxZoomMessage");
+        messageEl.classList.remove("hidden");
+        setTimeout(() => {
+          messageEl.classList.add("hidden");
+        }, 3000);
+      }
+
+      function showConfirmationDialog() {
+        showConfirmation = true;
+        document
+          .getElementById("confirmationDialog")
+          .classList.remove("hidden");
+
+        // Hide the original model
+        if (organModel && markerGroup) {
+          originalModel = organModel;
+          markerGroup.remove(organModel);
+        }
+      }
+
+      function confirmSlicedHeart() {
+        console.log("User confirmed to view sliced heart model");
+        hideConfirmationDialog();
+        // For now, just restore the original model
+        // In a full implementation, you would load the sliced model here
+        loadSlicedHeartModel();
+      }
+
+      function cancelSlicedHeart() {
+        console.log("User cancelled viewing sliced heart model");
+        hideConfirmationDialog();
+
+        // Zoom out slightly to prevent triggering max zoom again
+        if (zoomController) {
+          zoomController.zoomOut();
+        }
+
+        // Restore the original model
+        if (originalModel && markerGroup) {
+          markerGroup.add(originalModel);
+          organModel = originalModel;
+          markerGroup.organModel = originalModel;
+          console.log("Original model restored after cancellation");
+        }
+      }
+
+      function hideConfirmationDialog() {
+        showConfirmation = false;
+        document.getElementById("confirmationDialog").classList.add("hidden");
+      }
+
+      function loadSlicedHeartModel() {
+        if (!markerGroup || !organModel) return;
+
+        console.log("Loading sliced heart model...");
+
+        // Store reference to original model
+        originalModel = organModel;
+
+        // Remove current model from scene
+        markerGroup.remove(organModel);
+
+        // Load sliced heart model (fallback to original if not available)
+        var gltfLoader = new THREE.GLTFLoader();
+        gltfLoader.load(
+          "/sliced_organs/heart.glb",
+          (gltf) => {
+            const slicedModel = gltf.scene;
+
+            // Apply same scale and position as heart
+            const scale = 0.8;
+            const currentZoomLevel = zoomController?.getCurrentZoom() || 1.0;
+            const finalScale = scale * currentZoomLevel;
+
+            slicedModel.scale.set(finalScale, finalScale, finalScale);
+            slicedModel.position.y = 0;
+
+            // Add sliced model to scene
+            markerGroup.add(slicedModel);
+
+            // Update model reference
+            organModel = slicedModel;
+            markerGroup.organModel = slicedModel;
+            showSlicedModel = true;
+            showSlicedModelRef = true;
+
+            console.log("Sliced heart model loaded successfully");
+          },
+          undefined,
+          (error) => {
+            console.error("Error loading sliced heart model:", error);
+            // Fallback: keep original model
+            if (originalModel) {
+              markerGroup.add(originalModel);
+              organModel = originalModel;
+              markerGroup.organModel = originalModel;
+            }
+          }
+        );
+      }
+
+      function restoreOriginalModel() {
+        if (!markerGroup || !originalModel) return;
+
+        console.log("Restoring original heart model...");
+
+        // Remove current sliced model from scene
+        if (organModel) {
+          markerGroup.remove(organModel);
+        }
+
+        // Add original model back to scene
+        markerGroup.add(originalModel);
+
+        // Update model reference
+        organModel = originalModel;
+        markerGroup.organModel = originalModel;
+
+        console.log("Original heart model restored successfully");
+      }
+
+      // Cleanup function
+      function cleanup() {
+        // Remove touch event listeners
+        document.removeEventListener("touchstart", handleTouchStart);
+        document.removeEventListener("touchmove", handleTouchMove);
+        document.removeEventListener("touchend", handleTouchEnd);
+
+        // Cancel animation frame
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
+        }
+
+        // Stop camera stream
+        if (source && source.domElement && source.domElement.srcObject) {
+          const stream = source.domElement.srcObject;
+          stream.getTracks().forEach((track) => track.stop());
+        }
+
+        // Dispose of renderer
+        if (renderer) {
+          renderer.dispose();
+          renderer = null;
+        }
+
+        // Remove renderer elements
+        const rendererElements = document.querySelectorAll("canvas");
+        rendererElements.forEach((canvas) => {
+          if (canvas.parentElement === document.body) {
+            document.body.removeChild(canvas);
+          }
+        });
+
+        // Remove video elements
+        const videoElements = document.querySelectorAll("video");
+        videoElements.forEach((video) => {
+          if (video.parentElement === document.body) {
+            video.srcObject = null;
+            document.body.removeChild(video);
+          }
+        });
+
+        // Cleanup zoom controller
+        if (zoomController) {
+          zoomController.destroy();
+          zoomController = null;
+        }
+
+        // Reset state
+        organModel = null;
+        markerGroup = null;
+        originalModel = null;
+        source = null;
+
+        // Restore scrolling
+        document.body.style.overflow = "";
+        document.documentElement.style.overflow = "";
+      }
+
+      // Initialize the application
+      document.addEventListener("DOMContentLoaded", function () {
+        // Get organ data from localStorage
+        currentOrgan = getSelectedOrgan();
+        
+        if (!currentOrgan) {
+          alert('No organ selected. Redirecting to organ selection page.');
+          window.location.href = 'OrganSelectionPage.html';
+          return;
+        }
+
+        // Update scanner title
+        document.getElementById("scannerTitle").textContent = 
+          `AR Scanner for ${currentOrgan.name} - Point your camera at the Hiro marker`;
+
+        // Initialize AR with selected organ
+        initializeAR();
+      });
+
+      // Handle window resize
+      window.addEventListener("resize", function () {
+        if (renderer) {
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+      });
+    </script>
+  </body>
+</html>

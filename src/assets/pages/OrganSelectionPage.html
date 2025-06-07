@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organ Selection - AR Medical Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #fff, #e0e6ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .organ-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2.5rem;
+            margin-bottom: 3rem;
+            flex: 1;
+        }
+
+        .organ-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .organ-card:nth-child(1) { animation-delay: 0.1s; }
+        .organ-card:nth-child(2) { animation-delay: 0.2s; }
+        .organ-card:nth-child(3) { animation-delay: 0.3s; }
+        .organ-card:nth-child(4) { animation-delay: 0.4s; }
+        .organ-card:nth-child(5) { animation-delay: 0.5s; }
+
+        .organ-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            border-radius: 24px;
+        }
+
+        .organ-card:hover {
+            transform: translateY(-15px) scale(1.02);
+            border-color: rgba(255,255,255,0.4);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+        }
+
+        .organ-card:hover::before {
+            opacity: 1;
+        }
+
+        .organ-image {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin-bottom: 2rem;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));
+            transition: transform 0.4s ease;
+        }
+
+        .organ-card:hover .organ-image {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .organ-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .organ-description {
+            font-size: 1rem;
+            line-height: 1.7;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .scan-button {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scan-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .scan-button:hover::before {
+            left: 100%;
+        }
+
+        .scan-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 25px rgba(255, 107, 107, 0.5);
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateX(-5px);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .organ-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .organ-card {
+                padding: 2rem;
+            }
+
+            .organ-image {
+                width: 80px;
+                height: 80px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .organ-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-button" onclick="goBack()">
+            ← Back to Home
+        </button>
+        
+        <div class="header">
+            <h1>Select an Organ</h1>
+            <p>Choose the organ you want to explore in augmented reality. Point your camera at the Hiro marker to begin your interactive medical journey.</p>
+        </div>
+
+        <div class="organ-grid" id="organGrid">
+            <!-- Organs will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        const organs = [
+            {
+                id: "brain",
+                name: "Brain",
+                image: "/brain.png",
+                modelPath: "/brain/scene.gltf",
+                description: "The brain controls thoughts, memory, emotion, touch, motor skills, vision, breathing, and every process that regulates your body."
+            },
+            {
+                id: "heart",
+                name: "Heart",
+                image: "/heart.png",
+                modelPath: "/realistic_human_heart/scene.gltf",
+                description: "The heart pumps blood throughout the body, supplying oxygen and nutrients to the tissues."
+            },
+            {
+                id: "kidney",
+                name: "Kidneys",
+                image: "/kidneys.png",
+                modelPath: "/kidney/scene.gltf",
+                description: "The kidneys filter blood to remove waste and extra fluid, which becomes urine."
+            },
+            {
+                id: "lungs",
+                name: "Lungs",
+                image: "/lungs.png",
+                modelPath: "/lungs/scene.gltf",
+                description: "The lungs are responsible for the exchange of oxygen and carbon dioxide between the air and blood."
+            },
+            {
+                id: "skin",
+                name: "Skin",
+                image: "/skin.png",
+                modelPath: "/skin/scene.gltf",
+                description: "The skin protects the body from the environment and helps regulate body temperature."
+            }
+        ];
+
+        function initializeOrganSelector() {
+            const organGrid = document.getElementById('organGrid');
+            organGrid.innerHTML = '';
+
+            organs.forEach(organ => {
+                const organCard = document.createElement('div');
+                organCard.className = 'organ-card';
+                
+                organCard.innerHTML = `
+                    <img src="${organ.image}" alt="${organ.name}" class="organ-image" onerror="this.style.display='none'">
+                    <div class="organ-name">${organ.name}</div>
+                    <div class="organ-description">${organ.description}</div>
+                    <button class="scan-button" onclick="startARScan('${organ.id}')">
+                        Start AR Scan
+                    </button>
+                `;
+
+                organGrid.appendChild(organCard);
+            });
+        }
+
+        function startARScan(organId) {
+            const selectedOrgan = organs.find(organ => organ.id === organId);
+            if (selectedOrgan) {
+                // Store organ data in localStorage
+                localStorage.setItem('selectedOrgan', JSON.stringify(selectedOrgan));
+                // Navigate to AR Scanner page
+                window.location.href = 'ARScannerPage.html';
+            }
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeOrganSelector();
+        });
+    </script>
+</body>
+</html>

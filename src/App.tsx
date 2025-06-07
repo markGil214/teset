@@ -18,7 +18,6 @@ import OrganMatcherGame from "./assets/pages/OrganMatcherGame";
 import LandscapeWrapper from "./assets/components/LandscapeWrapper";
 import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
 import OrganDetailPage from "./assets/pages/OrganDetailPage";
-import ARScannerPage from "./assets/pages/ARScannerPage";
 import SlicedHeartPage from "./assets/pages/SlicedHeartPage";
 
 // Main App wrapper that provides the Router context
@@ -169,6 +168,24 @@ function AppContent() {
     );
   }
 
+  // Option 1: Create a wrapper component that loads your HTML file
+  const ARScannerPage = () => {
+    return (
+      <iframe
+        src="/src/assets/pages/ARScannerPage.html"
+        style={{
+          width: "100vw",
+          height: "100vh",
+          border: "none",
+          position: "fixed",
+          top: 0,
+          left: 0,
+        }}
+        title="AR Scanner"
+      />
+    );
+  };
+
   return (
     <div className="relative">
       {shouldShowAnimation() && (
@@ -274,9 +291,19 @@ function AppContent() {
               )
             }
           />
-          <Route path="/ar-heart" element={<Navigate to="/" />} />{" "}
+          <Route path="/ar-heart" element={<Navigate to="/" />} />
           <Route
             path="/scan-explore"
+            element={
+              secondRegistrationComplete ? (
+                <ARScannerPage />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/scan-explore/ar"
             element={
               secondRegistrationComplete ? (
                 <ARScannerPage />
