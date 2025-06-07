@@ -168,11 +168,11 @@ function AppContent() {
     );
   }
 
-  // Option 1: Create a wrapper component that loads your HTML file
+  // AR Scanner component that loads the HTML file from public folder
   const ARScannerPage = () => {
     return (
       <iframe
-        src="/src/assets/pages/ARScannerPage.html"
+        src="/ARScannerPage.html"
         style={{
           width: "100vw",
           height: "100vh",
