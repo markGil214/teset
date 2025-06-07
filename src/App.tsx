@@ -168,22 +168,12 @@ function AppContent() {
     );
   }
 
-  // AR Scanner component that loads the HTML file from public folder
+  // AR Scanner component that redirects to standalone HTML page
   const ARScannerPage = () => {
-    return (
-      <iframe
-        src="/ARScannerPage.html"
-        style={{
-          width: "100vw",
-          height: "100vh",
-          border: "none",
-          position: "fixed",
-          top: 0,
-          left: 0,
-        }}
-        title="AR Scanner"
-      />
-    );
+    // Redirect to the standalone AR Scanner HTML page
+    window.location.href = "/ARScannerPage.html";
+    return <div>Redirecting to AR Scanner...</div>;
+  };
   };
 
   return (

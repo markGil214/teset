@@ -452,8 +452,8 @@
       function goBackToOrganSelection() {
         cleanup();
         localStorage.removeItem("selectedOrgan");
-        // Use relative path for better routing compatibility
-        window.location.href = "/";
+        // Go back to the React app home page
+        window.location.href = "/home";
       }
 
       // Get base scale for organ type
