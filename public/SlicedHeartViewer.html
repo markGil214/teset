@@ -2,46 +2,78 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Sliced Heart Viewer - Interactive Anatomy</title>
-    <style>
-      * {
+    <style>      * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
-      }
-
-      html {
+        -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+      }      html {
         font-size: 16px; /* Base font size for rem calculations */
-      }
-
-      body {
+        height: 100%;
+        /* Prevent iOS zoom on input focus */
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background: linear-gradient(135deg, #2c3e50, #34495e);
         overflow: hidden;
-      } /* Main Container using CSS Grid */
-      #root {
+        height: 100vh;
+        height: 100dvh; /* Use dynamic viewport height when available */
+        margin: 0;
+        padding: 0;
+        /* Handle iOS safe areas */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }/* Main Container using CSS Grid */      #root {
         display: grid;
         grid-template-areas:
-          "info-btn back-btn"
-          "header header"
+          "back-btn back-btn"
+          "info-btn header"
           "canvas canvas"
           "info info";
         grid-template-rows: auto auto 1fr auto;
         grid-template-columns: auto 1fr;
         width: 100vw;
         height: 100vh;
+        height: 100dvh; /* Use dynamic viewport height when available */
         gap: 1rem;
         padding: 1.25rem;
-      }
-
-      /* Canvas Container */
+        box-sizing: border-box;
+        overflow: hidden;
+      }/* Canvas Container */
       #canvas-container {
         grid-area: canvas;
         position: relative;
         min-height: 0;
         min-width: 0;
-      } /* Header Section */
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }      #canvas-container canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+        touch-action: manipulation; /* Better touch handling */
+      }
+
+      /* Touch-friendly interactions */
+      @media (pointer: coarse) {
+        .label-point {
+          width: 2.5rem;
+          height: 2.5rem;
+          font-size: 1rem;
+        }
+
+        .back-button,
+        .info-button {
+          min-height: 44px; /* iOS touch target minimum */
+          min-width: 44px;
+        }
+      }/* Header Section */
       .header {
         grid-area: header;
         display: flex;
@@ -66,11 +98,10 @@
         font-size: 1rem;
         opacity: 0.9;
         text-shadow: 0.0625rem 0.0625rem 0.125rem rgba(0, 0, 0, 0.5);
-      } /* Back Button */
+      }      /* Back Button */
       .back-button {
         grid-area: back-btn;
-        align-self: center;
-        justify-self: end;
+        justify-self: center;
         background: rgba(231, 76, 60, 0.9);
         color: white;
         border: none;
@@ -93,9 +124,7 @@
         background: rgba(231, 76, 60, 1);
         transform: translateY(-0.125rem);
         box-shadow: 0 0.375rem 1rem rgba(0, 0, 0, 0.4);
-      }
-
-      /* Info Button */
+      }      /* Info Button */
       .info-button {
         grid-area: info-btn;
         align-self: center;
@@ -214,47 +243,106 @@
       .close-modal:hover {
         background: rgba(231, 76, 60, 1);
         transform: scale(1.1);
-      }
-
-      /* Info Panel using Flexbox */
+      }      /* Info Panel using Flexbox - Hidden for card system */
       .info-panel {
-        grid-area: info;
-        align-self: end;
-        background: rgba(44, 62, 80, 0.95);
-        color: white;
-        padding: 1.25rem;
-        border-radius: 0.75rem;
-        backdrop-filter: blur(0.9375rem);
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4);
-        pointer-events: auto;
-        opacity: 0;
-        transform: translateY(100%);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 100;
+        display: none;
+      }      /* Centered Info Card Modal */
+      .info-card {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
         display: flex;
-        flex-direction: column;
-        gap: 0.625rem;
-        max-width: 25rem;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      .info-panel.visible {
+      .info-card.visible {
         opacity: 1;
-        transform: translateY(0);
+        visibility: visible;
       }
 
-      .info-panel h3 {
+      .info-card-content {
+        background: linear-gradient(145deg, rgba(44, 62, 80, 0.98), rgba(52, 73, 94, 0.98));
+        backdrop-filter: blur(20px);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 1.5rem;
+        box-shadow: 
+          0 20px 60px rgba(0, 0, 0, 0.4),
+          0 0 0 1px rgba(255, 255, 255, 0.1);
+        max-width: 32rem;
+        width: 90vw;
+        max-height: 80vh;
+        position: relative;
+        transform: scale(0.7) translateY(20px);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-y: auto;
+        text-align: center;
+      }
+
+      .info-card.visible .info-card-content {
+        transform: scale(1) translateY(0);
+      }
+
+      .info-card h3 {
         color: #f39c12;
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0 0 1.5rem 0;
+        text-align: center;
+        border-bottom: 3px solid rgba(243, 156, 18, 0.4);
+        padding-bottom: 1rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
 
-      .info-panel p {
-        font-size: 1rem;
-        line-height: 1.6;
+      .info-card p {
+        font-size: 1.1rem;
+        line-height: 1.7;
         margin: 0;
-        opacity: 0.9;
-      } /* Loading Indicator */
+        opacity: 0.95;
+        text-align: left;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .close-card {
+        position: absolute;
+        top: 1.2rem;
+        right: 1.2rem;
+        background: linear-gradient(135deg, rgba(231, 76, 60, 0.9), rgba(192, 57, 43, 0.9));
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.4rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        font-weight: bold;
+        z-index: 2;
+        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+      }
+
+      .close-card:hover {
+        background: linear-gradient(135deg, rgba(231, 76, 60, 1), rgba(192, 57, 43, 1));
+        transform: scale(1.1) rotate(90deg);
+        box-shadow: 0 6px 16px rgba(231, 76, 60, 0.4);
+      }
+
+      .close-card:active {
+        transform: scale(0.95) rotate(90deg);
+      }/* Loading Indicator */
       .loading {
         position: absolute;
         top: 50%;
@@ -310,66 +398,10 @@
         transform: scale(1.2);
         box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.5);
         background: rgba(52, 152, 219, 1);
-      }
-
-      .label-point.selected {
+      }      .label-point.selected {
         background: #f39c12 !important;
         transform: scale(1.3);
         animation: pulse 2s infinite;
-      }
-
-      /* Info Tooltip - Similar to the image */
-      .info-tooltip {
-        position: absolute;
-        background: rgba(44, 62, 80, 0.95);
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(0.5rem);
-        z-index: 20;
-        opacity: 0;
-        transform: scale(0.8);
-        transition: all 0.3s ease;
-        pointer-events: none;
-        min-width: 200px;
-        max-width: 300px;
-      }
-
-      .info-tooltip.visible {
-        opacity: 1;
-        transform: scale(1);
-        pointer-events: auto;
-      }
-
-      .info-tooltip h4 {
-        color: #f39c12;
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin: 0 0 0.5rem 0;
-        border-bottom: 1px solid rgba(243, 156, 18, 0.3);
-        padding-bottom: 0.25rem;
-      }
-
-      .info-tooltip p {
-        font-size: 0.9rem;
-        line-height: 1.4;
-        margin: 0;
-        opacity: 0.9;
-      }
-
-      /* Navigation arrows for tooltip */
-      .info-tooltip::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: -0.5rem;
-        transform: translateY(-50%);
-        width: 0;
-        height: 0;
-        border-top: 0.5rem solid transparent;
-        border-bottom: 0.5rem solid transparent;
-        border-right: 0.5rem solid rgba(44, 62, 80, 0.95);
       }
 
       @keyframes pulse {
@@ -382,65 +414,20 @@
         100% {
           box-shadow: 0 0 0 0 rgba(243, 156, 18, 0);
         }
-      } /* Responsive Design using Grid and Flexbox */
+      }      /* Responsive Design using Grid and Flexbox */
       @media (max-width: 48rem) {
-        #root {
+        html {
+          font-size: 14px; /* Smaller base font for tablets */
+        }        #root {
           grid-template-areas:
-            "back header controls"
-            "canvas canvas canvas"
-            "info info info";
-          grid-template-rows: auto 1fr auto;
-          grid-template-columns: 1fr 2fr 1fr;
-          gap: 0.75rem;
-          padding: 1rem;
-        }
-
-        .header h1 {
-          font-size: 1.75rem;
-        }
-
-        .header p {
-          font-size: 0.9rem;
-        }
-
-        .controls-info {
-          max-width: none;
-        }
-
-        .controls-list {
-          flex-direction: row;
-          flex-wrap: wrap;
-          justify-content: center;
-        }
-
-        .info-panel {
-          max-width: none;
-          align-self: stretch;
-          justify-self: stretch;
-        }
-      }
-
-      @media (max-width: 30rem) {
-        #root {
-          grid-template-areas:
-            "header"
-            "canvas"
-            "controls"
-            "info";
-          grid-template-rows: auto 1fr auto auto;
-          grid-template-columns: 1fr;
+            "back-btn back-btn"
+            "info-btn header"
+            "canvas canvas"
+            "info info";
+          grid-template-rows: auto auto 1fr auto;
+          grid-template-columns: auto 1fr;
           gap: 0.5rem;
           padding: 0.75rem;
-        }
-
-        .back-button {
-          position: fixed;
-          top: 0.75rem;
-          left: 0.75rem;
-          grid-area: unset;
-          z-index: 200;
-          padding: 0.5rem 1rem;
-          font-size: 0.8rem;
         }
 
         .header h1 {
@@ -448,35 +435,256 @@
         }
 
         .header p {
-          font-size: 0.85rem;
+          font-size: 0.9rem;
         }
 
-        .controls-info {
-          align-self: stretch;
-          justify-self: stretch;
+        .info-panel {
+          max-width: none;
           padding: 0.75rem;
         }
 
-        .controls-list {
-          flex-direction: row;
-          flex-wrap: wrap;
-          justify-content: space-around;
+        .back-button {
+          padding: 0.5rem 1rem;
+          font-size: 0.8rem;
+        }
+
+        .info-button {
+          width: 2.5rem;
+          height: 2.5rem;
+          font-size: 0.9rem;
+        }
+      }
+
+      @media (max-width: 30rem) {
+        html {
+          font-size: 13px; /* Even smaller base font for phones */
+        }        #root {
+          grid-template-areas:
+            "back-btn"
+            "header"
+            "canvas"
+            "info";
+          grid-template-rows: auto auto 1fr auto;
+          grid-template-columns: 1fr;
+          gap: 0.3rem;
+          padding: 0.5rem;
+          height: 100vh;
+          height: 100dvh; /* Use dynamic viewport height when available */
+          min-height: 100vh;
+          min-height: 100dvh;
+          max-height: 100vh;
+          max-height: 100dvh;
+          box-sizing: border-box;
+        }
+
+        .info-button {
+          position: fixed;
+          top: 0.5rem;
+          right: 0.5rem;
+          z-index: 200;
+          width: 2rem;
+          height: 2rem;
+          font-size: 0.8rem;
+          grid-area: unset;
+        }
+
+        .back-button {
+          justify-self: center;
+          z-index: 200;
+          padding: 0.4rem 0.8rem;
+          font-size: 0.7rem;
+        }
+
+        .header {
+          padding: 0.5rem 0;
+        }
+
+        .header h1 {
+          font-size: 1.25rem;
+          margin-bottom: 0.1rem;
+        }
+
+        .header p {
+          font-size: 0.8rem;
+        }
+
+        #canvas-container {
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        .info-panel {
+          padding: 0.75rem;
+          border-radius: 0.5rem;
+        }
+
+        .info-panel h3 {
+          font-size: 1rem;
+        }
+
+        .info-panel p {
+          font-size: 0.8rem;
+          line-height: 1.4;
+        }
+
+        .label-point {
+          width: 1.5rem;
+          height: 1.5rem;
+          font-size: 0.7rem;
+        }
+
+        .controls-modal-content {
+          padding: 1.5rem;
+          max-width: 18rem;
+        }
+
+        .controls-modal h4 {
+          font-size: 1rem;
+          margin-bottom: 1rem;
         }
 
         .control-item {
+          font-size: 0.8rem;
+          padding: 0.5rem;
+        }
+
+        .control-icon {
+          width: 1.5rem;
+          height: 1.5rem;
+          font-size: 0.8rem;
+        }.info-card-content {
+          padding: 2rem;
+          max-width: 90vw;
+        }
+
+        .info-card h3 {
+          font-size: 1.6rem;
+          margin-bottom: 1.2rem;
+        }
+
+        .info-card p {
+          font-size: 1rem;
+        }
+
+        .close-card {
+          width: 2.5rem;
+          height: 2.5rem;
+          font-size: 1.2rem;
+          top: 1rem;
+          right: 1rem;
+        }
+      }
+
+      /* Additional mobile optimizations for very small screens */
+      @media (max-width: 25rem) {
+        html {
+          font-size: 12px;
+        }
+
+        #root {
+          padding: 0.25rem;
+          gap: 0.2rem;
+        }
+
+        .header h1 {
+          font-size: 1.1rem;
+        }
+
+        .header p {
           font-size: 0.75rem;
         }
 
         .info-panel {
-          padding: 1rem;
+          padding: 0.5rem;
         }
 
         .info-panel h3 {
-          font-size: 1.25rem;
+          font-size: 0.9rem;
         }
 
         .info-panel p {
+          font-size: 0.75rem;
+        }        .back-button {
+          justify-self: center;
+          padding: 0.3rem 0.6rem;
+          font-size: 0.65rem;
+        }
+
+        .info-button {
+          width: 1.8rem;
+          height: 1.8rem;
+          font-size: 0.7rem;
+        }        .label-point {
+          width: 1.2rem;
+          height: 1.2rem;
+          font-size: 0.6rem;
+        }        .info-card-content {
+          padding: 1.5rem;
+          max-width: 95vw;
+        }
+
+        .info-card h3 {
+          font-size: 1.3rem;
+          margin-bottom: 1rem;
+        }
+
+        .info-card p {
           font-size: 0.9rem;
+          line-height: 1.5;
+        }
+
+        .close-card {
+          width: 2.2rem;
+          height: 2.2rem;
+          font-size: 1.1rem;
+          top: 0.8rem;
+          right: 0.8rem;
+        }
+      }
+
+      /* Landscape orientation optimizations for mobile */
+      @media (max-height: 30rem) and (orientation: landscape) {        #root {
+          grid-template-areas:
+            "back-btn canvas canvas"
+            "header canvas canvas"
+            "info canvas canvas";
+          grid-template-rows: auto auto 1fr;
+          grid-template-columns: 1fr 2fr;
+          padding: 0.5rem;
+        }
+
+        .header {
+          padding: 0.25rem;
+        }
+
+        .header h1 {
+          font-size: 1rem;
+        }
+
+        .header p {
+          font-size: 0.7rem;
+        }
+
+        .info-panel {
+          max-height: calc(50vh - 1rem);
+          overflow-y: auto;
+          font-size: 0.7rem;
+        }        .back-button,
+        .info-button {
+          top: 0.25rem;
+          padding: 0.25rem 0.5rem;
+        }
+
+        .back-button {
+          justify-self: center;
+          font-size: 0.6rem;
+        }
+
+        .info-button {
+          right: 0.25rem;
+          width: 1.5rem;
+          height: 1.5rem;
+          font-size: 0.7rem;
         }
       }
     </style>
@@ -489,9 +697,7 @@
       <!-- Back Button -->
       <button class="back-button" onclick="goBackToAR()">
         ← Back to AR Scanner
-      </button>
-
-      <!-- Header -->
+      </button>      <!-- Header -->
       <div class="header">
         <h1>Interactive Heart Anatomy</h1>
         <p>Explore the detailed structure of the human heart</p>
@@ -511,9 +717,7 @@
           heart.
         </p>
       </div>
-    </div>
-
-    <!-- Controls Modal -->
+    </div>    <!-- Controls Modal -->
     <div class="controls-modal" id="controls-modal">
       <div class="controls-modal-content">
         <button class="close-modal" onclick="hideModal()">×</button>
@@ -532,6 +736,15 @@
             <span>Click numbered points for info</span>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Info Card Modal -->
+    <div class="info-card" id="info-card">
+      <div class="info-card-content">
+        <button class="close-card" onclick="hideInfoCard()">×</button>
+        <h3 id="card-part-name">Part Name</h3>
+        <p id="card-part-description">Description will appear here.</p>
       </div>
     </div>
 
@@ -599,24 +812,25 @@
           position: [-0.3, -0.3, 0.3],
           color: "#c0392b",
         },
-      ]; // Global variables
+      ];      // Global variables
       let scene, camera, renderer, controls;
       let heartModel = null;
-      let labelPoints = [];
-      let selectedPart = null;
+      let labelPoints = [];      let selectedPart = null;
       let labelElements = [];
-      let tooltipElement = null;
-
-      // Initialize the 3D scene
+      let resizeTimeout = null;// Initialize the 3D scene
       function initScene() {
         // Create scene
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x2c3e50);
 
+        // Get container dimensions
+        const container = document.getElementById("canvas-container");
+        const containerRect = container.getBoundingClientRect();
+
         // Create camera
         camera = new THREE.PerspectiveCamera(
           45,
-          window.innerWidth / window.innerHeight,
+          containerRect.width / containerRect.height,
           0.1,
           1000
         );
@@ -624,17 +838,13 @@
 
         // Create renderer
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(containerRect.width, containerRect.height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
         // Add renderer to container
-        document
-          .getElementById("canvas-container")
-          .appendChild(renderer.domElement);
-
-        // Create controls
+        container.appendChild(renderer.domElement);        // Create controls
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.25;
@@ -642,6 +852,15 @@
         controls.enablePan = true;
         controls.minDistance = 2;
         controls.maxDistance = 10;
+        
+        // Better touch controls for mobile
+        controls.rotateSpeed = 0.5;
+        controls.zoomSpeed = 0.8;
+        controls.panSpeed = 0.8;
+        controls.touches = {
+          ONE: THREE.TOUCH.ROTATE,
+          TWO: THREE.TOUCH.DOLLY_PAN
+        };
 
         // Add lights
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -755,13 +974,13 @@
       function createLabelPoints() {
         const container = document.getElementById("canvas-container");
 
-        heartParts.forEach((part, index) => {
-          // Create 3D invisible sphere for raycasting
+        heartParts.forEach((part, index) => {          // Create 3D invisible sphere for raycasting
           const geometry = new THREE.SphereGeometry(0.08, 16, 16);
-          const material = new THREE.MeshBasicMaterial({
+          const material = new THREE.MeshPhongMaterial({
             color: part.color,
             transparent: true,
             opacity: 0, // Invisible
+            emissive: 0x000000
           });
 
           const sphere = new THREE.Mesh(geometry, material);
@@ -777,42 +996,29 @@
           labelElement.textContent = part.id;
           labelElement.style.left = "50%";
           labelElement.style.top = "50%";
-          labelElement.dataset.partId = part.id;
-
-          // Add click event
+          labelElement.dataset.partId = part.id;          // Add click event
           labelElement.addEventListener("click", (e) => {
             e.stopPropagation();
             selectPart(part.id);
           });
 
-          // Add hover events for tooltip
-          labelElement.addEventListener("mouseenter", (e) => {
-            showTooltip(e, part);
-          });
-
-          labelElement.addEventListener("mouseleave", () => {
-            hideTooltip();
-          });
-
           container.appendChild(labelElement);
           labelElements.push(labelElement);
         });
-
-        // Create tooltip element
-        tooltipElement = document.createElement("div");
-        tooltipElement.className = "info-tooltip";
-        tooltipElement.innerHTML = `
-          <h4 id="tooltip-title">Part Name</h4>
-          <p id="tooltip-description">Description</p>
-        `;
-        container.appendChild(tooltipElement);
-      }
-
-      // Handle mouse clicks on label points
+      }// Handle mouse clicks and touch events on label points
       function onMouseClick(event) {
+        const container = document.getElementById("canvas-container");
+        const rect = container.getBoundingClientRect();
+        
+        // Handle both mouse and touch events
+        const clientX = event.touches ? event.touches[0]?.clientX || event.changedTouches[0]?.clientX : event.clientX;
+        const clientY = event.touches ? event.touches[0]?.clientY || event.changedTouches[0]?.clientY : event.clientY;
+        
+        if (!clientX || !clientY) return;
+        
         const mouse = new THREE.Vector2();
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
@@ -826,56 +1032,46 @@
         } else {
           selectPart(null);
         }
-      }
-
-      // Select a heart part
+      }// Select a heart part
       function selectPart(partId) {
         selectedPart = partId;
 
-        // Update visual feedback
+        // Update visual feedback for 3D points
         labelPoints.forEach((point) => {
           const isSelected = point.userData.partId === partId;
-          point.material.emissive.setHex(isSelected ? 0x444444 : 0x000000);
+          if (point.material && point.material.emissive) {
+            point.material.emissive.setHex(isSelected ? 0x444444 : 0x000000);
+          }
           point.scale.setScalar(isSelected ? 1.5 : 1);
         });
 
-        // Update info panel
+        // Update label point selection visual
+        labelElements.forEach((label) => {
+          label.classList.remove('selected');
+        });
+
+        // Show info card instead of info panel
         if (partId) {
           const part = heartParts.find((p) => p.id === partId);
           if (part) {
-            document.getElementById("part-name").textContent = part.name;
-            document.getElementById("part-description").textContent =
-              part.description;
-            document.getElementById("info-panel").classList.add("visible");
+            // Add selected class to the clicked label
+            const selectedLabel = labelElements.find(label => label.dataset.partId === partId);
+            if (selectedLabel) {
+              selectedLabel.classList.add('selected');
+            }
+
+            // Show the info card
+            document.getElementById("card-part-name").textContent = part.name;
+            document.getElementById("card-part-description").textContent = part.description;
+            document.getElementById("info-card").classList.add("visible");
+            
+            // Hide the bottom info panel
+            document.getElementById("info-panel").classList.remove("visible");
           }
         } else {
-          document.getElementById("info-panel").classList.remove("visible");
-        }
-      } // Show tooltip with part information
-      function showTooltip(event, part) {
-        if (!tooltipElement) return;
-
-        document.getElementById("tooltip-title").textContent = part.name;
-        document.getElementById("tooltip-description").textContent =
-          part.description;
-
-        tooltipElement.classList.add("visible");
-
-        // Position tooltip near the label
-        const rect = event.target.getBoundingClientRect();
-        const containerRect = document
-          .getElementById("canvas-container")
-          .getBoundingClientRect();
-
-        tooltipElement.style.left = rect.right - containerRect.left + 10 + "px";
-        tooltipElement.style.top = rect.top - containerRect.top + "px";
-      }
-
-      // Hide tooltip
-      function hideTooltip() {
-        if (tooltipElement) {
-          tooltipElement.classList.remove("visible");
-        }
+          // Hide info card when nothing is selected
+          document.getElementById("info-card").classList.remove("visible");
+          document.getElementById("info-panel").classList.remove("visible");        }
       }
 
       // Update 2D label positions based on 3D positions
@@ -920,21 +1116,49 @@
         // Removed: heartModel.rotation.y += 0.005;
 
         renderer.render(scene, camera);
-      } // Handle window resize
+      }      // Handle window resize with throttling
       function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        if (resizeTimeout) {
+          clearTimeout(resizeTimeout);
+        }
+        
+        resizeTimeout = setTimeout(() => {
+          const container = document.getElementById("canvas-container");
+          if (!container) return;
+          
+          const containerRect = container.getBoundingClientRect();
+          
+          if (containerRect.width > 0 && containerRect.height > 0) {
+            camera.aspect = containerRect.width / containerRect.height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(containerRect.width, containerRect.height);
+          }
+        }, 100);
       }
 
       // Show controls modal
       function showModal() {
         document.getElementById("controls-modal").classList.add("visible");
-      }
-
-      // Hide controls modal
+      }      // Hide controls modal
       function hideModal() {
         document.getElementById("controls-modal").classList.remove("visible");
+      }      // Hide info card
+      function hideInfoCard() {
+        document.getElementById("info-card").classList.remove("visible");
+        // Clear selection when card is closed
+        selectPart(null);
+      }      // Handle keyboard events
+      function handleKeyPress(event) {
+        if (event.key === "Escape") {
+          // Close info card if open
+          if (document.getElementById("info-card").classList.contains("visible")) {
+            hideInfoCard();
+          }
+          // Close controls modal if open
+          if (document.getElementById("controls-modal").classList.contains("visible")) {
+            hideModal();
+          }
+        }
       }
 
       // Navigate back to AR Scanner
@@ -946,13 +1170,36 @@
 
         // Navigate back to the AR scanner
         window.history.back();
-      } // Initialize everything when page loads
+      }      // Initialize everything when page loads
       window.addEventListener("load", () => {
         initScene();
-        window.addEventListener("resize", onWindowResize);
+        
+        // Add resize listeners        window.addEventListener("resize", onWindowResize);
+        
+        // Add ResizeObserver for container size changes
+        if (window.ResizeObserver) {
+          const resizeObserver = new ResizeObserver(onWindowResize);
+          resizeObserver.observe(document.getElementById("canvas-container"));
+        }
+          // Add both mouse and touch events
         window.addEventListener("click", onMouseClick);
-
-        // Close modal when clicking outside of it
+        window.addEventListener("touchend", onMouseClick);
+        
+        // Add keyboard event listener
+        document.addEventListener("keydown", handleKeyPress);
+        
+        // Prevent default touch behaviors that might interfere
+        document.addEventListener("touchstart", function(e) {
+          if (e.touches.length > 1) {
+            e.preventDefault();
+          }
+        }, { passive: false });
+        
+        document.addEventListener("touchmove", function(e) {
+          if (e.touches.length > 1) {
+            e.preventDefault();
+          }
+        }, { passive: false });        // Close modal when clicking outside of it
         document
           .getElementById("controls-modal")
           .addEventListener("click", (event) => {
@@ -960,6 +1207,18 @@
               hideModal();
             }
           });
+
+        // Close info card when clicking outside of it
+        document
+          .getElementById("info-card")
+          .addEventListener("click", (event) => {
+            if (event.target.id === "info-card") {
+              hideInfoCard();
+            }
+          });
+
+        // Force initial resize after a short delay
+        setTimeout(onWindowResize, 100);
       });
 
       // Cleanup when page unloads
