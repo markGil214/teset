@@ -284,21 +284,22 @@
     <!-- Confirmation Dialog -->
     <div id="confirmationDialog" class="confirmation-dialog hidden">
       <div class="dialog-content">
-        <h3>View Sliced Heart Model?</h3>
-        <p>
+        <h3 id="dialogTitle">View Detailed Model?</h3>
+        <p id="dialogMessage">
           You've reached maximum zoom. Would you like to view the detailed
-          sliced heart model?
+          model?
         </p>
         <div class="dialog-buttons">
           <button
             class="dialog-button confirm-button"
-            onclick="confirmSlicedHeart()"
+            id="confirmButton"
+            onclick="confirmDetailedModel()"
           >
-            Yes, Show Sliced Model
+            Yes, Show Detailed Model
           </button>
           <button
             class="dialog-button cancel-button"
-            onclick="cancelSlicedHeart()"
+            onclick="cancelDetailedModel()"
           >
             No, Continue with Current Model
           </button>
@@ -588,6 +589,11 @@
             if (currentOrgan.id === "heart") {
               console.log(
                 "ARScanner: Max zoom reached - showing sliced heart confirmation"
+              );
+              showConfirmationDialog();
+            } else if (currentOrgan.id === "brain") {
+              console.log(
+                "ARScanner: Max zoom reached - showing brain viewer confirmation"
               );
               showConfirmationDialog();
             } else {
@@ -921,6 +927,29 @@
 
       function showConfirmationDialog() {
         showConfirmation = true;
+
+        // Update dialog content based on organ type
+        const dialogTitle = document.getElementById("dialogTitle");
+        const dialogMessage = document.getElementById("dialogMessage");
+        const confirmButton = document.getElementById("confirmButton");
+
+        if (currentOrgan.id === "heart") {
+          dialogTitle.textContent = "View Sliced Heart Model?";
+          dialogMessage.textContent =
+            "You've reached maximum zoom. Would you like to view the detailed sliced heart model?";
+          confirmButton.textContent = "Yes, Show Sliced Model";
+        } else if (currentOrgan.id === "brain") {
+          dialogTitle.textContent = "View Brain Viewer?";
+          dialogMessage.textContent =
+            "You've reached maximum zoom. Would you like to view the detailed brain viewer?";
+          confirmButton.textContent = "Yes, Show Brain Viewer";
+        } else {
+          dialogTitle.textContent = "View Detailed Model?";
+          dialogMessage.textContent =
+            "You've reached maximum zoom. Would you like to view the detailed model?";
+          confirmButton.textContent = "Yes, Show Detailed Model";
+        }
+
         document
           .getElementById("confirmationDialog")
           .classList.remove("hidden");
@@ -931,15 +960,27 @@
           markerGroup.remove(organModel);
         }
       }
-      function confirmSlicedHeart() {
-        console.log("User confirmed to view sliced heart model");
-        hideConfirmationDialog();
-        // Navigate to the SlicedHeartViewer page
-        window.location.href = "/SlicedHeartViewer.html";
+      function confirmDetailedModel() {
+        if (currentOrgan.id === "heart") {
+          console.log("User confirmed to view sliced heart model");
+          hideConfirmationDialog();
+          // Navigate to the SlicedHeartViewer page
+          window.location.href = "/SlicedHeartViewer.html";
+        } else if (currentOrgan.id === "brain") {
+          console.log("User confirmed to view brain viewer");
+          hideConfirmationDialog();
+          // Navigate to the BrainViewer page
+          window.location.href = "/BrainViewer.html";
+        } else {
+          console.log(
+            "User confirmed to view detailed model - no specific viewer available"
+          );
+          hideConfirmationDialog();
+        }
       }
 
-      function cancelSlicedHeart() {
-        console.log("User cancelled viewing sliced heart model");
+      function cancelDetailedModel() {
+        console.log("User cancelled viewing detailed model");
         hideConfirmationDialog();
 
         // Zoom out slightly to prevent triggering max zoom again
@@ -954,6 +995,15 @@
           markerGroup.organModel = originalModel;
           console.log("Original model restored after cancellation");
         }
+      }
+
+      // Keep old functions for backward compatibility
+      function confirmSlicedHeart() {
+        confirmDetailedModel();
+      }
+
+      function cancelSlicedHeart() {
+        cancelDetailedModel();
       }
 
       function hideConfirmationDialog() {
