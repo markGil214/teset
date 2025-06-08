@@ -596,6 +596,11 @@
                 "ARScanner: Max zoom reached - showing brain viewer confirmation"
               );
               showConfirmationDialog();
+            } else if (currentOrgan.id === "kidney") {
+              console.log(
+                "ARScanner: Max zoom reached - showing kidney viewer confirmation"
+              );
+              showConfirmationDialog();
             } else {
               console.log("ARScanner: Max zoom reached - showing message");
               showMaxZoomMessageFunc();
@@ -943,6 +948,11 @@
           dialogMessage.textContent =
             "You've reached maximum zoom. Would you like to view the detailed brain viewer?";
           confirmButton.textContent = "Yes, Show Brain Viewer";
+        } else if (currentOrgan.id === "kidney") {
+          dialogTitle.textContent = "View Kidney Anatomy?";
+          dialogMessage.textContent =
+            "You've reached maximum zoom. Would you like to view the detailed kidney anatomy viewer?";
+          confirmButton.textContent = "Yes, Show Kidney Anatomy";
         } else {
           dialogTitle.textContent = "View Detailed Model?";
           dialogMessage.textContent =
@@ -971,6 +981,11 @@
           hideConfirmationDialog();
           // Navigate to the BrainViewer page
           window.location.href = "/BrainViewer.html";
+        } else if (currentOrgan.id === "kidney") {
+          console.log("User confirmed to view kidney viewer");
+          hideConfirmationDialog();
+          // Navigate to the KidneyViewer page
+          window.location.href = "/KidneyViewer.html";
         } else {
           console.log(
             "User confirmed to view detailed model - no specific viewer available"
