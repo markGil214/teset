@@ -601,6 +601,11 @@
                 "ARScanner: Max zoom reached - showing kidney viewer confirmation"
               );
               showConfirmationDialog();
+            } else if (currentOrgan.id === "lungs") {
+              console.log(
+                "ARScanner: Max zoom reached - showing lungs viewer confirmation"
+              );
+              showConfirmationDialog();
             } else {
               console.log("ARScanner: Max zoom reached - showing message");
               showMaxZoomMessageFunc();
@@ -953,6 +958,11 @@
           dialogMessage.textContent =
             "You've reached maximum zoom. Would you like to view the detailed kidney anatomy viewer?";
           confirmButton.textContent = "Yes, Show Kidney Anatomy";
+        } else if (currentOrgan.id === "lungs") {
+          dialogTitle.textContent = "View Lungs Anatomy?";
+          dialogMessage.textContent =
+            "You've reached maximum zoom. Would you like to view the detailed lungs anatomy viewer?";
+          confirmButton.textContent = "Yes, Show Lungs Anatomy";
         } else {
           dialogTitle.textContent = "View Detailed Model?";
           dialogMessage.textContent =
@@ -986,6 +996,11 @@
           hideConfirmationDialog();
           // Navigate to the KidneyViewer page
           window.location.href = "/KidneyViewer.html";
+        } else if (currentOrgan.id === "lungs") {
+          console.log("User confirmed to view lungs viewer");
+          hideConfirmationDialog();
+          // Navigate to the LungsViewer page
+          window.location.href = "/LungsViewer.html";
         } else {
           console.log(
             "User confirmed to view detailed model - no specific viewer available"

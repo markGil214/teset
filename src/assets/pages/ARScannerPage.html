@@ -542,6 +542,21 @@
                 "ARScanner: Max zoom reached - showing sliced heart confirmation"
               );
               showConfirmationDialog();
+            } else if (currentOrgan.id === "brain") {
+              console.log(
+                "ARScanner: Max zoom reached - showing brain viewer confirmation"
+              );
+              showConfirmationDialog();
+            } else if (currentOrgan.id === "kidney") {
+              console.log(
+                "ARScanner: Max zoom reached - showing kidney viewer confirmation"
+              );
+              showConfirmationDialog();
+            } else if (currentOrgan.id === "lungs") {
+              console.log(
+                "ARScanner: Max zoom reached - showing lungs viewer confirmation"
+              );
+              showConfirmationDialog();
             } else {
               console.log("ARScanner: Max zoom reached - showing message");
               showMaxZoomMessageFunc();

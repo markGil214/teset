@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Lungs Anatomy Viewer - Interactive 3D Lungs</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+      }
+
+      html {
+        font-size: 16px; /* Base font size for rem calculations */
+        height: 100%;
+        /* Prevent iOS zoom on input focus */
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        overflow: hidden;
+        height: 100vh;
+        height: 100dvh; /* Use dynamic viewport height when available */
+        margin: 0;
+        padding: 0;
+        /* Handle iOS safe areas */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+
+      /* Main Container using CSS Grid */
+      #root {
+        display: grid;
+        grid-template-areas:
+          "back-btn back-btn"
+          "info-btn header"
+          "canvas canvas"
+          "info info";
+        grid-template-rows: auto auto 1fr auto;
+        grid-template-columns: auto 1fr;
+        width: 100vw;
+        width: 100dvw; /* Use dynamic viewport width when available */
+        height: 100vh;
+        height: 100dvh; /* Use dynamic viewport height when available */
+        min-height: 100vh;
+        min-height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
+        gap: 1rem;
+        padding: 1rem;
+        box-sizing: border-box;
+      }
+
+      /* Back Button */
+      .back-button {
+        grid-area: back-btn;
+        justify-self: start;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        z-index: 100;
+        width: fit-content;
+        height: fit-content;
+      }
+
+      .back-button:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      /* Info Button */
+      .info-button {
+        grid-area: info-btn;
+        justify-self: end;
+        align-self: start;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        background: rgba(52, 152, 219, 0.9);
+        color: white;
+        border: none;
+        font-size: 1.2rem;
+        font-weight: bold;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .info-button:hover {
+        background: rgba(52, 152, 219, 1);
+        transform: scale(1.1);
+      }
+
+      /* Header */
+      .header {
+        grid-area: header;
+        color: white;
+        text-align: center;
+        z-index: 50;
+        padding: 0;
+        align-self: start;
+      }
+
+      .header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(45deg, #3498db, #2ecc71);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: none;
+      }
+
+      .header p {
+        font-size: 1rem;
+        opacity: 0.9;
+        font-weight: 300;
+        margin: 0;
+      }
+
+      /* Canvas Container */
+      #canvas-container {
+        grid-area: canvas;
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 1rem;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        min-height: 0; /* Important for proper flex behavior */
+      }
+
+      /* Loading Animation */
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 1.2rem;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .spinner {
+        width: 3rem;
+        height: 3rem;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top: 3px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* 3D Label Points */
+      .label-point {
+        position: absolute;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 20;
+        pointer-events: auto;
+        transform: translate(-50%, -50%);
+        border: 2px solid white;
+        backdrop-filter: blur(5px);
+      }
+
+      /* Color-based styling for lung parts */
+      .label-point[data-part-id="1"] {
+        background: rgba(231, 76, 60, 0.8); /* Red for trachea */
+      }
+      .label-point[data-part-id="2"] {
+        background: rgba(52, 152, 219, 0.8); /* Blue for right lung */
+      }
+      .label-point[data-part-id="3"] {
+        background: rgba(46, 204, 113, 0.8); /* Green for left lung */
+      }
+      .label-point[data-part-id="4"] {
+        background: rgba(155, 89, 182, 0.8); /* Purple for bronchi */
+      }
+      .label-point[data-part-id="5"] {
+        background: rgba(241, 196, 15, 0.8); /* Yellow for alveoli */
+      }
+      .label-point[data-part-id="6"] {
+        background: rgba(230, 126, 34, 0.8); /* Orange for pleura */
+      }
+      .label-point[data-part-id="7"] {
+        background: rgba(26, 188, 156, 0.8); /* Turquoise for diaphragm */
+      }
+      .label-point[data-part-id="8"] {
+        background: rgba(192, 57, 43, 0.8); /* Dark red for pulmonary vessels */
+      }
+
+      .label-point:hover {
+        transform: translate(-50%, -50%) scale(1.2);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+      }
+
+      .label-point.selected {
+        transform: translate(-50%, -50%) scale(1.3);
+        box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
+        border-width: 3px;
+      }
+
+      /* Info Panel */
+      .info-panel {
+        grid-area: info;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(15px);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        color: white;
+        max-width: 25rem;
+        justify-self: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transform: translateY(100%);
+        opacity: 0;
+        transition: all 0.4s ease;
+        pointer-events: none;
+        height: fit-content;
+        max-height: 40vh;
+        overflow-y: auto;
+      }
+
+      .info-panel.visible {
+        transform: translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .info-panel h3 {
+        font-size: 1.3rem;
+        margin-bottom: 0.75rem;
+        color: #3498db;
+      }
+
+      .info-panel p {
+        line-height: 1.6;
+        opacity: 0.9;
+        font-size: 0.95rem;
+      }
+
+      /* Info Card - Floating Card Style */
+      .info-card {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.8);
+        background: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 1rem;
+        padding: 2rem;
+        color: white;
+        max-width: 90vw;
+        max-width: 90dvw;
+        width: 28rem;
+        z-index: 1000;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        max-height: 80vh;
+        max-height: 80dvh;
+        overflow-y: auto;
+      }
+
+      .info-card.visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      .info-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        color: #3498db;
+        text-align: center;
+      }
+
+      .info-card p {
+        line-height: 1.6;
+        opacity: 0.9;
+        font-size: 1rem;
+        text-align: justify;
+      }
+
+      .info-card .close-button {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.3s ease;
+      }
+
+      .info-card .close-button:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      /* Modal for Controls */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        width: 100dvw;
+        height: 100vh;
+        height: 100dvh;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+        box-sizing: border-box;
+      }
+
+      .modal.show {
+        display: flex;
+      }
+
+      .modal-content {
+        background: rgba(26, 26, 46, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 1rem;
+        padding: 2rem;
+        color: white;
+        max-width: 90vw;
+        max-width: 90dvw;
+        max-height: 80vh;
+        max-height: 80dvh;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        width: 32rem;
+      }
+
+      .modal-content h2 {
+        margin-bottom: 1.5rem;
+        color: #3498db;
+        text-align: center;
+        font-size: 1.5rem;
+      }
+
+      .control-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .control-item:last-child {
+        border-bottom: none;
+      }
+
+      .control-key {
+        background: rgba(52, 152, 219, 0.2);
+        padding: 0.3rem 0.6rem;
+        border-radius: 0.3rem;
+        font-family: monospace;
+        font-size: 0.9rem;
+        border: 1px solid rgba(52, 152, 219, 0.3);
+      }
+
+      .close-modal {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-size: 1rem;
+        margin-top: 1.5rem;
+        width: 100%;
+        transition: background 0.3s ease;
+      }
+
+      .close-modal:hover {
+        background: #2980b9;
+      }
+
+      /* Pulse Animation for New Features */
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.2);
+        }
+        100% {
+          transform: scale(1.3);
+        }
+      }
+
+      /* Responsive Design using Grid and Flexbox */
+      @media (max-width: 48rem) {
+        html {
+          font-size: 14px; /* Smaller base font for tablets */
+        }
+
+        #root {
+          grid-template-areas:
+            "back-btn back-btn"
+            "info-btn header"
+            "canvas canvas"
+            "info info";
+          grid-template-rows: auto auto 1fr auto;
+          grid-template-columns: auto 1fr;
+          gap: 0.5rem;
+          padding: 0.75rem;
+        }
+
+        .header h1 {
+          font-size: 1.5rem;
+        }
+
+        .header p {
+          font-size: 0.9rem;
+        }
+
+        .info-panel {
+          max-width: none;
+          padding: 0.75rem;
+        }
+
+        .back-button {
+          padding: 0.5rem 1rem;
+          font-size: 0.8rem;
+        }
+
+        .info-button {
+          width: 2.5rem;
+          height: 2.5rem;
+          font-size: 0.9rem;
+        }
+      }
+
+      @media (max-width: 30rem) {
+        html {
+          font-size: 13px; /* Even smaller base font for phones */
+        }
+
+        #root {
+          grid-template-areas:
+            "back-btn"
+            "header"
+            "canvas"
+            "info";
+          grid-template-rows: auto auto 1fr auto;
+          grid-template-columns: 1fr;
+          gap: 0.5rem;
+          padding: 0.5rem;
+        }
+
+        .info-button {
+          position: absolute;
+          top: 0.5rem;
+          right: 0.5rem;
+          grid-area: unset;
+          width: 2rem;
+          height: 2rem;
+          font-size: 0.8rem;
+        }
+
+        .back-button {
+          justify-self: center;
+          padding: 0.25rem 0.5rem;
+          font-size: 0.7rem;
+        }
+
+        .header {
+          text-align: center;
+        }
+
+        .header h1 {
+          font-size: 1.2rem;
+        }
+
+        .header p {
+          font-size: 0.8rem;
+        }
+
+        .info-panel {
+          padding: 0.5rem;
+          border-radius: 0.5rem;
+        }
+
+        .info-panel h3 {
+          font-size: 1rem;
+        }
+
+        .info-panel p {
+          font-size: 0.8rem;
+          line-height: 1.4;
+        }
+
+        .label-point {
+          width: 1.5rem;
+          height: 1.5rem;
+          font-size: 0.7rem;
+        }
+
+        .label-point:hover {
+          transform: translate(-50%, -50%) scale(1.15);
+        }
+
+        .label-point.selected {
+          transform: translate(-50%, -50%) scale(1.25);
+          border-width: 2px;
+        }
+
+        .info-card {
+          padding: 1rem;
+          width: 90vw;
+        }
+
+        .modal-content {
+          padding: 1rem;
+          width: 90vw;
+        }
+      }
+
+      @media (max-width: 25rem) {
+        .label-point {
+          width: 1.8rem;
+          height: 1.8rem;
+          font-size: 0.8rem;
+          border-width: 1.5px;
+        }
+
+        .label-point:hover {
+          transform: translate(-50%, -50%) scale(1.15);
+        }
+
+        .label-point.selected {
+          transform: translate(-50%, -50%) scale(1.25);
+          border-width: 2px;
+        }
+      }
+
+      /* Ultra-small screens */
+      @media (max-width: 20rem) {
+        html {
+          font-size: 12px;
+        }
+
+        .info-card {
+          padding: 1rem;
+        }
+
+        .modal-content {
+          padding: 1rem;
+        }
+
+        .label-point {
+          width: 1.5rem;
+          height: 1.5rem;
+          font-size: 0.7rem;
+        }
+      }
+
+      /* Accessibility improvements */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        ::before,
+        ::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      /* High contrast mode support */
+      @media (prefers-contrast: high) {
+        .label-point {
+          border-width: 3px;
+          font-weight: 900;
+        }
+
+        .info-card {
+          border-width: 2px;
+        }
+
+        .modal-content {
+          border-width: 2px;
+        }
+      }
+
+      /* Keyboard focus indicators */
+      .label-point:focus,
+      .back-button:focus,
+      .info-button:focus,
+      .close-button:focus,
+      .close-modal:focus {
+        outline: 2px solid #3498db;
+        outline-offset: 2px;
+      }
+
+      /* Print styles */
+      @media print {
+        body {
+          background: white !important;
+          color: black !important;
+        }
+
+        #canvas-container,
+        .label-point,
+        .back-button,
+        .info-button {
+          display: none;
+        }
+
+        .info-panel,
+        .info-card {
+          position: static;
+          transform: none;
+          opacity: 1;
+          visibility: visible;
+          background: white;
+          color: black;
+          border: 1px solid black;
+          margin: 1rem 0;
+          page-break-inside: avoid;
+        }
+      }
+    </style>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  </head>
+
+  <body>
+    <!-- Main Container -->
+    <div id="root">
+      <!-- Back Button -->
+      <button class="back-button" onclick="goBackToAR()">
+        ← Back to AR Scanner
+      </button>
+
+      <!-- Info Button -->
+      <button class="info-button" onclick="showModal()">?</button>
+
+      <!-- Header -->
+      <div class="header">
+        <h1>Lungs Anatomy</h1>
+        <p>Explore the Interactive 3D Lungs Model</p>
+      </div>
+
+      <!-- 3D Canvas Container -->
+      <div id="canvas-container">
+        <div id="loading">
+          <div class="spinner"></div>
+          <p>Loading lungs model...</p>
+        </div>
+      </div>
+
+      <!-- Info Panel -->
+      <div class="info-panel" id="info-panel">
+        <h3 id="part-name">Lungs Anatomy</h3>
+        <p id="part-description">
+          Click on the numbered points to learn about different parts of the
+          lungs. The lungs are essential organs of the respiratory system,
+          responsible for the exchange of oxygen and carbon dioxide between the
+          air and blood.
+        </p>
+      </div>
+    </div>
+
+    <!-- Info Card Modal -->
+    <div class="info-card" id="info-card">
+      <button class="close-button" onclick="hideInfoCard()">×</button>
+      <h3 id="card-part-name">Part Name</h3>
+      <p id="card-part-description">Part description will appear here.</p>
+    </div>
+
+    <!-- Controls Modal -->
+    <div class="modal" id="controls-modal">
+      <div class="modal-content">
+        <h2>Controls & Navigation</h2>
+        <div class="control-item">
+          <span>Rotate Model</span>
+          <span class="control-key">Click + Drag</span>
+        </div>
+        <div class="control-item">
+          <span>Zoom In/Out</span>
+          <span class="control-key">Scroll / Pinch</span>
+        </div>
+        <div class="control-item">
+          <span>Pan View</span>
+          <span class="control-key">Right Click + Drag</span>
+        </div>
+        <div class="control-item">
+          <span>Select Part</span>
+          <span class="control-key">Click Number</span>
+        </div>
+        <div class="control-item">
+          <span>Close Info</span>
+          <span class="control-key">ESC</span>
+        </div>
+        <div class="control-item">
+          <span>Reset View</span>
+          <span class="control-key">R</span>
+        </div>
+        <button class="close-modal" onclick="hideModal()">Got It!</button>
+      </div>
+    </div>
+
+    <script>
+      // Lungs parts data based on respiratory anatomy
+      const lungsParts = [
+        {
+          id: "1",
+          name: "Trachea",
+          description:
+            "The trachea, or windpipe, is a tube that connects the larynx to the bronchi. It's reinforced with C-shaped cartilage rings that keep it open for air passage. The trachea is lined with ciliated epithelium that helps filter and humidify incoming air while moving particles and mucus upward.",
+          position: [0.0, 0.4, 0.1],
+          color: "#E74C3C", // Red
+        },
+        {
+          id: "2",
+          name: "Right Lung",
+          description:
+            "The right lung is larger than the left lung and consists of three lobes: upper, middle, and lower. It's separated from the left lung by the mediastinum and heart. The right lung receives air through the right main bronchus and contains more alveoli than the left lung, making it crucial for efficient gas exchange.",
+          position: [-0.3, 0.1, 0.0],
+          color: "#3498DB", // Blue
+        },
+        {
+          id: "3",
+          name: "Left Lung",
+          description:
+            "The left lung has two lobes: upper and lower, and is smaller than the right lung to accommodate the heart. It has a cardiac notch that creates space for the heart. Despite being smaller, the left lung plays an equally important role in oxygenating blood and removing carbon dioxide.",
+          position: [0.3, 0.1, 0.0],
+          color: "#2ECC71", // Green
+        },
+        {
+          id: "4",
+          name: "Main Bronchi",
+          description:
+            "The main bronchi are the two large airways that branch from the trachea and lead to each lung. The right main bronchus is wider, shorter, and more vertical than the left. These bronchi further divide into smaller bronchi and bronchioles, creating the bronchial tree that delivers air throughout the lungs.",
+          position: [0.0, 0.2, 0.05],
+          color: "#9B59B6", // Purple
+        },
+        {
+          id: "5",
+          name: "Alveoli",
+          description:
+            "Alveoli are tiny air sacs where gas exchange occurs. Each lung contains millions of alveoli, providing an enormous surface area for oxygen and carbon dioxide exchange. The alveolar walls are extremely thin and surrounded by capillaries, allowing efficient diffusion of gases between air and blood.",
+          position: [0.1, -0.2, 0.2],
+          color: "#F1C40F", // Yellow
+        },
+        {
+          id: "6",
+          name: "Pleura",
+          description:
+            "The pleura is a double-layered membrane that surrounds each lung. The visceral pleura covers the lung surface, while the parietal pleura lines the chest cavity. Between these layers is the pleural space, containing pleural fluid that lubricates the surfaces and allows smooth breathing movements.",
+          position: [0.4, 0.0, -0.1],
+          color: "#E67E22", // Orange
+        },
+        {
+          id: "7",
+          name: "Diaphragm",
+          description:
+            "The diaphragm is the primary muscle of respiration, forming the floor of the thoracic cavity. When it contracts, it flattens and moves downward, creating negative pressure that draws air into the lungs. When it relaxes, it moves upward, helping to expel air from the lungs during exhalation.",
+          position: [0.0, -0.4, 0.0],
+          color: "#1ABC9C", // Turquoise
+        },
+        {
+          id: "8",
+          name: "Pulmonary Blood Vessels",
+          description:
+            "The pulmonary circulation includes the pulmonary arteries that carry deoxygenated blood from the heart to the lungs, and pulmonary veins that return oxygenated blood to the heart. This specialized circulation allows for gas exchange and is essential for delivering oxygen to the entire body.",
+          position: [-0.2, -0.1, 0.1],
+          color: "#C0392B", // Dark red
+        },
+      ];
+
+      // Global variables
+      let scene, camera, renderer, controls;
+      let lungsModel = null;
+      let labelPoints = [];
+      let selectedPart = null;
+      let labelElements = [];
+      let resizeTimeout = null;
+
+      // Initialize the 3D scene
+      function initScene() {
+        // Create scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+
+        // Get container dimensions
+        const container = document.getElementById("canvas-container");
+        const containerRect = container.getBoundingClientRect();
+
+        // Create camera
+        camera = new THREE.PerspectiveCamera(
+          45,
+          containerRect.width / containerRect.height,
+          0.1,
+          1000
+        );
+        camera.position.set(0, 0, 5);
+
+        // Create renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(containerRect.width, containerRect.height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Add renderer to container
+        container.appendChild(renderer.domElement);
+
+        // Create controls
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+        controls.enableZoom = true;
+        controls.enablePan = true;
+        controls.minDistance = 2;
+        controls.maxDistance = 10;
+
+        // Better touch controls for mobile
+        controls.rotateSpeed = 0.5;
+        controls.zoomSpeed = 0.8;
+        controls.panSpeed = 0.8;
+        controls.touches = {
+          ONE: THREE.TOUCH.ROTATE,
+          TWO: THREE.TOUCH.DOLLY_PAN,
+        };
+
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 0.5);
+        pointLight.position.set(-10, -10, -5);
+        scene.add(pointLight);
+
+        // Load lungs model
+        loadLungsModel();
+
+        // Create label points
+        createLabelPoints();
+
+        // Start render loop
+        animate();
+      }
+
+      // Load 3D lungs model
+      function loadLungsModel() {
+        const loader = new THREE.GLTFLoader();
+
+        // Load lungs model
+        loader.load(
+          "/sliced_organs/lungs.glb",
+          (gltf) => {
+            lungsModel = gltf.scene;
+
+            // Enable shadows first
+            lungsModel.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+
+                // Enhance lungs material appearance
+                if (child.material) {
+                  child.material.metalness = 0.1;
+                  child.material.roughness = 0.8;
+                }
+              }
+            });
+
+            // Add to scene first so geometry is computed
+            scene.add(lungsModel);
+
+            // Wait for next frame to ensure geometry is ready, then center
+            requestAnimationFrame(() => {
+              // Calculate bounding box to center the model
+              const box = new THREE.Box3().setFromObject(lungsModel);
+              const center = box.getCenter(new THREE.Vector3());
+              const size = box.getSize(new THREE.Vector3());
+
+              // Center the model by offsetting its position
+              lungsModel.position.set(-center.x, -center.y, -center.z);
+
+              // Scale the model to fit nicely in view
+              const maxDim = Math.max(size.x, size.y, size.z);
+              const targetSize = 2.5; // Slightly larger for better visibility
+              const scale = targetSize / maxDim;
+              lungsModel.scale.setScalar(scale);
+
+              // Ensure the model is at origin after scaling
+              lungsModel.position.multiplyScalar(scale);
+            });
+
+            hideLoading();
+          },
+          (progress) => {
+            console.log("Loading progress:", progress);
+          },
+          (error) => {
+            console.error("Error loading lungs model:", error);
+            createFallbackGeometry();
+          }
+        );
+      }
+
+      // Hide loading indicator
+      function hideLoading() {
+        const loadingElement = document.getElementById("loading");
+        if (loadingElement) {
+          loadingElement.style.display = "none";
+        }
+      }
+
+      // Create fallback geometry if model fails to load
+      function createFallbackGeometry() {
+        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        const material = new THREE.MeshPhongMaterial({
+          color: 0x3498db,
+          transparent: true,
+          opacity: 0.8,
+        });
+
+        lungsModel = new THREE.Mesh(geometry, material);
+        lungsModel.position.set(0, 0, 0);
+        lungsModel.castShadow = true;
+        lungsModel.receiveShadow = true;
+
+        scene.add(lungsModel);
+        hideLoading();
+      }
+
+      // Create interactive label points
+      function createLabelPoints() {
+        const container = document.getElementById("canvas-container");
+
+        lungsParts.forEach((part, index) => {
+          // Create 3D invisible sphere for raycasting
+          const geometry = new THREE.SphereGeometry(0.08, 16, 16);
+          const material = new THREE.MeshPhongMaterial({
+            color: part.color,
+            transparent: true,
+            opacity: 0, // Invisible
+            emissive: 0x000000,
+          });
+
+          const sphere = new THREE.Mesh(geometry, material);
+          sphere.position.set(...part.position);
+          sphere.userData = { partId: part.id, partData: part };
+
+          labelPoints.push(sphere);
+          scene.add(sphere);
+
+          // Create 2D label element
+          const labelElement = document.createElement("div");
+          labelElement.className = "label-point";
+          labelElement.textContent = part.id;
+          labelElement.style.left = "50%";
+          labelElement.style.top = "50%";
+          labelElement.dataset.partId = part.id;
+
+          // Set the data attribute for color styling
+          labelElement.setAttribute("data-part-id", part.id);
+
+          // Add click event
+          labelElement.addEventListener("click", (e) => {
+            e.stopPropagation();
+            selectPart(part.id);
+          });
+
+          container.appendChild(labelElement);
+          labelElements.push(labelElement);
+        });
+      }
+
+      // Handle mouse clicks and touch events on label points
+      function onMouseClick(event) {
+        const container = document.getElementById("canvas-container");
+        const rect = container.getBoundingClientRect();
+
+        // Handle both mouse and touch events
+        const clientX = event.touches
+          ? event.touches[0]?.clientX || event.changedTouches[0]?.clientX
+          : event.clientX;
+        const clientY = event.touches
+          ? event.touches[0]?.clientY || event.changedTouches[0]?.clientY
+          : event.clientY;
+
+        if (!clientX || !clientY) return;
+
+        const mouse = new THREE.Vector2();
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+
+        const intersects = raycaster.intersectObjects(labelPoints);
+
+        if (intersects.length > 0) {
+          const clickedObject = intersects[0].object;
+          const partId = clickedObject.userData.partId;
+          selectPart(partId);
+        } else {
+          selectPart(null);
+        }
+      }
+
+      // Select a lung part
+      function selectPart(partId) {
+        selectedPart = partId;
+
+        // Update visual feedback for 3D points
+        labelPoints.forEach((point) => {
+          const isSelected = point.userData.partId === partId;
+          if (point.material && point.material.emissive) {
+            point.material.emissive.setHex(isSelected ? 0x444444 : 0x000000);
+          }
+          point.scale.setScalar(isSelected ? 1.5 : 1);
+        });
+
+        // Update label point selection visual
+        labelElements.forEach((label) => {
+          label.classList.remove("selected");
+        });
+
+        // Show info card instead of info panel
+        if (partId) {
+          const part = lungsParts.find((p) => p.id === partId);
+          if (part) {
+            // Add selected class to the clicked label
+            const selectedLabel = labelElements.find(
+              (label) => label.dataset.partId === partId
+            );
+            if (selectedLabel) {
+              selectedLabel.classList.add("selected");
+            }
+
+            // Show the info card
+            document.getElementById("card-part-name").textContent = part.name;
+            document.getElementById("card-part-description").textContent =
+              part.description;
+            document.getElementById("info-card").classList.add("visible");
+          }
+        } else {
+          // Hide info card when nothing is selected
+          document.getElementById("info-card").classList.remove("visible");
+          document.getElementById("info-panel").classList.remove("visible");
+        }
+      }
+
+      // Update 2D label positions based on 3D positions
+      function updateLabelPositions() {
+        labelPoints.forEach((point, index) => {
+          const labelElement = labelElements[index];
+          if (!labelElement) return;
+
+          // Project 3D position to 2D screen coordinates
+          const vector = point.position.clone();
+          vector.project(camera);
+
+          // Convert to screen coordinates
+          const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+          const y = (vector.y * -0.5 + 0.5) * renderer.domElement.clientHeight;
+
+          // Update label position
+          labelElement.style.left = x + "px";
+          labelElement.style.top = y + "px";
+
+          // Hide labels that are behind the camera or too far
+          const distance = camera.position.distanceTo(point.position);
+          const isVisible = vector.z < 1 && distance < 15;
+          labelElement.style.display = isVisible ? "flex" : "none";
+        });
+      }
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+
+        controls.update();
+
+        // Update label positions to follow 3D model
+        updateLabelPositions();
+
+        renderer.render(scene, camera);
+      }
+
+      // Handle window resize with throttling
+      function onWindowResize() {
+        if (resizeTimeout) {
+          clearTimeout(resizeTimeout);
+        }
+
+        resizeTimeout = setTimeout(() => {
+          const container = document.getElementById("canvas-container");
+          const containerRect = container.getBoundingClientRect();
+
+          camera.aspect = containerRect.width / containerRect.height;
+          camera.updateProjectionMatrix();
+          renderer.setSize(containerRect.width, containerRect.height);
+        }, 100);
+      }
+
+      // Show controls modal
+      function showModal() {
+        document.getElementById("controls-modal").classList.add("show");
+      }
+
+      // Hide controls modal
+      function hideModal() {
+        document.getElementById("controls-modal").classList.remove("show");
+      }
+
+      // Hide info card
+      function hideInfoCard() {
+        document.getElementById("info-card").classList.remove("visible");
+        selectPart(null);
+      }
+
+      // Handle keyboard events
+      function handleKeyPress(event) {
+        switch (event.key.toLowerCase()) {
+          case "escape":
+            hideInfoCard();
+            hideModal();
+            break;
+          case "r":
+            // Reset camera position and look at center
+            camera.position.set(0, 0, 5);
+            camera.lookAt(0, 0, 0);
+            controls.target.set(0, 0, 0);
+            controls.reset();
+            break;
+          case "?":
+            showModal();
+            break;
+        }
+      }
+
+      // Navigate back to AR Scanner
+      function goBackToAR() {
+        window.location.href = "ARScannerPage.html";
+      }
+
+      // Initialize when page loads
+      window.addEventListener("load", () => {
+        initScene();
+
+        // Add event listeners
+        const container = document.getElementById("canvas-container");
+        container.addEventListener("click", onMouseClick);
+        container.addEventListener("touchend", onMouseClick);
+
+        window.addEventListener("resize", onWindowResize);
+        window.addEventListener("keydown", handleKeyPress);
+
+        // Prevent context menu on right click
+        container.addEventListener("contextmenu", (e) => e.preventDefault());
+
+        // Handle orientation change on mobile
+        window.addEventListener("orientationchange", () => {
+          setTimeout(onWindowResize, 100);
+        });
+
+        // Click outside to close info card
+        document.addEventListener("click", (e) => {
+          const infoCard = document.getElementById("info-card");
+          const isClickInsideCard = infoCard.contains(e.target);
+          const isClickOnLabel = e.target.classList.contains("label-point");
+
+          if (!isClickInsideCard && !isClickOnLabel) {
+            hideInfoCard();
+          }
+        });
+
+        // Modal click outside to close
+        document
+          .getElementById("controls-modal")
+          .addEventListener("click", (e) => {
+            if (e.target.classList.contains("modal")) {
+              hideModal();
+            }
+          });
+      });
+
+      // Cleanup when page unloads
+      window.addEventListener("beforeunload", () => {
+        if (renderer) {
+          renderer.dispose();
+        }
+      });
+    </script>
+  </body>
+</html>
