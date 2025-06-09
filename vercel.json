@@ -1,7 +1,27 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/ARScannerPage.html",
+      "destination": "/public/ARScannerPage.html"
+    },
+    {
+      "source": "/BrainViewer.html",
+      "destination": "/public/BrainViewer.html"
+    },
+    {
+      "source": "/KidneyViewer.html", 
+      "destination": "/public/KidneyViewer.html"
+    },
+    {
+      "source": "/LungsViewer.html",
+      "destination": "/public/LungsViewer.html"
+    },
+    {
+      "source": "/SlicedHeartViewer.html",
+      "destination": "/public/SlicedHeartViewer.html"
+    },
+    {
+      "source": "/((?!api|_next|_static|favicon.ico|public|ARScannerPage|BrainViewer|KidneyViewer|LungsViewer|SlicedHeartViewer).*)",
       "destination": "/index.html"
     }
   ],
