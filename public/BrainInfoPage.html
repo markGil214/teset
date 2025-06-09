@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes, viewport-fit=cover"
+    />
+    <title>Brain - Interactive Anatomy Information</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+      :root {
+        --primary: #6366f1;
+        --primary-hover: #4f46e5;
+        --secondary: #ec4899;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --error: #ef4444;
+        --brain-color: #9d4edd;
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --text-primary: #ffffff;
+        --text-secondary: rgba(255, 255, 255, 0.8);
+        --shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.3);
+        --radius: 16px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --tab-height: 70px;
+        --header-height: 70px;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: #230f43;
+        color: var(--text-primary);
+        height: 100vh;
+        overflow: hidden;
+        position: relative;
+      }
+
+      /* Animated background particles */
+      .bg-particles {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="25" cy="25" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="10" cy="75" r="1.2" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="25" r="0.8" fill="rgba(255,255,255,0.1)"/></svg>');
+        animation: float 20s infinite linear;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(0px) rotate(0deg);
+        }
+        100% {
+          transform: translateY(-100px) rotate(360deg);
+        }
+      }
+
+      /* Header */
+      .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--header-height);
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--glass-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        z-index: 1000;
+      }
+
+      .back-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 8px 16px;
+        color: var(--text-primary);
+        text-decoration: none;
+        font-weight: 500;
+        transition: var(--transition);
+        backdrop-filter: blur(10px);
+        min-height: 44px; /* Touch target */
+      }
+
+      .back-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateX(-2px);
+      }
+
+      .organ-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .brain-icon {
+        color: var(--brain-color);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+
+      /* Main content container */
+      .main-container {
+        position: fixed;
+        top: var(--header-height);
+        left: 0;
+        right: 0;
+        bottom: var(--tab-height);
+        overflow: hidden;
+      }
+
+      /* Tab content */
+      .tab-content {
+        display: none;
+        height: 100%;
+        overflow-y: auto;
+        padding: 20px;
+        scroll-behavior: smooth;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      /* 3D Model Tab */
+      .model-container {
+        position: relative;
+        height: 100%;
+        min-height: 400px;
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+      }
+
+      #brain-viewer {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .model-controls {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 10;
+      }
+
+      .control-btn {
+        background: rgba(0, 0, 0, 0.6);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        padding: 8px;
+        cursor: pointer;
+        transition: var(--transition);
+        min-height: 44px;
+        min-width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .control-btn:hover {
+        background: rgba(0, 0, 0, 0.8);
+        transform: scale(1.05);
+      }
+
+      .loading-spinner {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top: 3px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Info Tab */
+      .info-section {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius);
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+
+      .info-section h2 {
+        color: var(--text-primary);
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .info-section h3 {
+        color: var(--text-primary);
+        font-size: 18px;
+        font-weight: 600;
+        margin: 16px 0 8px 0;
+      }
+
+      .info-section p {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 12px;
+        font-size: 16px;
+      }
+
+      .info-section ul {
+        margin-left: 20px;
+        margin-bottom: 16px;
+      }
+
+      .info-section li {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 8px;
+        font-size: 16px;
+      }
+
+      /* Health Tab */
+      .disease-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius);
+        padding: 20px;
+        margin-bottom: 16px;
+        transition: var(--transition);
+      }
+
+      .disease-card:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+      }
+
+      .disease-card h3 {
+        color: var(--text-primary);
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .disease-card p {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        font-size: 15px;
+      }
+
+      .severity-badge {
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .severity-low {
+        background: var(--success);
+        color: white;
+      }
+      .severity-medium {
+        background: var(--warning);
+        color: white;
+      }
+      .severity-high {
+        background: var(--error);
+        color: white;
+      }
+
+      /* Bottom Navigation */
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: var(--tab-height);
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--glass-border);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 1000;
+        padding: 0 10px;
+      }
+
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: var(--transition);
+        flex: 1;
+        text-align: center;
+        min-height: 50px;
+        justify-content: center;
+      }
+
+      .nav-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .nav-item.active {
+        background: var(--primary);
+        color: white;
+      }
+
+      .nav-icon {
+        font-size: 20px;
+        margin-bottom: 2px;
+      }
+
+      .nav-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+      }
+
+      .nav-item.active .nav-label {
+        color: white;
+      }
+
+      /* Responsive design for larger screens */
+      @media (min-width: 768px) {
+        .main-container {
+          padding: 0 20px;
+        }
+
+        .model-container {
+          max-height: 600px;
+        }
+
+        .info-section {
+          max-width: 800px;
+          margin: 0 auto 20px auto;
+        }
+
+        .disease-card {
+          max-width: 800px;
+          margin: 0 auto 16px auto;
+        }
+      }
+
+      /* Safe area for devices with notches */
+      @supports (padding: max(0px)) {
+        .header {
+          padding-top: max(20px, env(safe-area-inset-top));
+          height: calc(
+            var(--header-height) + max(0px, env(safe-area-inset-top))
+          );
+        }
+
+        .main-container {
+          top: calc(var(--header-height) + max(0px, env(safe-area-inset-top)));
+          bottom: calc(
+            var(--tab-height) + max(0px, env(safe-area-inset-bottom))
+          );
+        }
+
+        .bottom-nav {
+          padding-bottom: max(0px, env(safe-area-inset-bottom));
+          height: calc(
+            var(--tab-height) + max(0px, env(safe-area-inset-bottom))
+          );
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-particles"></div>
+
+    <!-- Header -->
+    <div class="header">
+      <a href="ARScannerPage.html" class="back-btn">
+        <span>←</span>
+        <span>Back to Scanner</span>
+      </a>
+      <div class="organ-title">
+        <span class="brain-icon">🧠</span>
+        <span>Brain</span>
+      </div>
+      <div></div>
+      <!-- Spacer for flex layout -->
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-container">
+      <!-- 3D Model Tab -->
+      <div id="model-tab" class="tab-content active">
+        <div class="model-container">
+          <canvas id="brain-viewer"></canvas>
+          <div class="loading-spinner" id="loading">
+            <div class="spinner"></div>
+            <span>Loading 3D Brain Model...</span>
+          </div>
+          <div class="model-controls">
+            <button class="control-btn" id="reset-btn" title="Reset View">
+              🔄
+            </button>
+            <button
+              class="control-btn"
+              id="wireframe-btn"
+              title="Toggle Wireframe"
+            >
+              📐
+            </button>
+            <button class="control-btn" id="fullscreen-btn" title="Fullscreen">
+              ⛶
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Tab -->
+      <div id="info-tab" class="tab-content">
+        <div class="info-section">
+          <h2>🧠 What is the Brain?</h2>
+          <p>
+            Your brain is the amazing command center of your body! It's like a
+            super-computer that controls everything you do - from thinking and
+            learning to moving and breathing. It weighs about 3 pounds and has
+            billions of tiny cells called neurons.
+          </p>
+
+          <h3>How Your Brain Works</h3>
+          <p>
+            Your brain has different parts that work together like a team. Each
+            part has special jobs to help you live, learn, and have fun!
+          </p>
+
+          <ul>
+            <li>
+              <strong>Cerebrum:</strong> The biggest part that helps you think,
+              learn, and remember
+            </li>
+            <li>
+              <strong>Cerebellum:</strong> The "little brain" that helps you
+              balance and move smoothly
+            </li>
+            <li>
+              <strong>Brain Stem:</strong> Controls important things like
+              breathing and heartbeat
+            </li>
+            <li>
+              <strong>Neurons:</strong> Tiny brain cells that send messages
+              super fast
+            </li>
+            <li>
+              <strong>Left & Right Sides:</strong> Each side has different
+              special abilities
+            </li>
+          </ul>
+        </div>
+
+        <div class="info-section">
+          <h2>🌟 Amazing Brain Facts</h2>
+          <ul>
+            <li>
+              Your brain has about 86 billion neurons - that's more than stars
+              in our galaxy!
+            </li>
+            <li>
+              It uses about 20% of your body's energy, even though it's only 2%
+              of your weight
+            </li>
+            <li>Your brain never stops working - not even when you sleep!</li>
+            <li>
+              It can process information faster than the world's best computers
+            </li>
+            <li>
+              Your brain continues growing and changing throughout your whole
+              life
+            </li>
+            <li>It has no pain receptors, so it can't actually feel pain</li>
+            <li>
+              Dreams happen when your brain organizes memories while you sleep
+            </li>
+          </ul>
+        </div>
+
+        <div class="info-section">
+          <h2>🚀 Keeping Your Brain Healthy</h2>
+          <ul>
+            <li>
+              <strong>Learn new things:</strong> Reading, puzzles, and games
+              help your brain grow
+            </li>
+            <li>
+              <strong>Get enough sleep:</strong> 9-11 hours helps your brain
+              recharge and grow
+            </li>
+            <li>
+              <strong>Exercise regularly:</strong> Physical activity helps your
+              brain work better
+            </li>
+            <li>
+              <strong>Eat brain foods:</strong> Fish, nuts, berries, and
+              vegetables feed your brain
+            </li>
+            <li>
+              <strong>Stay hydrated:</strong> Your brain is 75% water and needs
+              lots of fluids
+            </li>
+            <li>
+              <strong>Practice mindfulness:</strong> Quiet time helps your brain
+              rest and focus
+            </li>
+            <li>
+              <strong>Wear a helmet:</strong> Protect your brain during sports
+              and bike riding
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Health Tab -->
+      <div id="health-tab" class="tab-content">
+        <div class="disease-card">
+          <h3>
+            🤕 Concussion
+            <span class="severity-badge severity-medium">Treatable</span>
+          </h3>
+          <p>
+            A concussion happens when your brain gets shaken inside your skull,
+            usually from a bump or hit to the head. That's why wearing helmets
+            during sports is so important! Most concussions heal completely with
+            rest.
+          </p>
+        </div>
+
+        <div class="disease-card">
+          <h3>
+            😴 Sleep Problems
+            <span class="severity-badge severity-low">Common</span>
+          </h3>
+          <p>
+            Sometimes kids have trouble falling asleep or staying asleep. This
+            can make it hard to think clearly during the day. Good sleep habits
+            and a regular bedtime can help your brain get the rest it needs.
+          </p>
+        </div>
+
+        <div class="disease-card">
+          <h3>
+            📚 Learning Differences
+            <span class="severity-badge severity-low">Manageable</span>
+          </h3>
+          <p>
+            Some kids' brains work differently when learning to read, write, or
+            do math. This doesn't mean they're not smart! With the right help
+            and tools, every brain can learn and succeed in its own special way.
+          </p>
+        </div>
+
+        <div class="disease-card">
+          <h3>
+            😰 Anxiety
+            <span class="severity-badge severity-medium">Treatable</span>
+          </h3>
+          <p>
+            Sometimes kids feel worried or scared about things. This is normal,
+            but if worry feelings happen a lot, talking to adults and learning
+            special techniques can help your brain feel calmer and happier.
+          </p>
+        </div>
+
+        <div class="disease-card">
+          <h3>
+            🤔 ADHD
+            <span class="severity-badge severity-medium">Manageable</span>
+          </h3>
+          <p>
+            Some kids have brains that think really fast and have lots of
+            energy! ADHD makes it hard to sit still or focus sometimes, but with
+            understanding and helpful strategies, these kids can do amazing
+            things.
+          </p>
+        </div>
+
+        <div class="disease-card">
+          <h3>
+            🔄 Autism
+            <span class="severity-badge severity-low">Neurodivergent</span>
+          </h3>
+          <p>
+            Autism means some brains work differently and see the world in
+            unique ways. Kids with autism might be really good at certain things
+            and need different kinds of support with others. Every autistic
+            person is special and valuable.
+          </p>
+        </div>
+
+        <div class="disease-card">
+          <h3>
+            ⚡ Seizures
+            <span class="severity-badge severity-medium">Treatable</span>
+          </h3>
+          <p>
+            Sometimes electrical signals in the brain get mixed up and cause
+            seizures. While this might look scary, most seizures don't hurt and
+            can be controlled with medicine. Kids with seizures can live normal,
+            active lives.
+          </p>
+        </div>
+
+        <div class="disease-card">
+          <h3>
+            🧬 Brain Tumors
+            <span class="severity-badge severity-high"
+              >Serious but Treatable</span
+            >
+          </h3>
+          <p>
+            Brain tumors are very rare in children, and many are not cancerous.
+            Doctors have amazing treatments today, and many kids recover
+            completely. Medical science keeps getting better at helping sick
+            children.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+      <div class="nav-item active" data-tab="model">
+        <div class="nav-icon">🧠</div>
+        <div class="nav-label">3D Model</div>
+      </div>
+      <div class="nav-item" data-tab="info">
+        <div class="nav-icon">📚</div>
+        <div class="nav-label">Learn</div>
+      </div>
+      <div class="nav-item" data-tab="health">
+        <div class="nav-icon">🏥</div>
+        <div class="nav-label">Health</div>
+      </div>
+    </div>
+
+    <!-- Three.js and GLTFLoader -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+      // Tab Navigation System
+      class TabNavigation {
+        constructor() {
+          this.activeTab = "model";
+          this.init();
+        }
+
+        init() {
+          // Add click listeners to navigation items
+          document.querySelectorAll(".nav-item").forEach((item) => {
+            item.addEventListener("click", (e) => {
+              const tabName = item.getAttribute("data-tab");
+              this.switchTab(tabName);
+            });
+          });
+        }
+
+        switchTab(tabName) {
+          // Hide all tab contents
+          document.querySelectorAll(".tab-content").forEach((content) => {
+            content.classList.remove("active");
+          });
+
+          // Remove active class from all nav items
+          document.querySelectorAll(".nav-item").forEach((item) => {
+            item.classList.remove("active");
+          });
+
+          // Show selected tab content
+          const targetTab = document.getElementById(`${tabName}-tab`);
+          const targetNav = document.querySelector(`[data-tab="${tabName}"]`);
+
+          if (targetTab && targetNav) {
+            targetTab.classList.add("active");
+            targetNav.classList.add("active");
+            this.activeTab = tabName;
+
+            // Initialize 3D viewer when model tab is active
+            if (tabName === "model" && !window.brainViewer) {
+              setTimeout(() => {
+                window.brainViewer = new BrainViewer();
+              }, 100);
+            }
+          }
+        }
+      }
+
+      // 3D Brain Viewer Class
+      class BrainViewer {
+        constructor() {
+          this.scene = null;
+          this.camera = null;
+          this.renderer = null;
+          this.controls = null;
+          this.brainModel = null;
+          this.autoRotate = true;
+          this.isWireframe = false;
+          this.originalMaterials = [];
+
+          this.init();
+          this.setupEventListeners();
+        }
+
+        init() {
+          const container = document.getElementById("brain-viewer");
+          if (!container) return;
+
+          // Scene setup
+          this.scene = new THREE.Scene();
+          this.scene.background = new THREE.Color(0x1a1a2e);
+
+          // Camera setup
+          const aspect = container.clientWidth / container.clientHeight;
+          this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+          this.camera.position.set(5, 0, 5);
+
+          // Renderer setup
+          this.renderer = new THREE.WebGLRenderer({
+            canvas: container,
+            antialias: true,
+            alpha: true,
+            powerPreference: "high-performance",
+          });
+          this.renderer.setSize(container.clientWidth, container.clientHeight);
+          this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          this.renderer.shadowMap.enabled = false;
+
+          // Controls setup
+          this.controls = new THREE.OrbitControls(
+            this.camera,
+            this.renderer.domElement
+          );
+          this.controls.enableDamping = true;
+          this.controls.dampingFactor = 0.05;
+          this.controls.autoRotate = this.autoRotate;
+          this.controls.autoRotateSpeed = 1.0;
+          this.controls.enableZoom = true;
+          this.controls.enablePan = true;
+          this.controls.maxDistance = 20;
+          this.controls.minDistance = 2;
+
+          // Lighting setup
+          this.setupLighting();
+
+          // Load brain model
+          this.loadBrainModel();
+
+          // Start render loop
+          this.animate();
+
+          // Handle window resize
+          window.addEventListener("resize", () => this.onWindowResize());
+        }
+
+        setupLighting() {
+          // Bright ambient light for cartoon-like appearance
+          const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+          this.scene.add(ambientLight);
+
+          // Soft main directional light
+          const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+          directionalLight.position.set(5, 5, 5);
+          directionalLight.castShadow = false;
+          this.scene.add(directionalLight);
+
+          // Colorful fill lights for brain-specific colors
+          const fillLight1 = new THREE.DirectionalLight(0x9d4edd, 0.3);
+          fillLight1.position.set(-5, 0, -5);
+          this.scene.add(fillLight1);
+
+          const fillLight2 = new THREE.DirectionalLight(0x6bb6ff, 0.3);
+          fillLight2.position.set(5, 0, -5);
+          this.scene.add(fillLight2);
+
+          // Top light for even illumination
+          const topLight = new THREE.DirectionalLight(0xffffff, 0.4);
+          topLight.position.set(0, 10, 0);
+          this.scene.add(topLight);
+        }
+
+        loadBrainModel() {
+          const loader = new THREE.GLTFLoader();
+
+          loader.load(
+            "brain/scene.gltf",
+            (gltf) => {
+              this.brainModel = gltf.scene;
+
+              // Scale and position the model
+              this.brainModel.scale.setScalar(9.0);
+              this.brainModel.position.set(0, 0, 0);
+
+              // Enable shadows and store materials
+              this.brainModel.traverse((child) => {
+                if (child.isMesh) {
+                  child.castShadow = false;
+                  child.receiveShadow = false;
+
+                  // Store original materials for wireframe toggle
+                  if (child.material) {
+                    this.originalMaterials.push(child.material.clone());
+
+                    // Make materials more cartoon-like and brain-colored
+                    child.material.metalness = 0;
+                    child.material.roughness = 1;
+
+                    // Make the brain a pleasant purple/pink color
+                    if (child.material.color) {
+                      child.material.color.setHex(0x9d4edd);
+                    }
+
+                    // Add slight emissive glow for cartoon effect
+                    if (child.material.emissive) {
+                      child.material.emissive.setHex(0x7209b7);
+                      child.material.emissiveIntensity = 0.1;
+                    }
+                  }
+                }
+              });
+
+              this.scene.add(this.brainModel);
+
+              // Hide loading indicator
+              document.getElementById("loading").style.display = "none";
+
+              console.log("Brain model loaded successfully");
+            },
+            (progress) => {
+              const percentComplete = (progress.loaded / progress.total) * 100;
+              console.log(`Loading progress: ${percentComplete.toFixed(1)}%`);
+            },
+            (error) => {
+              console.error("Error loading brain model:", error);
+              document.getElementById("loading").innerHTML =
+                '<div class="spinner"></div>Error loading 3D model. Please refresh.';
+            }
+          );
+        }
+
+        setupEventListeners() {
+          // Reset view
+          document
+            .getElementById("reset-btn")
+            ?.addEventListener("click", () => {
+              this.camera.position.set(0, 0, 5);
+              this.controls.reset();
+            });
+
+          // Wireframe toggle
+          document
+            .getElementById("wireframe-btn")
+            ?.addEventListener("click", () => {
+              this.toggleWireframe();
+            });
+
+          // Fullscreen toggle
+          document
+            .getElementById("fullscreen-btn")
+            ?.addEventListener("click", () => {
+              if (document.fullscreenElement) {
+                document.exitFullscreen();
+              } else {
+                document.documentElement.requestFullscreen();
+              }
+            });
+        }
+
+        toggleWireframe() {
+          this.isWireframe = !this.isWireframe;
+
+          if (this.brainModel) {
+            let materialIndex = 0;
+            this.brainModel.traverse((child) => {
+              if (child.isMesh) {
+                if (this.isWireframe) {
+                  child.material = new THREE.MeshBasicMaterial({
+                    color: 0x9d4edd, // Purple wireframe
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.9,
+                  });
+                } else {
+                  // Restore cartoon-style material
+                  const originalMaterial =
+                    this.originalMaterials[materialIndex] || child.material;
+                  child.material = originalMaterial.clone();
+                  child.material.metalness = 0;
+                  child.material.roughness = 1;
+                  child.material.color.setHex(0x9d4edd);
+                  if (child.material.emissive) {
+                    child.material.emissive.setHex(0x7209b7);
+                    child.material.emissiveIntensity = 0.1;
+                  }
+                }
+                materialIndex++;
+              }
+            });
+          }
+        }
+
+        onWindowResize() {
+          const container = document.getElementById("brain-viewer");
+          if (!container) return;
+
+          this.camera.aspect = container.clientWidth / container.clientHeight;
+          this.camera.updateProjectionMatrix();
+
+          this.renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        animate() {
+          requestAnimationFrame(() => this.animate());
+
+          if (this.controls) {
+            this.controls.update();
+          }
+
+          if (this.renderer && this.scene && this.camera) {
+            this.renderer.render(this.scene, this.camera);
+          }
+        }
+      }
+
+      // Initialize the application when the page loads
+      document.addEventListener("DOMContentLoaded", () => {
+        // Initialize tab navigation
+        window.tabNavigation = new TabNavigation();
+
+        // Initialize 3D viewer for the default active tab
+        setTimeout(() => {
+          window.brainViewer = new BrainViewer();
+        }, 100);
+      });
+
+      // Add haptic feedback for mobile devices
+      if ("vibrate" in navigator) {
+        document
+          .querySelectorAll(".nav-item, .control-btn, .back-btn")
+          .forEach((element) => {
+            element.addEventListener("click", () => {
+              navigator.vibrate(50); // Brief vibration for feedback
+            });
+          });
+      }
+    </script>
+  </body>
+</html>
