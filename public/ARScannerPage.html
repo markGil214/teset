@@ -994,7 +994,7 @@
 
         // Prevent body scrolling
         document.body.style.overflow = "hidden";
-        document.documentElement.style.overflow = "hidden";        // Initialize renderer (matching basic-cutout.html setup)
+        document.documentElement.style.overflow = "hidden"; // Initialize renderer (matching basic-cutout.html setup)
         renderer = new THREE.WebGLRenderer({
           antialias: true, // Enable antialiasing for sharper edges
           alpha: true,
@@ -1044,14 +1044,17 @@
                     // Improve material textures
                     if (child.material.map) {
                       child.material.map.generateMipmaps = true;
-                      child.material.map.minFilter = THREE.LinearMipmapLinearFilter;
+                      child.material.map.minFilter =
+                        THREE.LinearMipmapLinearFilter;
                       child.material.map.magFilter = THREE.LinearFilter;
-                      child.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                      child.material.map.anisotropy =
+                        renderer.capabilities.getMaxAnisotropy();
                     }
                     // Improve normal maps if present
                     if (child.material.normalMap) {
                       child.material.normalMap.generateMipmaps = true;
-                      child.material.normalMap.minFilter = THREE.LinearMipmapLinearFilter;
+                      child.material.normalMap.minFilter =
+                        THREE.LinearMipmapLinearFilter;
                       child.material.normalMap.magFilter = THREE.LinearFilter;
                     }
                     // Enable proper material updates
