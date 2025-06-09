@@ -27,7 +27,7 @@ export const organs: Organ[] = [
     id: "kidney",
     name: "Kidneys",
     image: "/kidneys.png",
-    modelPath: "/kidney/scene.gltf",
+    modelPath: "/new_kidney/kidney.glb",
     description:
       "The kidneys filter blood to remove waste and extra fluid, which becomes urine.",
   },
