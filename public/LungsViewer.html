@@ -779,71 +779,47 @@
     </div>
 
     <script>
-      // Lungs parts data based on respiratory anatomy
+      // Essential lung parts - simplified for better understanding
       const lungsParts = [
         {
           id: "1",
           name: "Trachea",
           description:
-            "The trachea, or windpipe, is a tube that connects the larynx to the bronchi. It's reinforced with C-shaped cartilage rings that keep it open for air passage. The trachea is lined with ciliated epithelium that helps filter and humidify incoming air while moving particles and mucus upward.",
-          position: [0.0, 0.4, 0.1],
+            "The windpipe that carries air from the throat to the lungs. It's kept open by cartilage rings.",
+          position: [0.0, 1, 0.1],
           color: "#E74C3C", // Red
         },
         {
           id: "2",
-          name: "Right Lung",
+          name: "Right Lobe",
           description:
-            "The right lung is larger than the left lung and consists of three lobes: upper, middle, and lower. It's separated from the left lung by the mediastinum and heart. The right lung receives air through the right main bronchus and contains more alveoli than the left lung, making it crucial for efficient gas exchange.",
-          position: [-0.3, 0.1, 0.0],
+            "The larger lung with three lobes. It takes in oxygen and removes carbon dioxide from the blood.",
+          position: [-0.6, 0.1, 0.0],
           color: "#3498DB", // Blue
         },
         {
           id: "3",
-          name: "Left Lung",
+          name: "Left Lobe",
           description:
-            "The left lung has two lobes: upper and lower, and is smaller than the right lung to accommodate the heart. It has a cardiac notch that creates space for the heart. Despite being smaller, the left lung plays an equally important role in oxygenating blood and removing carbon dioxide.",
-          position: [0.3, 0.1, 0.0],
+            "The smaller lung with two lobes, positioned next to the heart. It works with the right lung for breathing.",
+          position: [0.6, 0.1, 0.0],
           color: "#2ECC71", // Green
         },
         {
           id: "4",
-          name: "Main Bronchi",
+          name: "Bronchi",
           description:
-            "The main bronchi are the two large airways that branch from the trachea and lead to each lung. The right main bronchus is wider, shorter, and more vertical than the left. These bronchi further divide into smaller bronchi and bronchioles, creating the bronchial tree that delivers air throughout the lungs.",
-          position: [0.0, 0.2, 0.05],
+            "The main airways that branch from the trachea and carry air into each lung.",
+          position: [0.13, 0.18, 0.05],
           color: "#9B59B6", // Purple
         },
         {
           id: "5",
           name: "Alveoli",
           description:
-            "Alveoli are tiny air sacs where gas exchange occurs. Each lung contains millions of alveoli, providing an enormous surface area for oxygen and carbon dioxide exchange. The alveolar walls are extremely thin and surrounded by capillaries, allowing efficient diffusion of gases between air and blood.",
-          position: [0.1, -0.2, 0.2],
+            "Tiny air sacs where oxygen enters the blood and carbon dioxide is removed.",
+          position: [0.7, -0.3, 0.2],
           color: "#F1C40F", // Yellow
-        },
-        {
-          id: "6",
-          name: "Pleura",
-          description:
-            "The pleura is a double-layered membrane that surrounds each lung. The visceral pleura covers the lung surface, while the parietal pleura lines the chest cavity. Between these layers is the pleural space, containing pleural fluid that lubricates the surfaces and allows smooth breathing movements.",
-          position: [0.4, 0.0, -0.1],
-          color: "#E67E22", // Orange
-        },
-        {
-          id: "7",
-          name: "Diaphragm",
-          description:
-            "The diaphragm is the primary muscle of respiration, forming the floor of the thoracic cavity. When it contracts, it flattens and moves downward, creating negative pressure that draws air into the lungs. When it relaxes, it moves upward, helping to expel air from the lungs during exhalation.",
-          position: [0.0, -0.4, 0.0],
-          color: "#1ABC9C", // Turquoise
-        },
-        {
-          id: "8",
-          name: "Pulmonary Blood Vessels",
-          description:
-            "The pulmonary circulation includes the pulmonary arteries that carry deoxygenated blood from the heart to the lungs, and pulmonary veins that return oxygenated blood to the heart. This specialized circulation allows for gas exchange and is essential for delivering oxygen to the entire body.",
-          position: [-0.2, -0.1, 0.1],
-          color: "#C0392B", // Dark red
         },
       ];
 
