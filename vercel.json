@@ -11,7 +11,7 @@
       "destination": "/BrainViewer.html"
     },
     {
-      "source": "/KidneyViewer.html", 
+      "source": "/KidneyViewer.html",
       "destination": "/KidneyViewer.html"
     },
     {
@@ -20,6 +20,26 @@
     },
     {
       "source": "/SlicedHeartViewer.html",
+      "destination": "/SlicedHeartViewer.html"
+    },
+    {
+      "source": "/ARScannerPage",
+      "destination": "/ARScannerPage.html"
+    },
+    {
+      "source": "/BrainViewer",
+      "destination": "/BrainViewer.html"
+    },
+    {
+      "source": "/KidneyViewer",
+      "destination": "/KidneyViewer.html"
+    },
+    {
+      "source": "/LungsViewer",
+      "destination": "/LungsViewer.html"
+    },
+    {
+      "source": "/SlicedHeartViewer",
       "destination": "/SlicedHeartViewer.html"
     },
     {
