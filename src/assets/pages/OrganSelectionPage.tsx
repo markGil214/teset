@@ -59,7 +59,8 @@ const OrganSelectionPage: React.FC<OrganSelectionPageProps> = ({
     } else {
       navigate("/home");
     }
-  };  return (
+  };
+  return (
     <div className="dashboard-container">
       <div
         style={{
