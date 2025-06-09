@@ -46,18 +46,21 @@
       "source": "/((?!api|_next|_static|favicon.ico|ARScannerPage|BrainViewer|KidneyViewer|LungsViewer|SlicedHeartViewer|assets|vendor|brain|kidney|lungs|sliced_organs|realistic_human_heart).*)",
       "destination": "/index.html"
     }
-  ],
-  "headers": [
+  ],  "headers": [
     {
       "source": "/(.*)",
       "headers": [
         {
           "key": "X-Frame-Options",
-          "value": "DENY"
+          "value": "SAMEORIGIN"
         },
         {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
         }
       ]
     },
