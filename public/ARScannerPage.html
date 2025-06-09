@@ -1127,13 +1127,13 @@
               // Update AR controller
               controller.update(source.domElement);
 
-              // Rotate the 3D model if loaded
-              if (markerGroup.organModel) {
-                if (!showSlicedModelRef) {
-                  markerGroup.organModel.rotation.y +=
-                    (deltaMsec / 2000) * Math.PI;
-                }
-              }
+              // Rotate the 3D model if loaded - DISABLED AUTO-ROTATION
+              // if (markerGroup.organModel) {
+              //   if (!showSlicedModelRef) {
+              //     markerGroup.organModel.rotation.y +=
+              //       (deltaMsec / 2000) * Math.PI;
+              //   }
+              // }
 
               renderer.render(scene, camera);
             }
