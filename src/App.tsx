@@ -20,6 +20,7 @@ import AnatomyQuiz from "./assets/pages/AnatomyQuiz";
 import OrganDetailPage from "./assets/pages/OrganDetailPage";
 import SlicedHeartPage from "./assets/pages/SlicedHeartPage";
 import OrganSelectionPage from "./assets/pages/OrganSelectionPage";
+import ScanExploreHub from "./assets/pages/ScanExploreHub";
 
 // Main App wrapper that provides the Router context
 function App() {
@@ -307,7 +308,7 @@ function AppContent() {
             path="/scan-explore"
             element={
               secondRegistrationComplete ? (
-                <ARScannerPage />
+                <ScanExploreHub />
               ) : (
                 <Navigate to="/" />
               )
