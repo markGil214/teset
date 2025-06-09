@@ -2,20 +2,26 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>Sliced Heart Viewer - Interactive Anatomy</title>
-    <style>      * {
+    <style>
+      * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
         -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
-      }      html {
+      }
+      html {
         font-size: 16px; /* Base font size for rem calculations */
         height: 100%;
         /* Prevent iOS zoom on input focus */
         -webkit-text-size-adjust: 100%;
         -ms-text-size-adjust: 100%;
-      }body {
+      }
+      body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background: linear-gradient(135deg, #2c3e50, #34495e);
         overflow: hidden;
@@ -28,7 +34,8 @@
         padding-bottom: env(safe-area-inset-bottom);
         padding-left: env(safe-area-inset-left);
         padding-right: env(safe-area-inset-right);
-      }/* Main Container using CSS Grid */      #root {
+      } /* Main Container using CSS Grid */
+      #root {
         display: grid;
         grid-template-areas:
           "back-btn back-btn"
@@ -44,7 +51,7 @@
         padding: 1.25rem;
         box-sizing: border-box;
         overflow: hidden;
-      }/* Canvas Container */
+      } /* Canvas Container */
       #canvas-container {
         grid-area: canvas;
         position: relative;
@@ -53,7 +60,8 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-      }      #canvas-container canvas {
+      }
+      #canvas-container canvas {
         width: 100% !important;
         height: 100% !important;
         display: block;
@@ -63,9 +71,9 @@
       /* Touch-friendly interactions */
       @media (pointer: coarse) {
         .label-point {
-          width: 2.5rem;
-          height: 2.5rem;
-          font-size: 1rem;
+          width: 2rem;
+          height: 2rem;
+          font-size: 1.2rem;
         }
 
         .back-button,
@@ -73,7 +81,7 @@
           min-height: 44px; /* iOS touch target minimum */
           min-width: 44px;
         }
-      }/* Header Section */
+      } /* Header Section */
       .header {
         grid-area: header;
         display: flex;
@@ -98,7 +106,7 @@
         font-size: 1rem;
         opacity: 0.9;
         text-shadow: 0.0625rem 0.0625rem 0.125rem rgba(0, 0, 0, 0.5);
-      }      /* Back Button */
+      } /* Back Button */
       .back-button {
         grid-area: back-btn;
         justify-self: center;
@@ -124,7 +132,7 @@
         background: rgba(231, 76, 60, 1);
         transform: translateY(-0.125rem);
         box-shadow: 0 0.375rem 1rem rgba(0, 0, 0, 0.4);
-      }      /* Info Button */
+      } /* Info Button */
       .info-button {
         grid-area: info-btn;
         align-self: center;
@@ -243,10 +251,10 @@
       .close-modal:hover {
         background: rgba(231, 76, 60, 1);
         transform: scale(1.1);
-      }      /* Info Panel using Flexbox - Hidden for card system */
+      } /* Info Panel using Flexbox - Hidden for card system */
       .info-panel {
         display: none;
-      }      /* Centered Info Card Modal */
+      } /* Centered Info Card Modal */
       .info-card {
         position: fixed;
         top: 0;
@@ -271,13 +279,16 @@
       }
 
       .info-card-content {
-        background: linear-gradient(145deg, rgba(44, 62, 80, 0.98), rgba(52, 73, 94, 0.98));
+        background: linear-gradient(
+          145deg,
+          rgba(44, 62, 80, 0.98),
+          rgba(52, 73, 94, 0.98)
+        );
         backdrop-filter: blur(20px);
         color: white;
         padding: 2.5rem;
         border-radius: 1.5rem;
-        box-shadow: 
-          0 20px 60px rgba(0, 0, 0, 0.4),
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4),
           0 0 0 1px rgba(255, 255, 255, 0.1);
         max-width: 32rem;
         width: 90vw;
@@ -317,7 +328,11 @@
         position: absolute;
         top: 1.2rem;
         right: 1.2rem;
-        background: linear-gradient(135deg, rgba(231, 76, 60, 0.9), rgba(192, 57, 43, 0.9));
+        background: linear-gradient(
+          135deg,
+          rgba(231, 76, 60, 0.9),
+          rgba(192, 57, 43, 0.9)
+        );
         color: white;
         border: none;
         border-radius: 50%;
@@ -335,14 +350,18 @@
       }
 
       .close-card:hover {
-        background: linear-gradient(135deg, rgba(231, 76, 60, 1), rgba(192, 57, 43, 1));
+        background: linear-gradient(
+          135deg,
+          rgba(231, 76, 60, 1),
+          rgba(192, 57, 43, 1)
+        );
         transform: scale(1.1) rotate(90deg);
         box-shadow: 0 6px 16px rgba(231, 76, 60, 0.4);
       }
 
       .close-card:active {
         transform: scale(0.95) rotate(90deg);
-      }/* Loading Indicator */
+      } /* Loading Indicator */
       .loading {
         position: absolute;
         top: 50%;
@@ -398,7 +417,8 @@
         transform: scale(1.2);
         box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.5);
         background: rgba(52, 152, 219, 1);
-      }      .label-point.selected {
+      }
+      .label-point.selected {
         background: #f39c12 !important;
         transform: scale(1.3);
         animation: pulse 2s infinite;
@@ -414,11 +434,12 @@
         100% {
           box-shadow: 0 0 0 0 rgba(243, 156, 18, 0);
         }
-      }      /* Responsive Design using Grid and Flexbox */
+      } /* Responsive Design using Grid and Flexbox */
       @media (max-width: 48rem) {
         html {
           font-size: 14px; /* Smaller base font for tablets */
-        }        #root {
+        }
+        #root {
           grid-template-areas:
             "back-btn back-btn"
             "info-btn header"
@@ -458,7 +479,8 @@
       @media (max-width: 30rem) {
         html {
           font-size: 13px; /* Even smaller base font for phones */
-        }        #root {
+        }
+        #root {
           grid-template-areas:
             "back-btn"
             "header"
@@ -528,9 +550,9 @@
         }
 
         .label-point {
-          width: 1.5rem;
-          height: 1.5rem;
-          font-size: 0.7rem;
+          width: 2rem;
+          height: 2rem;
+          font-size: 1.1rem;
         }
 
         .controls-modal-content {
@@ -552,7 +574,8 @@
           width: 1.5rem;
           height: 1.5rem;
           font-size: 0.8rem;
-        }.info-card-content {
+        }
+        .info-card-content {
           padding: 2rem;
           max-width: 90vw;
         }
@@ -604,7 +627,8 @@
 
         .info-panel p {
           font-size: 0.75rem;
-        }        .back-button {
+        }
+        .back-button {
           justify-self: center;
           padding: 0.3rem 0.6rem;
           font-size: 0.65rem;
@@ -614,11 +638,13 @@
           width: 1.8rem;
           height: 1.8rem;
           font-size: 0.7rem;
-        }        .label-point {
-          width: 1.2rem;
-          height: 1.2rem;
-          font-size: 0.6rem;
-        }        .info-card-content {
+        }
+        .label-point {
+          width: 2rem;
+          height: 2rem;
+          font-size: 1rem;
+        }
+        .info-card-content {
           padding: 1.5rem;
           max-width: 95vw;
         }
@@ -643,7 +669,8 @@
       }
 
       /* Landscape orientation optimizations for mobile */
-      @media (max-height: 30rem) and (orientation: landscape) {        #root {
+      @media (max-height: 30rem) and (orientation: landscape) {
+        #root {
           grid-template-areas:
             "back-btn canvas canvas"
             "header canvas canvas"
@@ -669,7 +696,8 @@
           max-height: calc(50vh - 1rem);
           overflow-y: auto;
           font-size: 0.7rem;
-        }        .back-button,
+        }
+        .back-button,
         .info-button {
           top: 0.25rem;
           padding: 0.25rem 0.5rem;
@@ -697,7 +725,8 @@
       <!-- Back Button -->
       <button class="back-button" onclick="goBackToAR()">
         ← Back to AR Scanner
-      </button>      <!-- Header -->
+      </button>
+      <!-- Header -->
       <div class="header">
         <h1>Interactive Heart Anatomy</h1>
         <p>Explore the detailed structure of the human heart</p>
@@ -717,7 +746,8 @@
           heart.
         </p>
       </div>
-    </div>    <!-- Controls Modal -->
+    </div>
+    <!-- Controls Modal -->
     <div class="controls-modal" id="controls-modal">
       <div class="controls-modal-content">
         <button class="close-modal" onclick="hideModal()">×</button>
@@ -761,7 +791,7 @@
           name: "Aorta",
           description:
             "The main artery that carries oxygenated blood from the left ventricle to the rest of the body.",
-          position: [0, 1, 0.5],
+          position: [-0.1, 1.1, 0.5],
           color: "#e74c3c",
         },
         {
@@ -769,7 +799,7 @@
           name: "Superior Vena Cava",
           description:
             "Large vein that carries deoxygenated blood from the upper body back to the right atrium of the heart.",
-          position: [-0.5, 0.4, 0.2],
+          position: [-0.7, 1, 0.2],
           color: "#3498db",
         },
         {
@@ -777,7 +807,7 @@
           name: "Pulmonary Artery",
           description:
             "Carries deoxygenated blood from the right ventricle to the lungs for oxygenation.",
-          position: [1.0, 0.3, 0.2],
+          position: [0, 0.7, 0.2],
           color: "#9b59b6",
         },
         {
@@ -785,7 +815,7 @@
           name: "Right Atrium",
           description:
             "Upper right chamber of the heart that receives deoxygenated blood from the body via the vena cavae.",
-          position: [0.2, 0.1, 0.4],
+          position: [-0.8, 0.3, 0.4],
           color: "#2ecc71",
         },
         {
@@ -793,7 +823,7 @@
           name: "Left Atrium",
           description:
             "Upper left chamber of the heart that receives oxygenated blood from the lungs via the pulmonary veins.",
-          position: [-0.2, 0.1, 0.4],
+          position: [0.5, 0.5, 0.4],
           color: "#f39c12",
         },
         {
@@ -801,7 +831,7 @@
           name: "Right Ventricle",
           description:
             "Lower right chamber of the heart that pumps deoxygenated blood to the lungs via the pulmonary artery.",
-          position: [0.3, -0.3, 0.3],
+          position: [0.5, -0.5, 0.3],
           color: "#e67e22",
         },
         {
@@ -809,15 +839,16 @@
           name: "Left Ventricle",
           description:
             "Lower left chamber of the heart that pumps oxygenated blood to the body via the aorta. It's the strongest chamber.",
-          position: [-0.3, -0.3, 0.3],
+          position: [-0.5, -0.5, 0.3],
           color: "#c0392b",
         },
-      ];      // Global variables
+      ]; // Global variables
       let scene, camera, renderer, controls;
       let heartModel = null;
-      let labelPoints = [];      let selectedPart = null;
+      let labelPoints = [];
+      let selectedPart = null;
       let labelElements = [];
-      let resizeTimeout = null;// Initialize the 3D scene
+      let resizeTimeout = null; // Initialize the 3D scene
       function initScene() {
         // Create scene
         scene = new THREE.Scene();
@@ -844,7 +875,7 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
         // Add renderer to container
-        container.appendChild(renderer.domElement);        // Create controls
+        container.appendChild(renderer.domElement); // Create controls
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.25;
@@ -852,14 +883,14 @@
         controls.enablePan = true;
         controls.minDistance = 2;
         controls.maxDistance = 10;
-        
+
         // Better touch controls for mobile
         controls.rotateSpeed = 0.5;
         controls.zoomSpeed = 0.8;
         controls.panSpeed = 0.8;
         controls.touches = {
           ONE: THREE.TOUCH.ROTATE,
-          TWO: THREE.TOUCH.DOLLY_PAN
+          TWO: THREE.TOUCH.DOLLY_PAN,
         };
 
         // Add lights
@@ -974,13 +1005,14 @@
       function createLabelPoints() {
         const container = document.getElementById("canvas-container");
 
-        heartParts.forEach((part, index) => {          // Create 3D invisible sphere for raycasting
+        heartParts.forEach((part, index) => {
+          // Create 3D invisible sphere for raycasting
           const geometry = new THREE.SphereGeometry(0.08, 16, 16);
           const material = new THREE.MeshPhongMaterial({
             color: part.color,
             transparent: true,
             opacity: 0, // Invisible
-            emissive: 0x000000
+            emissive: 0x000000,
           });
 
           const sphere = new THREE.Mesh(geometry, material);
@@ -996,7 +1028,7 @@
           labelElement.textContent = part.id;
           labelElement.style.left = "50%";
           labelElement.style.top = "50%";
-          labelElement.dataset.partId = part.id;          // Add click event
+          labelElement.dataset.partId = part.id; // Add click event
           labelElement.addEventListener("click", (e) => {
             e.stopPropagation();
             selectPart(part.id);
@@ -1005,17 +1037,21 @@
           container.appendChild(labelElement);
           labelElements.push(labelElement);
         });
-      }// Handle mouse clicks and touch events on label points
+      } // Handle mouse clicks and touch events on label points
       function onMouseClick(event) {
         const container = document.getElementById("canvas-container");
         const rect = container.getBoundingClientRect();
-        
+
         // Handle both mouse and touch events
-        const clientX = event.touches ? event.touches[0]?.clientX || event.changedTouches[0]?.clientX : event.clientX;
-        const clientY = event.touches ? event.touches[0]?.clientY || event.changedTouches[0]?.clientY : event.clientY;
-        
+        const clientX = event.touches
+          ? event.touches[0]?.clientX || event.changedTouches[0]?.clientX
+          : event.clientX;
+        const clientY = event.touches
+          ? event.touches[0]?.clientY || event.changedTouches[0]?.clientY
+          : event.clientY;
+
         if (!clientX || !clientY) return;
-        
+
         const mouse = new THREE.Vector2();
         mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
@@ -1032,7 +1068,7 @@
         } else {
           selectPart(null);
         }
-      }// Select a heart part
+      } // Select a heart part
       function selectPart(partId) {
         selectedPart = partId;
 
@@ -1047,7 +1083,7 @@
 
         // Update label point selection visual
         labelElements.forEach((label) => {
-          label.classList.remove('selected');
+          label.classList.remove("selected");
         });
 
         // Show info card instead of info panel
@@ -1055,23 +1091,27 @@
           const part = heartParts.find((p) => p.id === partId);
           if (part) {
             // Add selected class to the clicked label
-            const selectedLabel = labelElements.find(label => label.dataset.partId === partId);
+            const selectedLabel = labelElements.find(
+              (label) => label.dataset.partId === partId
+            );
             if (selectedLabel) {
-              selectedLabel.classList.add('selected');
+              selectedLabel.classList.add("selected");
             }
 
             // Show the info card
             document.getElementById("card-part-name").textContent = part.name;
-            document.getElementById("card-part-description").textContent = part.description;
+            document.getElementById("card-part-description").textContent =
+              part.description;
             document.getElementById("info-card").classList.add("visible");
-            
+
             // Hide the bottom info panel
             document.getElementById("info-panel").classList.remove("visible");
           }
         } else {
           // Hide info card when nothing is selected
           document.getElementById("info-card").classList.remove("visible");
-          document.getElementById("info-panel").classList.remove("visible");        }
+          document.getElementById("info-panel").classList.remove("visible");
+        }
       }
 
       // Update 2D label positions based on 3D positions
@@ -1116,18 +1156,18 @@
         // Removed: heartModel.rotation.y += 0.005;
 
         renderer.render(scene, camera);
-      }      // Handle window resize with throttling
+      } // Handle window resize with throttling
       function onWindowResize() {
         if (resizeTimeout) {
           clearTimeout(resizeTimeout);
         }
-        
+
         resizeTimeout = setTimeout(() => {
           const container = document.getElementById("canvas-container");
           if (!container) return;
-          
+
           const containerRect = container.getBoundingClientRect();
-          
+
           if (containerRect.width > 0 && containerRect.height > 0) {
             camera.aspect = containerRect.width / containerRect.height;
             camera.updateProjectionMatrix();
@@ -1139,23 +1179,29 @@
       // Show controls modal
       function showModal() {
         document.getElementById("controls-modal").classList.add("visible");
-      }      // Hide controls modal
+      } // Hide controls modal
       function hideModal() {
         document.getElementById("controls-modal").classList.remove("visible");
-      }      // Hide info card
+      } // Hide info card
       function hideInfoCard() {
         document.getElementById("info-card").classList.remove("visible");
         // Clear selection when card is closed
         selectPart(null);
-      }      // Handle keyboard events
+      } // Handle keyboard events
       function handleKeyPress(event) {
         if (event.key === "Escape") {
           // Close info card if open
-          if (document.getElementById("info-card").classList.contains("visible")) {
+          if (
+            document.getElementById("info-card").classList.contains("visible")
+          ) {
             hideInfoCard();
           }
           // Close controls modal if open
-          if (document.getElementById("controls-modal").classList.contains("visible")) {
+          if (
+            document
+              .getElementById("controls-modal")
+              .classList.contains("visible")
+          ) {
             hideModal();
           }
         }
@@ -1170,36 +1216,44 @@
 
         // Navigate back to the AR scanner
         window.history.back();
-      }      // Initialize everything when page loads
+      } // Initialize everything when page loads
       window.addEventListener("load", () => {
         initScene();
-        
+
         // Add resize listeners        window.addEventListener("resize", onWindowResize);
-        
+
         // Add ResizeObserver for container size changes
         if (window.ResizeObserver) {
           const resizeObserver = new ResizeObserver(onWindowResize);
           resizeObserver.observe(document.getElementById("canvas-container"));
         }
-          // Add both mouse and touch events
+        // Add both mouse and touch events
         window.addEventListener("click", onMouseClick);
         window.addEventListener("touchend", onMouseClick);
-        
+
         // Add keyboard event listener
         document.addEventListener("keydown", handleKeyPress);
-        
+
         // Prevent default touch behaviors that might interfere
-        document.addEventListener("touchstart", function(e) {
-          if (e.touches.length > 1) {
-            e.preventDefault();
-          }
-        }, { passive: false });
-        
-        document.addEventListener("touchmove", function(e) {
-          if (e.touches.length > 1) {
-            e.preventDefault();
-          }
-        }, { passive: false });        // Close modal when clicking outside of it
+        document.addEventListener(
+          "touchstart",
+          function (e) {
+            if (e.touches.length > 1) {
+              e.preventDefault();
+            }
+          },
+          { passive: false }
+        );
+
+        document.addEventListener(
+          "touchmove",
+          function (e) {
+            if (e.touches.length > 1) {
+              e.preventDefault();
+            }
+          },
+          { passive: false }
+        ); // Close modal when clicking outside of it
         document
           .getElementById("controls-modal")
           .addEventListener("click", (event) => {

@@ -73,14 +73,12 @@
         height: 100% !important;
         display: block;
         touch-action: manipulation; /* Better touch handling */
-      }
-
-      /* Touch-friendly interactions */
+      } /* Touch-friendly interactions */
       @media (pointer: coarse) {
         .label-point {
-          width: 2.5rem;
-          height: 2.5rem;
-          font-size: 1rem;
+          width: 2rem;
+          height: 2rem;
+          font-size: 1.2rem;
         }
 
         .back-button,
@@ -432,33 +430,29 @@
         pointer-events: auto;
         z-index: 10;
         user-select: none;
-      }
-
-      /* Individual label colors based on brain model regions */
+      } /* Individual label colors for essential brain parts */
       .label-point[data-part-id="1"] {
-        background: rgba(32, 178, 170, 0.9); /* Teal for left hemisphere */
+        background: rgba(74, 144, 226, 0.9); /* Blue for Frontal Lobe */
       }
 
       .label-point[data-part-id="2"] {
-        background: rgba(255, 215, 0, 0.9); /* Yellow for frontal cortex */
-        color: #333; /* Dark text for better contrast on yellow */
+        background: rgba(50, 205, 50, 0.9); /* Green for Parietal Lobe */
       }
 
       .label-point[data-part-id="3"] {
-        background: rgba(50, 205, 50, 0.9); /* Green for temporal-parietal */
+        background: rgba(233, 30, 99, 0.9); /* Pink for Occipital Lobe */
       }
 
       .label-point[data-part-id="4"] {
-        background: rgba(220, 20, 60, 0.9); /* Red for right hemisphere */
+        background: rgba(156, 39, 176, 0.9); /* Purple for Temporal Lobe */
       }
 
       .label-point[data-part-id="5"] {
-        background: rgba(
-          139,
-          69,
-          19,
-          0.9
-        ); /* Brown for brain stem & cerebellum */
+        background: rgba(255, 152, 0, 0.9); /* Orange for Cerebellum */
+      }
+
+      .label-point[data-part-id="6"] {
+        background: rgba(96, 125, 139, 0.9); /* Blue Grey for Brain Stem */
       }
 
       .label-point:hover {
@@ -470,27 +464,29 @@
         transform: scale(1.3);
         animation: pulse 2s infinite;
         box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.5);
-      }
-
-      /* Maintain original colors when selected but add glow effect */
+      } /* Selected state glow effects for essential brain parts */
       .label-point.selected[data-part-id="1"] {
-        box-shadow: 0 0 20px rgba(32, 178, 170, 0.8);
+        box-shadow: 0 0 20px rgba(74, 144, 226, 0.8);
       }
 
       .label-point.selected[data-part-id="2"] {
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-      }
-
-      .label-point.selected[data-part-id="3"] {
         box-shadow: 0 0 20px rgba(50, 205, 50, 0.8);
       }
 
+      .label-point.selected[data-part-id="3"] {
+        box-shadow: 0 0 20px rgba(233, 30, 99, 0.8);
+      }
+
       .label-point.selected[data-part-id="4"] {
-        box-shadow: 0 0 20px rgba(220, 20, 60, 0.8);
+        box-shadow: 0 0 20px rgba(156, 39, 176, 0.8);
       }
 
       .label-point.selected[data-part-id="5"] {
-        box-shadow: 0 0 20px rgba(139, 69, 19, 0.8);
+        box-shadow: 0 0 20px rgba(255, 152, 0, 0.8);
+      }
+
+      .label-point.selected[data-part-id="6"] {
+        box-shadow: 0 0 20px rgba(96, 125, 139, 0.8);
       }
       @keyframes pulse {
         0% {
@@ -622,9 +618,9 @@
         }
 
         .label-point {
-          width: 1.5rem;
-          height: 1.5rem;
-          font-size: 0.7rem;
+          width: 2rem;
+          height: 2rem;
+          font-size: 1.1rem;
         }
 
         .controls-modal-content {
@@ -713,11 +709,10 @@
           height: 1.8rem;
           font-size: 0.7rem;
         }
-
         .label-point {
-          width: 1.2rem;
-          height: 1.2rem;
-          font-size: 0.6rem;
+          width: 2rem;
+          height: 2rem;
+          font-size: 1rem;
         }
 
         .info-card-content {
@@ -834,7 +829,7 @@
         <div class="controls-list">
           <div class="control-item">
             <div class="control-icon">🖱️</div>
-            <span>Click & drag to rotate</span>
+            <span>Click & drag to pan</span>
           </div>
           <div class="control-item">
             <div class="control-icon">🔍</div>
@@ -863,47 +858,55 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
     <script>
-      // Brain parts data based on the colored regions in your 3D model
+      // Essential brain parts - most important regions only
       const brainParts = [
         {
           id: "1",
-          name: "Left Cerebral Hemisphere",
+          name: "Frontal Lobe",
           description:
-            "The left cerebral hemisphere is primarily responsible for language processing, logical reasoning, mathematical calculations, and analytical thinking. It controls the right side of the body and contains important areas like Broca's and Wernicke's areas for speech and language comprehension.",
-          position: [-0.5, 0.2, 0.1],
-          color: "#20B2AA", // Teal/Cyan color matching the model
+            "Controls thinking, planning, personality, and movement. This is where decision-making and problem-solving happen.",
+          position: [-3, 3, 0.2],
+          color: "#4A90E2", // Blue
         },
         {
           id: "2",
-          name: "Frontal Cortex",
+          name: "Parietal Lobe",
           description:
-            "The frontal cortex, shown in yellow, is responsible for executive functions, personality, decision-making, problem-solving, and motor control. It contains the primary motor cortex and plays a crucial role in planning and impulse control.",
-          position: [0.1, 0.4, 0.5],
-          color: "#FFD700", // Yellow color matching the model
+            "Processes touch, temperature, and spatial awareness. Helps you understand where your body is in space.",
+          position: [2, 1.2, 0.1],
+          color: "#32CD32", // Green
         },
         {
           id: "3",
-          name: "Temporal-Parietal Region",
+          name: "Occipital Lobe",
           description:
-            "This green region encompasses parts of the temporal and parietal lobes, responsible for sensory integration, spatial processing, auditory processing, and memory formation. It plays a key role in combining information from multiple senses.",
-          position: [-0.3, -0.1, 0.2],
-          color: "#32CD32", // Green color matching the model
+            "The vision center of the brain. Processes everything you see including colors, shapes, and movement.",
+          position: [2.7, 0.1, 0.0],
+          color: "#E91E63", // Pink/Red
         },
         {
           id: "4",
-          name: "Right Cerebral Hemisphere",
+          name: "Temporal Lobe",
           description:
-            "The right cerebral hemisphere, shown in red, specializes in spatial awareness, visual processing, creativity, intuition, and artistic abilities. It controls the left side of the body and is important for recognizing faces and processing emotions.",
-          position: [0.5, 0.1, 0.1],
-          color: "#DC143C", // Red color matching the model
+            "Handles hearing, language, and memory. Contains the hippocampus which is crucial for forming new memories.",
+          position: [-1.3, -0.6, 0.5],
+          color: "#9C27B0", // Purple
         },
         {
           id: "5",
-          name: "Brain Stem & Cerebellum",
+          name: "Cerebellum",
           description:
-            "The dark brown region represents the brain stem and cerebellum. The brain stem controls vital life functions like breathing and heart rate, while the cerebellum coordinates movement, balance, and posture. Together they form the foundation of brain function.",
-          position: [0.1, -0.5, -0.2],
-          color: "#8B4513", // Dark brown color matching the model
+            "The 'little brain' that controls balance, coordination, and smooth movements. Essential for motor learning.",
+          position: [1.9, -1.0, -0.5],
+          color: "#FF9800", // Orange
+        },
+        {
+          id: "6",
+          name: "Brain Stem",
+          description:
+            "Controls vital functions like breathing, heart rate, and blood pressure. Connects the brain to the spinal cord.",
+          position: [0.3, -1.5, 0.0],
+          color: "#607D8B", // Blue Grey
         },
       ];
 
@@ -932,7 +935,7 @@
           0.1,
           1000
         );
-        camera.position.set(0, 0, 5);
+        camera.position.set(10, 0, 5);
 
         // Create renderer
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -942,38 +945,39 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
         // Add renderer to container
-        container.appendChild(renderer.domElement);
-
-        // Create controls
+        container.appendChild(renderer.domElement); // Create controls
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.25;
         controls.enableZoom = true;
         controls.enablePan = true;
+        controls.enableRotate = false; // Disable rotation
         controls.minDistance = 2;
         controls.maxDistance = 10;
 
-        // Better touch controls for mobile
-        controls.rotateSpeed = 0.5;
+        // Better touch controls for mobile - only zoom and pan
         controls.zoomSpeed = 0.8;
         controls.panSpeed = 0.8;
         controls.touches = {
-          ONE: THREE.TOUCH.ROTATE,
+          ONE: THREE.TOUCH.PAN, // Change from rotate to pan
           TWO: THREE.TOUCH.DOLLY_PAN,
-        };
-
-        // Add lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        }; // Add lights - increased intensity for lighter appearance
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
         directionalLight.position.set(10, 10, 5);
         directionalLight.castShadow = true;
         scene.add(directionalLight);
 
-        const pointLight = new THREE.PointLight(0xffffff, 0.5);
+        const pointLight = new THREE.PointLight(0xffffff, 0.8);
         pointLight.position.set(-10, -10, -5);
         scene.add(pointLight);
+
+        // Add additional fill light for brighter appearance
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        fillLight.position.set(-10, 10, -5);
+        scene.add(fillLight);
 
         // Load brain model
         loadBrainModel();
@@ -991,24 +995,35 @@
 
         // Load brain model
         loader.load(
-          "/brain_project/scene.gltf",
+          "/sliced_organs/sliced_brain.glb",
           (gltf) => {
             brainModel = gltf.scene;
 
-            // Adjust scale and position based on your brain model
-            brainModel.scale.set(1, 1, 1);
-            brainModel.position.set(0, 0, 0);
-
-            // Enable shadows
+            // Make the brain model much bigger - 3x scale for better visibility
+            brainModel.scale.set(3, 3, 3);
+            brainModel.position.set(0, 0, 0); // Enable shadows and enhance materials for lighter appearance
             brainModel.traverse((child) => {
               if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
 
-                // Enhance brain material appearance
+                // Enhance brain material appearance - lighter settings
                 if (child.material) {
-                  child.material.metalness = 0.1;
-                  child.material.roughness = 0.8;
+                  // Make materials lighter and more reflective
+                  child.material.metalness = 0.05;
+                  child.material.roughness = 0.6;
+
+                  // Increase emissive for brighter appearance
+                  if (!child.material.emissive) {
+                    child.material.emissive = new THREE.Color(0x222222);
+                  } else {
+                    child.material.emissive.setHex(0x222222);
+                  }
+
+                  // Ensure materials are brighter
+                  if (child.material.color) {
+                    child.material.color.multiplyScalar(1.3);
+                  }
                 }
               }
             });
@@ -1032,15 +1047,14 @@
         if (loadingElement) {
           loadingElement.style.display = "none";
         }
-      }
-
-      // Create fallback geometry if model fails to load
+      } // Create fallback geometry if model fails to load
       function createFallbackGeometry() {
         const geometry = new THREE.SphereGeometry(1, 32, 32);
         const material = new THREE.MeshPhongMaterial({
-          color: 0x9b59b6,
+          color: 0xcccccc, // Lighter fallback color
           transparent: true,
-          opacity: 0.8,
+          opacity: 0.9,
+          emissive: 0x333333, // Add emissive for brightness
         });
 
         brainModel = new THREE.Mesh(geometry, material);

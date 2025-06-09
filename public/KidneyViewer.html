@@ -447,6 +447,25 @@
         }
       }
 
+      /* Touch devices optimization */
+      @media (pointer: coarse) {
+        .label-point {
+          width: 2rem;
+          height: 2rem;
+          font-size: 1.2rem;
+          border-width: 2px;
+        }
+
+        .label-point:hover {
+          transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        .label-point.selected {
+          transform: translate(-50%, -50%) scale(1.3);
+          border-width: 3px;
+        }
+      }
+
       /* Responsive Design using Grid and Flexbox */
       @media (max-width: 48rem) {
         html {
@@ -593,13 +612,11 @@
         .control-key {
           font-size: 0.8rem;
           padding: 0.2rem 0.4rem;
-        }
-
-        /* Mobile-specific label point adjustments */
+        } /* Mobile-specific label point adjustments */
         .label-point {
-          width: 1.8rem;
-          height: 1.8rem;
-          font-size: 0.8rem;
+          width: 2rem;
+          height: 2rem;
+          font-size: 1.1rem;
           border-width: 1.5px;
         }
 
@@ -626,11 +643,10 @@
         .modal-content {
           padding: 1rem;
         }
-
         .label-point {
-          width: 1.5rem;
-          height: 1.5rem;
-          font-size: 0.7rem;
+          width: 2rem;
+          height: 2rem;
+          font-size: 1rem;
         }
       }
 
@@ -903,20 +919,23 @@
         controls.touches = {
           ONE: THREE.TOUCH.ROTATE,
           TWO: THREE.TOUCH.DOLLY_PAN,
-        };
-
-        // Add lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        }; // Add lights with increased intensity for brighter appearance
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
         directionalLight.position.set(10, 10, 5);
         directionalLight.castShadow = true;
         scene.add(directionalLight);
 
-        const pointLight = new THREE.PointLight(0xffffff, 0.5);
+        const pointLight = new THREE.PointLight(0xffffff, 0.8);
         pointLight.position.set(-10, -10, -5);
         scene.add(pointLight);
+
+        // Add additional fill light for even brighter appearance
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        fillLight.position.set(-5, 5, -5);
+        scene.add(fillLight);
 
         // Load kidney model
         loadKidneyModel();
