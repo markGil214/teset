@@ -1,27 +1,29 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/ARScannerPage.html",
-      "destination": "/public/ARScannerPage.html"
+      "destination": "/ARScannerPage.html"
     },
     {
       "source": "/BrainViewer.html",
-      "destination": "/public/BrainViewer.html"
+      "destination": "/BrainViewer.html"
     },
     {
       "source": "/KidneyViewer.html", 
-      "destination": "/public/KidneyViewer.html"
+      "destination": "/KidneyViewer.html"
     },
     {
       "source": "/LungsViewer.html",
-      "destination": "/public/LungsViewer.html"
+      "destination": "/LungsViewer.html"
     },
     {
       "source": "/SlicedHeartViewer.html",
-      "destination": "/public/SlicedHeartViewer.html"
+      "destination": "/SlicedHeartViewer.html"
     },
     {
-      "source": "/((?!api|_next|_static|favicon.ico|public|ARScannerPage|BrainViewer|KidneyViewer|LungsViewer|SlicedHeartViewer).*)",
+      "source": "/((?!api|_next|_static|favicon.ico|ARScannerPage|BrainViewer|KidneyViewer|LungsViewer|SlicedHeartViewer|assets|vendor|brain|kidney|lungs|sliced_organs|realistic_human_heart).*)",
       "destination": "/index.html"
     }
   ],
