@@ -48,8 +48,8 @@ const OrganSelectionPage: React.FC<OrganSelectionPageProps> = ({
     if (organ) {
       // Store organ data in localStorage for the AR Scanner to access
       localStorage.setItem("selectedOrgan", JSON.stringify(organ));
-      // Navigate to AR Scanner
-      navigate("/scan-explore");
+      // Navigate directly to AR Scanner
+      navigate("/scan-explore/ar");
     }
   };
 
